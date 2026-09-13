@@ -78,6 +78,36 @@
         "$ref": "#/$defs/annotation"
       }
     },
+    "view": {
+      "description": "View preset and RTL scope (SPEC §4.8 for microarch): overview draws the scope's children as blocks, detail expands `depth` hierarchy levels. The caption must state both (view/caption); with a netlist, coverage applies within the scope.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "preset"
+      ],
+      "properties": {
+        "preset": {
+          "enum": [
+            "overview",
+            "detail"
+          ]
+        },
+        "scope": {
+          "type": "string"
+        },
+        "depth": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "interfaces": {
+      "description": "Point-to-point interfaces with valid/ready semantics (e.g. AXI4-Stream): attached without an address map, drawn as stream links, never as a fabric bar.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/interface"
+      }
+    },
     "address_map": {
       "type": "object",
       "additionalProperties": false,
@@ -154,6 +184,93 @@
         },
         "signal": {
           "type": "string"
+        },
+        "covers": {
+          "description": "RTL this block represents inside the scope: signal/register globs of the scope module (`c_*`), instance paths (`u_fifo`), or `instance:glob`. Lets several blocks each represent part of one top instead of all claiming rtl.top; used by microarch coverage.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "stream_end": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "prefix"
+      ],
+      "properties": {
+        "instance": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_\\[\\]]*(/[A-Za-z_][A-Za-z0-9_\\[\\]]*)*$"
+        },
+        "top": {
+          "type": "boolean"
+        },
+        "prefix": {
+          "description": "port prefix of the stream on that module, e.g. s_axis_ (ports s_axis_tvalid, s_axis_tready, s_axis_tdata)",
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+        }
+      }
+    },
+    "interface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "from",
+        "to",
+        "protocol"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "from": {
+          "description": "source (manager) block: drives valid and data",
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "to": {
+          "description": "sink (subordinate) block: drives ready",
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "protocol": {
+          "enum": [
+            "AXI4-Stream",
+            "Avalon-ST",
+            "custom"
+          ]
+        },
+        "data_width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "short_label": {
+          "$ref": "common.schema.json#/$defs/short_label"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/source_pin"
+        },
+        "rtl": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "from": {
+              "$ref": "#/$defs/stream_end"
+            },
+            "to": {
+              "$ref": "#/$defs/stream_end"
+            }
+          }
         }
       }
     },

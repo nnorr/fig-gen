@@ -25,24 +25,31 @@ import { buildFigure, deliver, figureName } from '../lib/deliver.mjs';
 import { summarize } from '../lib/diagnostics.mjs';
 import { findChrome } from '../lib/env/chrome.mjs';
 import { checkNetlistEvidence, checkRtlInputs } from '../lib/evidence.mjs';
+import { FORMATS, relaxDiagnostics, resolveFormat, withFormat } from '../lib/format.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const EXIT = { ok: 0, fail: 1, usage: 2, notImplemented: 3 };
 
 const USAGE = `usage:
-  fig-gen validate <datapath|fsm|timing|microarch> <figure.json> [--netlist netlist.json] [--json]
-  fig-gen render   <datapath|microarch> <figure.json> <out-dir> [--netlist n.json] [--variants 2col,1col] [--profiles p.json] [--quality paper]
-  fig-gen deliver  <datapath|microarch> <figure.json> <out-dir> [--netlist n.json] [--variants 2col,1col] [--profiles p.json] [--quality paper]
-                   (default: 2col required, 1col best effort; --variants makes the listed variants mandatory)
+  fig-gen validate <datapath|fsm|timing|microarch> <figure.json> [--netlist netlist.json] [--format paper|study] [--json]
+  fig-gen render   <datapath|microarch> <figure.json> <out-dir> [--netlist n.json] [--variants 2col,1col] [--profiles p.json] [--quality paper] [--format paper|study] [--no-pdf] [--why-size]
+  fig-gen deliver  <datapath|microarch> <figure.json> <out-dir> [--netlist n.json] [--variants 2col,1col] [--profiles p.json] [--quality paper] [--format paper|study] [--no-pdf] [--why-size]
+                   (default: paper, 2col required, 1col best effort; --variants makes the listed variants mandatory)
+                   (--format study: one figure sized to content for RTL analysis; print-only checks relaxed, correctness kept;
+                    --no-pdf skips the PDF in study; superseded outputs of the figure move to <out-dir>/../archive/)
                    view presets: [--view overview|block|mixed|detail] [--scope <instance path>] [--depth n]
                                  [--gate-region <region id>...] [--blackbox <element or instance>...]
   fig-gen draft --view <overview|block|mixed|detail> --scope <instance path> --netlist n.json [--depth n]
                 [--gate-region name=out1,out2[:stop1,stop2]...] [--blackbox <instance path>...] [--repo-root <dir> --revision <sha>] [--out figure.json]
+                [--format paper|study] [--budget-seconds s]
+                (--format study: --view may be omitted (detail, depth 1); controllers and state drawn apart from logic;
+                 a draft over its budget, default 120 s, stops with draft/budget-exceeded naming a narrower scope)
   fig-gen crosscheck <datapath|microarch> <figure.json> --netlist netlist.json [--json]
   fig-gen expand-cone --netlist n.json --output <signal> [--index <n>] [--instance a/b] [--stop-at s1,s2]
                       [--max-gates 30] [--prefix g] [--no-bitblast] [--out fragment.json]
   fig-gen lint-svg <file.svg> [--json]
-  fig-gen check-rtl --top <module> (--files <f...> | --filelist <file.f> | --config <cfg>)
+  fig-gen check-rtl --top <module> (--search-path <dir|glob>... | --files <f...> | --filelist <file.f> | --config <cfg>)
+                    [--exclude <glob>...] [--prefer <file>...] [--emit-filelist <file.f>] [--summary]
                     [--out netlist.json] [--work-dir <dir>] [--source-root <dir>]
                     [--adapter <id>] [--stub <file.v>...] [--blackbox-json <file>...]
                     [--include <dir>...] [--define K=V...] [--param K=V...]
@@ -52,12 +59,12 @@ const USAGE = `usage:
 function parseArgs(argv) {
   const positional = [];
   const flags = {};
-  const multi = new Set(['files', 'stub', 'blackbox-json', 'include', 'define', 'param', 'gate-region', 'blackbox']);
+  const multi = new Set(['files', 'stub', 'blackbox-json', 'include', 'define', 'param', 'gate-region', 'blackbox', 'search-path', 'exclude', 'prefer']);
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
     if (!a.startsWith('--')) { positional.push(a); continue; }
     const key = a.slice(2);
-    if (['json', 'summary', 'quiet', 'no-bitblast'].includes(key)) { flags[key] = true; continue; }
+    if (['json', 'summary', 'quiet', 'no-bitblast', 'no-pdf', 'why-size'].includes(key)) { flags[key] = true; continue; }
     if (multi.has(key)) {
       flags[key] = flags[key] || [];
       while (i + 1 < argv.length && !argv[i + 1].startsWith('--')) flags[key].push(argv[++i]);
@@ -122,6 +129,12 @@ async function cmdValidate({ positional, flags }) {
     }
     result.ok = !result.diagnostics.some((d) => d.severity === 'error');
   }
+  // Study format (lib/format.mjs): print-only checks are skipped or warnings.
+  const fmt = resolveFormat(doc, flags.format);
+  result.diagnostics.push(...fmt.diagnostics);
+  const relaxed = relaxDiagnostics(result.diagnostics, fmt.format);
+  result.checks = { ...(result.checks || {}), format: { name: fmt.format, relaxed: [...relaxed.values()] } };
+  result.ok = !result.diagnostics.some((d) => d.severity === 'error');
   if (flags.json) print({ ok: result.ok, file, type, ...result, counts: summarize(result.diagnostics) });
   else {
     for (const d of result.diagnostics) console.error(line(d));
@@ -133,31 +146,33 @@ async function cmdValidate({ positional, flags }) {
 async function cmdRender({ positional, flags }) {
   const [type, file, outDir] = positional;
   if (!type || !file || !outDir) return usage();
-  const build = await buildFigure({ type, figurePath: file, netlistPath: flags.netlist, profilesPath: flags.profiles, variants: flags.variants?.split(','), quality: flags.quality, view: viewOpts(flags) });
+  const build = await buildFigure({ type, figurePath: file, netlistPath: flags.netlist, profilesPath: flags.profiles, variants: flags.variants?.split(','), quality: flags.quality, view: viewOpts(flags), format: flags.format, pdf: !flags['no-pdf'] });
   fs.mkdirSync(outDir, { recursive: true });
   const name = figureName(file);
   const written = [];
   for (const a of build.artifacts) {
-    for (const [ext, data] of [['svg', a.svg], ['pdf', a.pdf]]) {
+    for (const [ext, data] of [['svg', a.svg], ['pdf', a.pdf]].filter(([, d]) => d)) {
       const target = path.join(outDir, `${name}.${a.id}.${ext}`);
       fs.writeFileSync(target, data);
       written.push(target);
     }
   }
-  print({ ok: build.ok, written, verification: build.evidence?.verification, variant_status: build.evidence?.variantStatus, layout: build.artifacts.map((a) => ({ id: a.id, size_pt: [a.width_pt, a.height_pt], ...a.layout })), counts: summarize(build.diagnostics), diagnostics: build.diagnostics.map(line) });
+  print({ ok: build.ok, written, verification: build.evidence?.verification, variant_status: build.evidence?.variantStatus, layout: build.artifacts.map((a) => ({ id: a.id, size_pt: [a.width_pt, a.height_pt], ...a.layout, ...(flags['why-size'] ? { size_report: a.size_report } : {}) })), counts: summarize(build.diagnostics), diagnostics: build.diagnostics.map(line) });
   return build.ok ? EXIT.ok : EXIT.fail;
 }
 
 async function cmdDeliver({ positional, flags }) {
   const [type, file, outDir] = positional;
   if (!type || !file || !outDir) return usage();
-  const result = await deliver({ type, figurePath: file, outDir, netlistPath: flags.netlist, profilesPath: flags.profiles, variants: flags.variants?.split(','), quality: flags.quality, view: viewOpts(flags) });
+  const result = await deliver({ type, figurePath: file, outDir, netlistPath: flags.netlist, profilesPath: flags.profiles, variants: flags.variants?.split(','), quality: flags.quality, view: viewOpts(flags), format: flags.format, pdf: !flags['no-pdf'] });
   print({
     ok: result.ok,
+    format: result.receipt?.format ?? { name: result.evidence?.format?.name },
     written: result.written,
+    ...(result.archived ? { archived: result.archived } : {}),
     verification: result.receipt?.verification ? { level: result.receipt.verification.level, regions: result.receipt.verification.regions } : result.evidence?.verification,
     variant_status: result.receipt?.variant_status ?? result.evidence?.variantStatus,
-    layout: result.artifacts.map((a) => ({ id: a.id, size_pt: [a.width_pt, a.height_pt], min_font_pt: a.min_font_pt, min_stroke_pt: a.min_stroke_pt, ...a.layout })),
+    layout: result.artifacts.map((a) => ({ id: a.id, size_pt: [a.width_pt, a.height_pt], min_font_pt: a.min_font_pt, min_stroke_pt: a.min_stroke_pt, ...a.layout, ...(flags['why-size'] ? { size_report: a.size_report } : {}) })),
     counts: summarize(result.diagnostics),
     diagnostics: result.diagnostics.map(line),
   });
@@ -233,17 +248,44 @@ const viewOpts = (flags) => ({
 // Draft a starting figure for a view preset from the user's netlist. The
 // author refines it; validate/deliver apply every check to the result.
 async function cmdDraft({ flags }) {
-  if (!flags.netlist || !flags.view) return usage();
+  if (!flags.netlist || (!flags.view && flags.format !== 'study')) return usage();
   const { netlist, guard } = loadNetlistWithGuard(flags.netlist);
   if (guard.diagnostics.some((d) => d.severity === 'error')) {
     for (const d of guard.diagnostics) console.error(line(d));
     return EXIT.fail;
   }
-  const draft = draftFigure(netlist, { preset: flags.view, scope: flags.scope ?? '', depth: flags.depth !== undefined ? Number(flags.depth) : undefined, gateRegions: flags['gate-region'] || [], blackbox: flags.blackbox || [], ...(flags['repo-root'] && flags.revision ? { repository: { root: flags['repo-root'], revision: flags.revision } } : {}) });
-  const text = `${JSON.stringify(draft.doc, null, 2)}\n`;
+  // A short or symbolic revision (c6591b3, HEAD) is resolved in the repository: source pins need the full hash.
+  let revision = flags.revision;
+  if (flags['repo-root'] && revision && !/^[0-9a-f]{40}$/.test(revision)) {
+    const { spawnSync } = await import('node:child_process');
+    const r = spawnSync('git', ['-C', flags['repo-root'], 'rev-parse', '--verify', `${revision}^{commit}`], { encoding: 'utf8' });
+    if (r.status !== 0 || !/^[0-9a-f]{40}$/.test(r.stdout.trim())) {
+      console.error(`error draft/revision: --revision ${revision} is not a commit in ${flags['repo-root']}; give the full 40-hex hash or a resolvable ref`);
+      return EXIT.fail;
+    }
+    revision = r.stdout.trim();
+    console.error(`note: --revision ${flags.revision} resolved to ${revision}`);
+  }
+  let draft;
+  try {
+    draft = draftFigure(netlist, { format: flags.format, preset: flags.view, scope: flags.scope ?? '', depth: flags.depth !== undefined ? Number(flags.depth) : undefined, gateRegions: flags['gate-region'] || [], blackbox: flags.blackbox || [], ...(flags['budget-seconds'] !== undefined ? { budget: { seconds: Number(flags['budget-seconds']) } } : {}), ...(flags['repo-root'] && revision ? { repository: { root: flags['repo-root'], revision } } : {}) });
+  } catch (error) {
+    // A draft over its time or size budget reports where it stopped and how to narrow the scope.
+    if (!error.diagnostic) throw error;
+    console.error(line(error.diagnostic));
+    return EXIT.fail;
+  }
+  if (flags.format && !FORMATS.includes(flags.format)) return usage();
+  const text = `${JSON.stringify(flags.format ? withFormat(draft.doc, flags.format) : draft.doc, null, 2)}\n`;
   if (flags.out) fs.writeFileSync(flags.out, text);
   else process.stdout.write(text);
   for (const n of draft.notes) console.error(`note: ${n}`);
+  // The draft is checked like any figure; residual errors are notes to fix, not a failed draft.
+  const { draftResiduals } = await import('../lib/draft-check.mjs');
+  // Residuals are judged as the figure will be delivered: paper quality unless the draft is a study figure.
+  const residual = await draftResiduals(JSON.parse(text), netlist, { quality: flags.quality ?? (flags.format === 'study' ? undefined : 'paper'), figureDir: flags.out ? (await import('node:path')).dirname((await import('node:path')).resolve(flags.out)) : process.cwd() });
+  for (const r of residual) console.error(`residual: ${r.code}: ${r.message}`);
+  console.error(residual.length ? `note: the draft still fails ${residual.length} of its own checks (listed as residual:); refine it before delivery` : 'note: the draft passes its own checks (schema, semantics, labels, view, RTL cross-check, coverage, latency)');
   return EXIT.ok;
 }
 
@@ -257,15 +299,45 @@ async function cmdLintSvg({ positional, flags }) {
 }
 
 async function cmdCheckRtl({ flags }) {
+  const { expandSearchPath, formatFilelist, insideAny, parseFilelist, resolveDependencies } = await import('../lib/rtl/deps.mjs');
+  const { summaryLines } = await import('../lib/rtl/summary.mjs');
   const { config, dir: configDir } = loadConfig({ configPath: flags.config });
   const rtl = config.rtl || {};
-  let files = flags.files || [];
+  let files = (flags.files || []).map((f) => path.resolve(f));
+  let includeDirs = (flags.include || []).map((d) => path.resolve(d));
   if (flags.filelist) {
-    const base = path.dirname(path.resolve(flags.filelist));
-    files = files.concat(fs.readFileSync(flags.filelist, 'utf8').split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('//')).map((l) => path.resolve(base, l)));
+    const parsed = parseFilelist(fs.readFileSync(flags.filelist, 'utf8'), path.dirname(path.resolve(flags.filelist)));
+    files = files.concat(parsed.files);
+    includeDirs = includeDirs.concat(parsed.includeDirs);
+  }
+  const top = flags.top || rtl.top;
+  // Dependency resolution from search paths: module, package and include
+  // closure of the top, duplicates reported, the choice recorded.
+  const searchPaths = flags['search-path'] || (rtl.search_paths || []).map((p) => path.resolve(configDir, p));
+  let resolved = null;
+  if (searchPaths.length && top) {
+    resolved = resolveDependencies({ top, searchPaths, excludes: flags.exclude || [], prefer: flags.prefer || [], includeDirs });
+    if (!resolved.files.length) {
+      for (const d of resolved.diagnostics) console.error(line(d));
+      return EXIT.fail;
+    }
+    files = [...files, ...resolved.files.filter((f) => !files.includes(f))];
+    includeDirs = resolved.includeDirs;
+    // Tool output never goes into the RTL tree being read.
+    const roots = searchPaths.map((p) => expandSearchPath(p).base);
+    for (const [flag, target] of [['out', flags.out], ['work-dir', flags['work-dir']], ['emit-filelist', flags['emit-filelist']]]) {
+      const inside = target && insideAny(target, roots);
+      if (inside) {
+        console.error(`error evidence/output-in-rtl-tree: --${flag} ${target} lies inside the search path ${inside}; write tool output outside the RTL tree`);
+        return EXIT.fail;
+      }
+    }
+    if (flags['emit-filelist']) {
+      fs.mkdirSync(path.dirname(path.resolve(flags['emit-filelist'])), { recursive: true });
+      fs.writeFileSync(flags['emit-filelist'], formatFilelist({ files, includeDirs }));
+    }
   }
   if (!files.length && rtl.files) files = rtl.files.map((f) => path.resolve(configDir, f));
-  const top = flags.top || rtl.top;
   if (!top || !files.length) return usage();
 
   // Hard rule: never extract "evidence" from fig-gen's own files or tool output.
@@ -287,13 +359,27 @@ async function cmdCheckRtl({ flags }) {
     top,
     work_dir: flags['work-dir'],
     source_root: flags['source-root'] ? path.resolve(flags['source-root']) : undefined,
-    include_dirs: flags.include || [],
+    include_dirs: includeDirs,
     defines: kv(flags.define),
     params: kv(flags.param),
     blackbox_stubs: flags.stub || (rtl.blackbox_stubs || []).map((f) => path.resolve(configDir, f)),
     blackboxes: readUserBlackboxes(flags['blackbox-json'] || []),
   };
   const netlist = await adapter.extract(request, { log: flags.quiet ? () => {} : (m) => console.error(`[${adapter.id}] ${m}`) });
+  if (resolved) {
+    const relTo = (f) => (request.source_root ? path.relative(request.source_root, f).split(path.sep).join('/') : f);
+    netlist.inputs = {
+      ...(netlist.inputs || {}),
+      include_dirs: includeDirs.map(relTo),
+      resolution: {
+        ...resolved.resolution,
+        files: resolved.resolution.files.map((f) => ({ ...f, path: relTo(f.path) })),
+        duplicates: resolved.resolution.duplicates.map((d) => ({ ...d, candidates: d.candidates.map(relTo), chosen: relTo(d.chosen) })),
+        unresolved: resolved.resolution.unresolved.map((u) => ({ ...u, ...(u.referenced_by ? { referenced_by: relTo(u.referenced_by) } : {}) })),
+      },
+    };
+    netlist.diagnostics = [...resolved.diagnostics, ...netlist.diagnostics];
+  }
   const schemaDiagnostics = await validateSchema('rtl-netlist', netlist);
   if (schemaDiagnostics.length) {
     console.error(`rtl/adapter-output-invalid: ${schemaDiagnostics.slice(0, 5).map((d) => d.message).join('; ')}`);
@@ -313,6 +399,11 @@ async function cmdCheckRtl({ flags }) {
     hierarchy: netlist.hierarchy.map((h) => h.path),
     diagnostics: netlist.diagnostics.map(line),
   };
+  // --summary: one line per module, the file resolution, then the diagnostics.
+  if (flags.summary && !flags.json) {
+    process.stdout.write(`${summaryLines(netlist).join('\n')}\n`);
+    return EXIT.ok;
+  }
   if (flags.json || flags.summary || !flags.out) print(flags.json && !flags.summary ? netlist : summary);
   return EXIT.ok;
 }

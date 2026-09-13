@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "figure_type": "microarch",
+  "meta": {
+    "title": "Accelerator shell on a host card (regression fixture)",
+    "caption": "Overview view of the whole accelerator kernel (scope: top). The host programs control registers over AXI4-Lite; a memory mover is the AXI4 master to external card memory; input and output bytes also travel as AXI4-Stream interfaces through an input select and an output FIFO. Open arrowheads: stream interfaces (valid/ready); dashed: control.",
+    "print": {
+      "profile": "ieee",
+      "variants": [
+        "2col",
+        "1col"
+      ]
+    },
+    "style": {
+      "grayscale": true,
+      "font_family": "Arial",
+      "svg_profile": "figma-safe"
+    }
+  },
+  "view": {
+    "preset": "overview",
+    "scope": ""
+  },
+  "blocks": [
+    { "id": "host", "kind": "offchip", "label": "Host" },
+    { "id": "ext_mem", "kind": "offchip", "label": "External memory", "short_label": "Memory" },
+    { "id": "csr", "kind": "peripheral", "label": "Control registers", "short_label": "Registers", "sublabel": "start, status, windows" },
+    { "id": "in_sel", "kind": "custom", "label": "Input select", "sublabel": "stream or memory" },
+    { "id": "core", "kind": "accelerator", "label": "Accelerator core", "short_label": "Core", "emphasis": true },
+    { "id": "fifo", "kind": "fifo", "label": "Output FIFO" },
+    { "id": "mover", "kind": "custom", "label": "Memory mover", "sublabel": "burst read and write" }
+  ],
+  "fabrics": [
+    { "id": "ctl", "protocol": "AXI4-Lite", "label": "AXI4-Lite control", "addr_width": 12, "data_width": 32, "topology": "bus" },
+    { "id": "mem", "protocol": "AXI4", "label": "AXI4 memory", "addr_width": 32, "data_width": 32, "topology": "bus" }
+  ],
+  "attachments": [
+    { "id": "at_host", "fabric": "ctl", "block": "host", "role": "manager" },
+    { "id": "at_csr", "fabric": "ctl", "block": "csr", "role": "subordinate", "address": { "base": "0x0000_0000", "size": "0x0000_1000" } },
+    { "id": "at_mover", "fabric": "mem", "block": "mover", "role": "manager" },
+    { "id": "at_ext_mem", "fabric": "mem", "block": "ext_mem", "role": "subordinate", "address": { "base": "0x0000_0000", "size": "0x4000_0000" } }
+  ],
+  "interfaces": [
+    { "id": "s_in", "protocol": "AXI4-Stream", "from": "host", "to": "in_sel", "data_width": 8, "label": "stream input", "short_label": "in" },
+    { "id": "s_out", "protocol": "AXI4-Stream", "from": "fifo", "to": "host", "data_width": 8, "label": "stream output", "short_label": "out" }
+  ],
+  "links": [
+    { "id": "l_start", "from": "csr", "to": "core", "class": "control", "label": "start, status" },
+    { "id": "l_window", "from": "csr", "to": "mover", "class": "control", "label": "windows" },
+    { "id": "l_mode", "from": "csr", "to": "in_sel", "class": "control", "label": "input source" },
+    { "id": "l_read", "from": "mover", "to": "in_sel", "class": "data", "width": 8, "label": "read bytes" },
+    { "id": "l_in", "from": "in_sel", "to": "core", "class": "data", "width": 8, "label": "input bytes" },
+    { "id": "l_out", "from": "core", "to": "fifo", "class": "data", "width": 8, "label": "output bytes" },
+    { "id": "l_write", "from": "fifo", "to": "mover", "class": "data", "width": 8, "label": "write bytes" }
+  ],
+  "groups": [
+    { "id": "kernel", "label": "Accelerator kernel", "style": "chip", "members": ["csr", "in_sel", "core", "fifo", "mover"] }
+  ]
+}

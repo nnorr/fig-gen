@@ -58,6 +58,12 @@ Width presets (1 in = 72 bp; TeX pt = 1/72.27 in; the difference is below 0.4 %)
   in 8–12 page conference papers.
 - IEEE advises not to size figures narrower than one column [ext]. **[house]** If a
   figure is narrow, add whitespace to the canvas instead of shrinking it.
+- **[house] Study canvas.** A study figure (`format: study`) is not a print
+  figure. Its canvas is the content size, so it may be any width or height, and
+  nothing is collapsed to fit. Text, stroke and symbol rules still apply as drawn
+  (same skin); only the column/height limits and print legibility thresholds are
+  lifted. Study figures are for reading the RTL, never for a paper: deliver the
+  paper figure in paper format.
 
 ### 0.2 Fonts
 
@@ -89,14 +95,21 @@ Rules:
 | Element | Stroke (pt, at print) | Tag |
 |---------|-----------------------|-----|
 | Absolute minimum anywhere | 0.5 | [ext] SWST: lines under 0.5 pt drop out; Cell Press range 0.5–1.5 pt |
-| Every net: data of any bit width, control (dashed), clock, reset | 0.6 | [house] |
-| Block outline (logic block, register, memory) | 0.8 | [house] |
+| Every net: data of any bit width, control (dashed 3–2.25), clock, reset (dotted 1.2–1.8) | 0.9 (skin `stroke.wire` = `stroke.control`) | [house] |
+| Block and symbol outline (logic block, register, memory, gates, mux) | 1.0 | [house] |
 | Emphasis outline (the "new" block the paper proposes) | 1.4 | [house] |
 | Group / domain / chip boundary | 0.6, dashed 3–2 | [house] |
-| Pipeline register bar | 0.8 outline + gray fill | [house] |
-| Arrowheads | filled triangle, 4.5 pt long, 3.2 pt wide | [house] |
+| Pipeline register bar | 1.0 outline + gray fill (bar proportions unchanged) | [house] |
+| Arrowheads | filled triangle, 5.0 pt long, 3.6 pt wide, one size per figure | [house] |
+| Junction dots | diameter 3× the wire stroke, at least 2.4 pt | [house] |
 
-- **Why every net has one weight:** at print size a 1.2 pt bus beside 0.6 pt wires
+All of these are skin tokens (`stroke`, `dash`, `arrow`, `junction_diam_factor`,
+`junction_min_diam`); renderers never hard-code a weight. Wires at 0.6 pt read as
+hairlines beside 0.8 pt outlines at print size, so nets are 0.9 pt and outlines
+1.0 pt: blocks still read before wires, and dashes, arrowheads and dots scale
+with the wire.
+
+- **Why every net has one weight:** at print size a heavier bus beside thin wires
   reads as emphasis, crowds dense datapaths, and makes junction dots and arrowheads
   look mismatched. The bit width is already stated by the slash-N label (§2.1), so a
   second, heavier channel for it adds clutter, not information. Uniform weight reads
@@ -156,6 +169,12 @@ Rules:
 - **[house]** Put the label **inside** the block when it fits at 8 pt. Otherwise put
   it directly above the block. Do not use leader lines unless the block is too small
   (for example a 2-flop synchronizer).
+- **[house] No pin names inside boxes by default.** A block shows its function
+  name; the nets outside say what flows. Print pin names only where the reader
+  cannot tell the pins apart otherwise (`pin_labels: true` on that element):
+  at most 4 per block, readable words, never clock or reset
+  (`label/pin-clutter`; error under `--quality paper`). *Why:* rows of
+  `din`/`dout`/`en` inside every box crowd the figure and repeat the wiring.
 - **[house]** Put net labels next to the wire, near the **source**. Repeat a label at
   the sink only if the wire is longer than about 1/3 of the figure width, or crosses a
   group boundary.
@@ -184,19 +203,28 @@ Rules:
 
 | Net class | Stroke | Color | Dash | Arrowhead | Tag |
 |-----------|--------|-------|------|-----------|-----|
-| Data, any bit width (buses, computed flags, status outputs, compare / zero-detect / match results, classifier outputs) | 0.6 pt; the width is shown only by the slash-N label (§2.1) | `ink` | solid | at sink | [house] |
-| Control (mux select, register/memory enable, write/chip enable, valid/ready handshake, controller strobes such as start/clear) | 0.6 pt | `ctrl` | solid (color mode) / dashed 2–1.5 (grayscale mode) | at sink | [house] |
-| Clock (when drawn) | 0.6 pt | `ink` | solid | at sink | [house] |
-| Reset (when drawn) | 0.6 pt | `ink` | dotted 0.8–1.2 | at sink | [house] |
+| Data, any bit width (buses, computed flags, status outputs, compare / zero-detect / match results, classifier outputs) | 0.9 pt; the width is shown only by the slash-N label (§2.1) | `ink` | solid | at sink | [house] |
+| Control (mux select, register/memory enable, write/chip enable, valid/ready handshake, controller strobes such as start/clear) | 0.9 pt | `ctrl` | solid (color mode) / dashed 3–2.25 (grayscale mode) | at sink | [house] |
+| Clock (when drawn) | 0.9 pt | `ink` | solid | at sink | [house] |
+| Reset (when drawn) | 0.9 pt | `ink` | dotted 1.2–1.8 | at sink | [house] |
 
 **One stroke weight [house].** Every net is drawn at the one wire stroke
-(skin `stroke.wire`, 0.6 pt): a 48-bit bus and a 1-bit flag look the same, and
+(skin `stroke.wire`, 0.9 pt): a 48-bit bus and a 1-bit flag look the same, and
 the bus says its width with a slash-N label. Control keeps that weight and is
-dashed; clock and reset follow the rows above; symbol outlines (0.8 pt) and the
+dashed; clock and reset follow the rows above; symbol outlines (1.0 pt) and the
 solid mux bar are unchanged. The final SVG is checked: any net path or symbol
 wire stub at another weight, or a skin whose `stroke.bus`/`stroke.control`
 differs from `stroke.wire`, is `net/stroke-uniform` (error). *Why:* uniform
 weight reads cleaner at print size; the width is in the label.
+
+**One arrowhead size [house].** Every arrowhead in a figure has the skin's
+`arrow.length` × `arrow.width`, and none is shortened to fit a short last run.
+The layout keeps each run into a pin at least one arrowhead long (plus
+`route.arrow_min_shaft_pt`), moving the riser back when that does not make the
+wire hug a block or another wire. A run that still cannot hold a full head is
+`arrow/no-room` (error), and any head of another size in the final SVG is
+`arrow/nonuniform` (error). *Why:* a short head beside a full one reads as a
+different kind of connection.
 
 **Arrowheads [house].** Every net that ends at a block input pin or a figure
 output port gets an arrowhead, whatever its width or class. One exception: the
@@ -205,7 +233,7 @@ shows direction. A bus entering a split does not end there; it continues as the
 ripper spine and has no head. A skin that leaves a net kind out of `arrow.at`
 fails `arrow/missing` (error). *Why:* when some thin wires have heads and
 others don't, readers take the difference to mean something.
-| Configuration / quasi-static (CSR fields) | 0.6 pt | gray `#777` | dashed 1–1.5 | at sink | [house] |
+| Configuration / quasi-static (CSR fields) | 0.9 pt | gray `#777` | dashed 1.5–2.25 | at sink | [house] |
 
 Rules:
 
@@ -241,7 +269,7 @@ Rules:
    nothing.
 3. **Reset nets SHOULD be omitted.** Say "all registers reset to 0" in the caption.
    Draw reset only when it matters to the idea, for example a reset synchronizer.
-4. Where a wire splits, draw a **junction dot** (diameter 2.5× stroke). Where two
+4. Where a wire splits, draw a **junction dot** (diameter 3× stroke, at least 2.4 pt). Where two
    wires cross without connecting, draw **no dot and no hop**. *Why:* a dot means
    "connected", as in IEEE-style schematics and Harris & Harris. Hops (bridges) look
    out of date and add clutter.
@@ -347,8 +375,23 @@ and a wire that touches another reads as a junction.
   or run around frames is cut into a pair of pentagon tags: a source tag after
   the driver and a target tag before each sink. Both carry the net's name (its
   `short_label` in tight variants), and connectivity treats the pair as one net.
-  All source tags share one column. `route/long-feedback` fires for a long loop
-  that is still drawn (`meta.style.connectors: false`).
+  All source tags share one column. Length is the **routed** length, not the
+  horizontal span: a back edge whose route is longer than the ratio × width,
+  or any branch whose route exceeds its direct distance by that much (a wrap
+  around the figure), gets connectors. `route/long-feedback` and
+  `route/long-loop` fire for such a loop that is still drawn
+  (`meta.style.connectors: false`).
+- **A net label anchors to its own wire.** It is placed where its own wire is
+  closer than any other net's wire; otherwise the reader may attach it to the
+  neighbour (`label/ambiguous-anchor`, error). One name per net: two nets with
+  the same label, or a net label that repeats its endpoint's port label, is
+  `label/duplicate-net-label`; a tie-off constant (`1'b0`, `'0`) is never a
+  port label (`label/constant-as-port-label`). Both are errors under
+  `--quality paper`.
+- **Nets enter a region frame from the side facing their source**, at least
+  two frame gaps from a corner and never through the frame's label band
+  (`region/entry-side`, error). *Why:* a wire that loops round to enter from
+  the far side reads as a path from somewhere else.
 - **Wires keep clear of region frames.** No wire runs parallel to a frame edge
   within 6 pt (9 pt for a dashed wire beside the dashed frame); crossing a frame
   is fine. A frame edge never grows over a non-member block to clear a wire

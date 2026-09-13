@@ -31,7 +31,48 @@
         "defines": { "type": "object", "additionalProperties": { "type": "string" } },
         "params": { "type": "object" },
         "source_root": { "type": "string", "description": "Absolute root that relative file paths are resolved against (evidence origin)." },
-        "work_dir": { "type": "string", "description": "Tool work directory (never evidence)." }
+        "work_dir": { "type": "string", "description": "Tool work directory (never evidence)." },
+        "include_dirs": { "type": "array", "items": { "type": "string" } },
+        "resolution": {
+          "description": "How the file list was found from --search-path: every duplicate definition with all candidates and the deterministic choice, and unresolved includes.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "top": { "type": "string" },
+            "search_paths": { "type": "array", "items": { "type": "string" } },
+            "excludes": { "type": "array", "items": { "type": "string" } },
+            "prefer": { "type": "array", "items": { "type": "string" } },
+            "scanned": { "type": "integer", "minimum": 0 },
+            "files": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["path"], "properties": { "path": { "type": "string" }, "defines": { "type": "array", "items": { "type": "string" } } } } },
+            "duplicates": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["name", "candidates", "chosen", "reason"],
+                "properties": { "name": { "type": "string" }, "kind": { "type": "string" }, "candidates": { "type": "array", "items": { "type": "string" } }, "chosen": { "type": "string" }, "reason": { "type": "string" } }
+              }
+            },
+            "unresolved": { "type": "array", "items": { "type": "object", "additionalProperties": false, "properties": { "kind": { "type": "string" }, "name": { "type": "string" }, "referenced_by": { "type": "string" } } } }
+          }
+        }
+      }
+    },
+    "types": {
+      "description": "Named enum and packed struct/union types of the design, each once.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "kind", "width"],
+        "properties": {
+          "name": { "type": "string" },
+          "kind": { "enum": ["enum", "struct", "union"] },
+          "width": { "type": "integer", "minimum": 1 },
+          "items": { "$ref": "#/$defs/enum_items" },
+          "members": { "$ref": "#/$defs/struct_members" },
+          "source": { "$ref": "#/$defs/loc" }
+        }
       }
     },
     "modules": {
@@ -65,6 +106,10 @@
                 "lsb": { "type": "integer" },
                 "signed": { "type": "boolean" },
                 "direction_inferred": { "type": "boolean" },
+                "type": { "type": "string", "description": "Named type of the declaration (typedef, enum or struct name)." },
+                "enum": { "$ref": "#/$defs/enum_type" },
+                "struct": { "$ref": "#/$defs/struct_type" },
+                "packed_array": { "$ref": "#/$defs/packed_array" },
                 "source": { "$ref": "#/$defs/loc" }
               }
             }
@@ -83,6 +128,10 @@
                 "array": { "type": "array", "items": { "type": "string" } },
                 "kind": { "enum": ["wire", "var", "param", "port"] },
                 "value": { "type": "string" },
+                "type": { "type": "string" },
+                "enum": { "$ref": "#/$defs/enum_type" },
+                "struct": { "$ref": "#/$defs/struct_type" },
+                "packed_array": { "$ref": "#/$defs/packed_array" },
                 "source": { "$ref": "#/$defs/loc" }
               }
             }
@@ -97,6 +146,10 @@
                 "name": { "type": "string" },
                 "width": { "type": "integer", "minimum": 1 },
                 "array": { "type": "array", "items": { "type": "string" } },
+                "type": { "type": "string" },
+                "enum": { "$ref": "#/$defs/enum_type" },
+                "struct": { "$ref": "#/$defs/struct_type" },
+                "packed_array": { "$ref": "#/$defs/packed_array" },
                 "scope": { "type": "string" },
                 "clock": { "type": "object", "additionalProperties": false, "required": ["net", "edge"], "properties": { "net": { "type": "string" }, "edge": { "enum": ["pos", "neg"] } } },
                 "reset": { "type": "object", "additionalProperties": false, "properties": { "net": { "type": "string" }, "active": { "enum": ["low", "high"] }, "async": { "type": "boolean" }, "inferred_by": { "type": "string" } } },
@@ -209,6 +262,53 @@
     "diagnostics": { "type": "array", "items": { "type": "object" } }
   },
   "$defs": {
+    "enum_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "value": { "type": ["integer", "string"], "description": "Encoding as a number (a hex string when wider than 53 bits or containing x/z)." },
+          "literal": { "type": "string", "description": "Encoding as the tool printed it, e.g. 3'h3." }
+        }
+      }
+    },
+    "enum_type": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "items"],
+      "properties": { "type": { "type": "string" }, "width": { "type": ["integer", "null"] }, "items": { "$ref": "#/$defs/enum_items" } }
+    },
+    "struct_members": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "width", "msb", "lsb"],
+        "properties": {
+          "name": { "type": "string" },
+          "width": { "type": "integer", "minimum": 1 },
+          "msb": { "type": "integer" },
+          "lsb": { "type": "integer" },
+          "type": { "type": "string" },
+          "enum": { "$ref": "#/$defs/enum_type" }
+        }
+      }
+    },
+    "struct_type": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "kind", "width", "members"],
+      "properties": { "type": { "type": "string" }, "kind": { "enum": ["struct", "union"] }, "width": { "type": "integer" }, "members": { "$ref": "#/$defs/struct_members" } }
+    },
+    "packed_array": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dims", "element_width"],
+      "properties": { "dims": { "type": "array", "items": { "type": "string" } }, "element_width": { "type": "integer" }, "element_type": { "type": "string" } }
+    },
     "loc": {
       "type": "object",
       "additionalProperties": false,

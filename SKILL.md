@@ -40,10 +40,20 @@ the JSON and re-run, so the fix survives the next render.
    RTL, extract a netlist first and author from it:
 
    ```bash
-   node <skill>/bin/fig-gen.mjs check-rtl --top <module> --files <rtl files...> \
+   node <skill>/bin/fig-gen.mjs check-rtl --top <module> \
+     --search-path "<repo>/rtl/**" [--search-path "<repo>/ip/*.sv"] \
      --work-dir <scratch dir outside the RTL repo> --source-root <repo root> \
      --out <scratch>/netlist.json --summary
    ```
+
+   `--search-path` finds the top's module, package and include closure; no file
+   list or helper script is needed (`--files`/`--filelist` still work). Quote
+   globs. Duplicate module/package definitions are reported
+   (`rtl/duplicate-definition`) with every defining file; the real file wins
+   over a `*_stub`/`mock`/`tb` file. Override with `--prefer <file>` or
+   `--exclude <glob>`, and tell the user which definition was used.
+   `--emit-filelist` saves the resolved list. Enum state registers keep their
+   item names and encodings, packed structs their member offsets.
 
    Missing modules (memory macros, IP) are stubbed automatically from their
    instantiation sites; say which ports were inferred. Add `source` pins
@@ -73,7 +83,14 @@ the JSON and re-run, so the fix survives the next render.
    [--gate-region name=out1,out2] [--blackbox <path>] [--repo-root <dir>
    --revision <sha>] --out fig.json`. Then refine: rename blocks, regroup, add
    context. Read the draft's notes; they list every name the generator
-   inferred and every wire it could not map. The figure's `view` records the
+   inferred and every wire it could not map. The draft runs the figure's own
+   checks and prints each remaining error as `residual: <code>: …` (at paper
+   quality; study with `--format study`): fix those first, they are what
+   `deliver` would reject. `--scope ''` with `--view block` drafts the top
+   module itself. A draft that runs past its budget stops with
+   `draft/budget-exceeded`, naming the largest children: narrow `--scope`,
+   lower `--depth` or `--blackbox` one; raise `--budget-seconds` only if the
+   scope really needs it. The figure's `view` records the
    preset and scope. The caption must state both (`view/caption`), and the
    completeness rule applies within that scope. Narrowing the scope is the
    legitimate way to show one block.
@@ -90,7 +107,30 @@ the JSON and re-run, so the fix survives the next render.
 
 6. **Deliver** (Phase 2+): `deliver` renders both `1col` and `2col` variants,
    lints the SVG as figma-safe, derives outlined-text PDFs, and writes a
-   receipt. A non-zero exit is never success.
+   receipt. A non-zero exit is never success. Re-delivering moves the
+   figure's previous outputs to `<out>/../archive/<date>-<name>-<hash>/` (also
+   when the new delivery fails), so only current outputs stay in `<out>`.
+
+## Paper or study
+
+Paper is the default: every figure is a printed column figure. Use
+`--format study` (or `meta.print.format: "study"`) only when the user asks to
+study, analyse or explore RTL rather than to make a paper figure.
+
+- A study figure is one SVG (optional PDF, `--no-pdf`) sized to its content,
+  with full hierarchy and detail; nothing is collapsed or split for size.
+- Every correctness check still applies (coverage, latency, cross-check,
+  connectivity, arrowheads, glyphs, evidence). Only print checks are relaxed
+  (column fit, height, crossing thresholds, font/stroke floors; readable names
+  and caption become warnings). The receipt lists them.
+- `draft`, `validate`, `render` and `deliver` all accept `--format`.
+- A study draft shows structure by default: `fig-gen draft --scope '' --netlist
+  n.json --format study` is a detail view one level deep, with each
+  controller (enumerated state register) drawn apart from its datapath and
+  every signal as its own net. Go deeper one instance at a time
+  (`--view detail --scope u_x --depth 2`).
+- Never hand a study figure over as a paper figure: re-deliver in paper
+  format for the paper.
 
 ## Things that matter for paper figures
 
@@ -141,11 +181,33 @@ the JSON and re-run, so the fix survives the next render.
   not support.
 - **No duplicate names.** Split stages of one function get `function.stage`
   ("1/2", "2/2"); otherwise give each block its own name.
+- **No pin names inside boxes.** Blocks print their function name only; the
+  nets outside say what flows. Set `pin_labels: true` on an element only when
+  the reader cannot tell its pins apart otherwise: at most 4 readable pin
+  labels, never clock or reset (`label/pin-clutter`). A tie-off constant is
+  drawn as a constant, never as a port label (`label/constant-as-port-label`),
+  and each net has one name: no two nets with the same label, no net label
+  repeating its port's label (`label/duplicate-net-label`).
 - **Widths are one number.** Never write `N×W` on a net or a mux; say "6
   symbols of 8 bits" in the caption or `function.detail`.
 - **Line style comes from usage.** Do not set `class: control` on computed
   flags or status outputs; mark real control inputs with `role` (`select`,
   `enable`, `handshake`) and let fig-gen derive dashed/solid.
+
+## SoC / microarch figures
+
+- One `fabrics[]` entry per memory-mapped bus (AXI4-Lite control, AXI4 master,
+  APB…), with `attachments[]` giving manager/subordinate and the subordinate's
+  `address`. Each fabric gets its own row; don't try to share rows.
+- Streams (AXI4-Stream) are `interfaces[]` (`from` source, `to` sink,
+  `data_width`, `rtl.from/to {top|instance, prefix}`), not fabrics or links.
+- Off-chip blocks (`kind: offchip`: host, card memory) are never members of the
+  chip group.
+- When several blocks come from one RTL top (register bank, input select),
+  give each an `rtl.covers` (`["c_*"]`, `["in_*"]`); map child instances with
+  `rtl.instance`. Declare `view: {preset: "overview", scope: ""}` and state it
+  in the caption. With `--netlist`, every instance and top register must be
+  represented (`coverage/dropped-hardware`).
 
 ## Facts from documents
 
@@ -181,12 +243,28 @@ the JSON and re-run, so the fix survives the next render.
   buffers) and memories may stay inside a block whose output ports are marked
   `registered` with their `latency`; the block then gets a clock wedge and a
   "k stages" note. Drawn latency must equal the RTL latency
-  (`latency/hidden-register`).
+  (`latency/hidden-register`), member by member for bundles.
+- **Controller outputs** whose latency differs by input get a per-input map
+  (`"latency": {"start": 1, "rsp_valid": 2}`); outputs that depend on the
+  state rather than a fixed path get `"latency": "state"`. Both are only for
+  stateful kinds (`controller`, `fsm`, `bus_slave`, `csr_bank`, `arbiter`;
+  `latency/controller-only`). Never invent a uniform number to silence the
+  check.
 - **If the figure does not fit 2col**, in this order: collapse more hardware
   into blocks that cover it; allow a taller figure up to the profile's maximum
   height; otherwise the delivery fails (`deliver/does-not-fit`): narrow the
   scope, or split into sub-figures (a)/(b) where the collapsed element links
-  its detail figure with `detail_ref`. Never drop hardware to fit.
+  its detail figure with `detail_ref`. Never drop hardware to fit. The
+  overflow message names what sets the size (widest layers, tallest
+  columns); `render --why-size` prints the full size report.
+- Long returns and wrap-arounds are measured by routed length and drawn as
+  named connectors (`route/long-feedback`, `route/long-loop`). Net labels sit
+  nearer their own wire than any other (`label/ambiguous-anchor`), and nets
+  enter a region frame through the side facing their source
+  (`region/entry-side`).
+- Every arrowhead has the one skin size; none is shortened
+  (`arrow/nonuniform`, `arrow/no-room`). If one fires, change spacing or pin
+  placement in the IR, not the skin.
 - Geometry is exactly connected: wires end on their pin anchors (curved gate
   backs, apexes, bubble tangent points) and inversion bubbles are tangent to
   their gates (`wire/detached`, `wire/touching`, `symbol/bubble-detached`,

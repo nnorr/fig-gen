@@ -291,6 +291,36 @@
       "display": "Error injector",
       "short": "Injector"
     },
+    "arithmetic_unit": {
+      "display": "Arithmetic unit",
+      "qualified": "{q} arithmetic unit",
+      "short": "Arithmetic"
+    },
+    "counter": {
+      "display": "Counter",
+      "qualified": "{q} counter",
+      "short": "Counter"
+    },
+    "fifo": {
+      "display": "FIFO",
+      "qualified": "{q} FIFO",
+      "short": "FIFO"
+    },
+    "arbiter": {
+      "display": "Arbiter",
+      "qualified": "{q} arbiter",
+      "short": "Arbiter"
+    },
+    "hash": {
+      "display": "Hash function",
+      "qualified": "{q} hash",
+      "short": "Hash"
+    },
+    "permutation": {
+      "display": "Permutation",
+      "qualified": "{q} permutation",
+      "short": "Permutation"
+    },
     "custom": {
       "display": null,
       "short": null
@@ -336,6 +366,7 @@
     "AXI",
     "SoC",
     "zext",
-    "sext"
+    "sext",
+    "FIFO"
   ]
 }

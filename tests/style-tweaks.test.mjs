@@ -40,20 +40,21 @@ test('net/stroke-uniform: buses, 1-bit wires and dashed control share one stroke
   const r = await renderDatapath(doc, { variant: '2col', widthPt: 515.5, name: 'widths' });
   assert.deepEqual(errors(r.diagnostics), []);
   const widths = new Set([...r.svg.matchAll(/id="net-[^"]+-seg\d+"[^>]*stroke-width="([\d.]+)"/g)].map((m) => m[1]));
-  assert.deepEqual([...widths], ['0.6']);
-  assert.match(r.svg, /id="net-ns-seg0"[^>]*stroke-width="0.6"[^>]*stroke-dasharray/, 'control is dashed at the same weight');
+  const wire = String(loadSkin().tokens.stroke.wire);
+  assert.deepEqual([...widths], [wire]);
+  assert.match(r.svg, new RegExp(`id="net-ns-seg0"[^>]*stroke-width="${wire}"[^>]*stroke-dasharray`), 'control is dashed at the same weight');
   assert.match(r.svg, /id="net-na-width"[^>]*>8</, 'a bus shows its width by its slash-N label');
   assert.equal(r.route.connectivity.stroke_nonuniform, 0);
   assert.ok(r.route.connectivity.strokes_checked >= 5);
 
-  const heavy = r.svg.replace(/(id="net-nm-seg0"[^>]*stroke-width=")0.6"/, '$11.2"');
-  const d = connectivityChecks(heavy, { anchors: r.geometry.anchors, wireStroke: 0.6 }).diagnostics.filter((x) => x.code === 'net/stroke-uniform');
+  const heavy = r.svg.replace(new RegExp(`(id="net-nm-seg0"[^>]*stroke-width=")${wire}"`), `$1${Number(wire) * 2}"`);
+  const d = connectivityChecks(heavy, { anchors: r.geometry.anchors, wireStroke: Number(wire) }).diagnostics.filter((x) => x.code === 'net/stroke-uniform');
   assert.equal(d.length, 1);
   assert.equal(d[0].severity, 'error');
 
   const skin = loadSkin();
   assert.ok(!checkSkin(skin).some((x) => x.code === 'net/stroke-uniform'));
-  skin.tokens.stroke.bus = 1.2;
+  skin.tokens.stroke.bus = skin.tokens.stroke.wire * 2;
   assert.ok(checkSkin(skin).some((x) => x.code === 'net/stroke-uniform'), 'a heavier bus token is rejected');
 });
 

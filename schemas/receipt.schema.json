@@ -100,7 +100,6 @@
         "required": [
           "id",
           "svg",
-          "pdf",
           "min_font_pt",
           "min_stroke_pt",
           "svg_lint"
@@ -238,6 +237,14 @@
                   "stroke_nonuniform": {
                     "description": "net/stroke-uniform: net paths or wire stubs not drawn at stroke.wire.",
                     "const": 0
+                  },
+                  "arrows_checked": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "arrow_nonuniform": {
+                    "description": "arrow/nonuniform: arrowheads whose length or width differs from the skin arrow geometry.",
+                    "const": 0
                   }
                 }
               }
@@ -316,7 +323,8 @@
         "quality": {
           "enum": [
             "paper",
-            "draft"
+            "draft",
+            "study"
           ]
         }
       }
@@ -735,6 +743,35 @@
           "type": "integer",
           "minimum": 0
         },
+        "member_pairs_checked": {
+          "description": "RTL signal pairs traced, counting each member of a bundle net.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "bundled_pairs_checked": {
+          "description": "Drawn net pairs where at least one net is a bundle expanded to its members.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "pairs_skipped_bundled": {
+          "description": "Bundle members that do not resolve to an RTL signal and were not checked.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "state_pairs": {
+          "description": "Pairs through controller outputs declared latency \"state\" (no single latency claimed; hidden pipeline registers still checked).",
+          "type": "integer",
+          "minimum": 0
+        },
+        "excluded_unmapped": {
+          "description": "Nets the author drew without an RTL mapping (net rtl_unmapped), with the reason.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["net", "reason"],
+            "properties": { "net": { "type": "string" }, "reason": { "type": "string" } }
+          }
+        },
         "mismatches": {
           "const": 0
         },
@@ -816,6 +853,71 @@
           "type": "object"
         }
       }
+    },
+    "format": {
+      "description": "Output format (lib/format.mjs): paper column variants, or study (one figure sized to content). A study receipt lists the paper-only checks that were skipped or downgraded to warnings, and how often each fired.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "profile",
+        "skipped_checks",
+        "downgraded_checks"
+      ],
+      "properties": {
+        "name": {
+          "enum": [
+            "paper",
+            "study"
+          ]
+        },
+        "profile": {
+          "type": "string"
+        },
+        "skipped_checks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "downgraded_checks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "relaxed": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "treatment",
+              "count"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "treatment": {
+                "enum": [
+                  "skip",
+                  "warning"
+                ]
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "archived": {
+      "description": "Superseded outputs of this figure name that were in the output directory, moved before writing (path relative to the output directory).",
+      "type": "string"
     }
   },
   "$defs": {
@@ -1404,5 +1506,40 @@
       ],
       "unevaluatedProperties": false
     }
-  }
+  },
+  "allOf": [
+    {
+      "description": "Only a study receipt may omit the PDF of a variant.",
+      "if": {
+        "not": {
+          "required": [
+            "format"
+          ],
+          "properties": {
+            "format": {
+              "required": [
+                "name"
+              ],
+              "properties": {
+                "name": {
+                  "const": "study"
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "variants": {
+            "items": {
+              "required": [
+                "pdf"
+              ]
+            }
+          }
+        }
+      }
+    }
+  ]
 }

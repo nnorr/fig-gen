@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "note": "Study / free-size format (lib/format.mjs, SPEC §9.6): one variant sized to its content for RTL analysis. No column width and no maximum height; the SVG canvas and the optional PDF page equal the content size. The paper column profiles live in print-profiles.json.",
+  "profile": "study",
+  "label": "Study (RTL analysis): one figure sized to content",
+  "variants": {
+    "study": { "width_pt": null, "max_height_pt": null, "min_font_pt": 6, "warn_font_pt": null, "min_stroke_pt": 0.5, "sized_to_content": true }
+  }
+}

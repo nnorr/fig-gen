@@ -542,6 +542,79 @@ What the draft draws:
   - a block output is marked registered when its latency is uniform from its mapped inputs, and left unmapped when it varies (unless it feeds a pipeline bar; a note then asks the author to regroup).
 - **Names:** a vocabulary function inferred from the cone's operation categories (general names only, with `function.basis` when a repository is given); else a readable generic name. Repeated names are numbered. All inferences are reported as notes.
 
+### 4.9 Controller latency, bundles, pin labels and drafts (trial fixes)
+
+- **Output latency forms** (`ports[].latency` on custom blocks and instances):
+  an integer (uniform stages from every input), `"state"` (depends on the
+  block's state: no fixed stage count; the latency check records the pair in
+  `state_pairs` and does not compare it), or a map `{ "<input pin>": k,
+  "default"?: k }` (per-input stages, 0 = combinational). `"state"` and maps are
+  legal only on stateful kinds (`latency/controller-only`) and only on outputs.
+  A map without an entry for an input that reaches the output is reported with
+  the RTL latency to add. A port with a map is sequential when any entry ≥ 1.
+- **Unmapped nets.** A draft that cannot express a net's latency (a
+  non-controller output whose latency varies by input) keeps the wire and
+  records `rtl_unmapped: { reason }` instead of `rtl`; the latency receipt
+  counts these as `excluded_unmapped`.
+- **Bundles are expanded.** For latency and `rtl/no-structural-path`, a net
+  with `bundle_of` (dotted child paths allowed) or ending at a pin with a
+  `bundle` is checked member by member against the RTL; the drawn pair's
+  latency is the minimum over its member pairs. Receipt `latency`:
+  `member_pairs_checked`, `bundled_pairs_checked`, `pairs_skipped_bundled`
+  (bundles with no resolvable member), `state_pairs`, `excluded_unmapped`.
+- **Ownership.** An instance output belongs to the instance even when a figure
+  port also maps the same signal; coverage counts a transfer as represented
+  when any owner of its source connects to any owner of its sink.
+- **Pin labels** are not printed by default. `pin_labels: true` on a custom
+  block, memory or instance prints the `label` of its non-clock, non-reset pins
+  (`label/pin-clutter` limits them).
+- **Duplicate splits** of one net into identical slices are canonicalised
+  before rendering (`lib/ir/canonical.mjs`).
+- **Drafts.** `draft` names blocks from evidence only: an enumerated state
+  register makes a `controller`; FIFO, counter, arbiter, hash, permutation and
+  arithmetic structure map to their vocabulary kinds; GF names need GF
+  structure (a function named for a field, or GF multiply cones); otherwise the
+  module name. Duplicate vocabulary names are numbered through `label`, keeping
+  the kind. `--view block --scope ''` drafts the netlist top. Ids never double a
+  prefix, and no net sinks into a figure input port. After writing, `draft` runs
+  the figure's own checks (schema, semantics, labels, function evidence, view,
+  RTL cross-check, coverage, latency) at paper quality (study with `--format
+  study`) and prints every error as `residual: <code>: <message>`; the draft is
+  still written (exit 0). A short `--revision` is resolved with `git rev-parse`.
+
+- **Study drafts, structure and budget (review round).** With `--format
+  study` the draft shows structure: `--view` defaults to `detail` at depth 1,
+  and a whole-design (`--scope ''`) `block`/`overview` request is drafted as
+  `detail` too (noted). In every format:
+  - an expanded instance's controller is its own block: its enumerated state
+    register, the logic read only by it (next state) and the signals decoded
+    from its state alone; other registers and logic stay in stage blocks;
+  - blocks that feed each other combinationally merge only within one
+    instance and never absorb a controller; a remaining block-level loop is
+    left to `comb/loop`, which follows pins;
+  - a controller's inputs and outputs are one net per signal (so each output
+    gets its per-input latency); a study draft never bundles nets;
+  - block output latencies are decided from the drafted mappings before any
+    net is marked unmapped;
+  - net, pin and merged-port ids stay unique when a deep hierarchical name
+    truncates at 60 characters, and two instances sharing a local name keep
+    separate pins;
+  - a time and size budget bounds the draft (`draft/budget-exceeded`).
+- **Combinational inputs (`comb_from`).** An output port may list the input
+  pins that reach it with no register on the way. `comb/loop` then follows
+  exactly those pins (without it, every input of a non-registered output counts
+  as combinational, which can report a loop no RTL path closes). With a netlist
+  the latency check verifies the list (`latency/comb-from`). A net drawn
+  unmapped for latency may keep its signal in `rtl_unmapped.rtl`: it then bounds
+  traced paths and verifies `comb_from`, but no latency is compared on it.
+  Drafts emit `comb_from` for every non-registered block and instance output
+  whose combinational inputs are fewer than all inputs; in study drafts each
+  stage's other state (registers with their next-state logic) is a block of its
+  own, so outputs are either registered or combinational.
+- **Connectors on final routes.** Connectors are chosen on a probe layout; a
+  branch that is still long on the final routes gets connectors in one more
+  pass, kept when it has fewer errors.
+
 ## 5. `fsm` IR
 
 ```json
@@ -884,6 +957,29 @@ connected nets. Codes: `rtl/instance-missing`, `rtl/param-mismatch`,
 `rtl/bus-port-unconnected`, `rtl/irq-unconnected`. This yields
 `verification.level: "structural-only"` at most (§6.6).
 
+### 7.3.1 Interfaces, covers, view and layout rows
+
+- **Interfaces.** `interfaces[]` are point-to-point connections with valid/ready
+  semantics (`protocol` AXI4-Stream, Avalon-ST or custom; `from` = source, `to` =
+  sink; optional `data_width`, `label`, `short_label` and `rtl.from/to
+  {instance|top, prefix}`). They need no address map and are drawn as stream
+  links (solid, open arrowhead), never as a fabric bar. With a netlist each end
+  is checked for `<prefix>tvalid/tready/tdata`, direction and width.
+- **Covers and view.** `rtl.covers` lists what a block represents inside the
+  scope: register/signal globs of the scope module, instance paths or
+  `instance:glob`. Several blocks may each cover part of one top; two blocks
+  claiming `rtl.top` without covers is `soc/top-claimed`. `view {preset:
+  overview|detail, scope, depth}` works as in §4.8. With a netlist, every
+  instance within the view depth and every register of the scope module must be
+  represented by a block (`coverage/dropped-hardware`); results go to the
+  receipt `coverage`.
+- **Layout.** One row per fabric, upstream before downstream (a block that is
+  subordinate on A and manager on B puts A first), off-chip managers first and
+  off-chip subordinates last. Managers sit above their bar, subordinates below.
+  Off-chip blocks sit above or below everything, never inside a chip group.
+  Link channels keep a full arrowhead plus 3 pt from row edges; a chip boundary
+  keeps 1.5 × `route.frame_gap_pt` from wires and runs the region frame checks.
+
 ### 7.4 Documented facts: all sources, conflicts and authority
 
 Facts a figure takes from documents are checked against **every** text
@@ -936,7 +1032,7 @@ render; warnings are reported and allowed only under `--quality draft`.
 | `register/no-domain` | datapath | every register, pipeline_register, sync memory has a declared `domain` |
 | `register/unknown-domain` | datapath | domain id exists in `clock_domains` |
 | `memory/addr-width` | datapath | addr pin nets = `clog2(depth)` |
-| `comb/loop` | datapath | no cycle through combinational elements; registers, `read_latency ≥ 1` memories, and `registered` instance outputs break cycles; unknown instance timing → warning `comb/loop-unknown` |
+| `comb/loop` | datapath | no cycle through combinational paths, followed on pins: a net joins its driver pin to its sink pins, and inside an element an input pin reaches an output pin unless the output is sequential; registers, `read_latency ≥ 1` memories, and `registered` outputs break cycles, and a per-input latency map opens the path only from inputs with 0 stages (evidence lists the pins); unknown instance timing → warning `comb/loop-unknown` |
 | `cdc/unsynchronized` | datapath | a path from sequential source in domain A to a sequential sink in domain B ≠ A passes through a `synchronizer` with `from=A,to=B` |
 | `cdc/multibit-ff-sync` (warn) | datapath | `ff2/ff3` synchronizer with width > 1 |
 | `cdc/domain-assertion` | datapath | authored net `domain` disagrees with derived |
@@ -992,7 +1088,32 @@ render; warnings are reported and allowed only under `--quality draft`.
 | `symbol/bubble-detached` | datapath, per variant (final SVG) | an inversion bubble is not tangent to its body (gap or overlap > 0.25 pt) or its wire does not meet it |
 | `net/stroke-uniform` | skin + datapath, per variant (final SVG) | a net path or symbol wire stub (concat input, split spine/tap, truncation) is drawn at a stroke weight other than `stroke.wire`, or the skin's `stroke.bus`/`stroke.control` differs from `stroke.wire`; bit width is shown only by slash-N labels (error) |
 | `route/dot-near-arrow` | datapath, per variant (final SVG) | a junction dot center is closer than `route.dot_arrow_clearance` (skin, default 8 pt) to the base of an arrowhead of its net or to a pin anchor of its net; the renderer first moves the branch point along the trunk (error) |
-| `route/long-feedback` | datapath, per variant | a back edge spans more than `route.long_feedback_ratio` (skin, default 0.5) of the content width and is drawn as a loop; the renderer draws such nets as a pair of named off-page connectors unless `meta.style.connectors: false` (error) |
+| `route/long-feedback` | datapath, per variant | a back edge whose **routed** length exceeds `route.long_feedback_ratio` (skin, default 0.5) × the content width is drawn as a loop; the renderer draws such nets as a pair of named off-page connectors unless `meta.style.connectors: false` (error) |
+| `route/long-loop` | datapath, per variant | a forward branch whose route is longer than its direct distance by more than the ratio × width (a wrap around the figure) is drawn as a loop; connectors by default (error) |
+| `label/ambiguous-anchor` | datapath, per variant | a net label lies no closer to its own wire than to another net's wire (0.5 pt margin); the placer only uses spots anchored to the own wire (error) |
+| `region/entry-side` | datapath, per variant | a net from outside a region frame enters through a side that does not face its source, within 2 × `route.frame_gap_pt` of a corner, or through the frame's label band (error) |
+| `arrow/nonuniform` | datapath, microarch, per variant (final SVG) | an arrowhead's length or width differs from the skin's `arrow.length` × `arrow.width` by more than 0.05 pt; receipt `connectivity.arrows_checked` / `arrow_nonuniform` (error) |
+| `arrow/no-room` | datapath, per variant | a sink's last run is shorter than the arrowhead plus `route.arrow_min_shaft_pt` after the layout tried to move the riser back; heads are never shortened (error) |
+| `label/pin-clutter` | datapath | an element with `pin_labels: true` prints more than 4 pin names, an unreadable one, a clock or reset pin name, or none at all; pin names are off by default (warning, error with `--quality paper`) |
+| `label/constant-as-port-label` | datapath | a port or pin label is a tie-off literal (`1'b0`, `'0`, `0`); draw a constant, not a named port (warning, error with `--quality paper`) |
+| `label/duplicate-net-label` | datapath | two nets print the same label, or a net label repeats the port label of its driver or sink (warning, error with `--quality paper`) |
+| `latency/controller-only` | datapath | a per-input (`{pin: k}`) or `"state"` latency on a block whose `function.kind` is not stateful (controller, fsm, bus_slave, csr_bank, arbiter), or any latency on an input pin (error) |
+| `latency/unknown-input` | datapath | a latency map names a pin that is not an input of the block (error) |
+| `print/width-overflow`, `print/max-height` (size drivers) | per variant | messages say how far over and what sets the size (widest layers, tallest columns, layer spacing); `--why-size` adds `size_report` to render/deliver output |
+| `rtl/duplicate-definition` (warning), `rtl/top-not-found`, `rtl/include-unresolved` (warning) | check-rtl `--search-path` | a module/interface/package defined in several files (every file listed, deterministic choice: `--prefer` > not a stub/mock/tb path > first by path); no file defines the top; an `` `include `` not found |
+| `evidence/output-in-rtl-tree` | check-rtl | `--out`, `--work-dir` or `--emit-filelist` inside a search-path base (error) |
+| `soc/top-claimed` | microarch | two or more blocks claim `rtl.top` without `rtl.covers` (error) |
+| `soc/stream-as-fabric` (warning) | microarch | a fabric uses AXI4-Stream; model it in `interfaces` |
+| `interface/endpoints` | microarch | an interface starts and ends at the same block (error) |
+| `group/offchip-member` | microarch | an off-chip block is a member of a chip group (error) |
+| `view/context-outside-scope`, `view/scope-unknown` | microarch | a block maps an instance outside `view.scope`; the scope does not exist in the netlist (error) |
+| `coverage/dropped-hardware` (microarch), `coverage/covers-unmatched` (warning) | microarch, netlist | an instance within the view depth or a register of the scope module is represented by no block; an `rtl.covers` entry matches nothing |
+| `rtl/stream-port-missing`, `rtl/stream-direction`, `rtl/stream-width` | microarch, netlist | an interface end lacks `<prefix>tvalid/tready/tdata`, has them in the wrong direction, or tdata ≠ `data_width` (error) |
+| `format/unknown` (error), `format/variants-ignored` (info), `format/pdf-required` (info) | all | unknown `--format` / `meta.print.format`; study ignores `--variants`; `--no-pdf` ignored for paper |
+| `comb/unknown-input` | datapath | a `comb_from` entry is not an input pin of its element, or `comb_from` sits on an input pin (error) |
+| `latency/comb-from` | datapath (netlist) | an output's `comb_from` omits an input that the RTL reaches the output from with no register on the way (error); checked also on nets drawn unmapped for latency when they keep `rtl_unmapped.rtl` |
+| `route/straighten-budget` (info) | datapath, per variant | the straightening search scored `route.straighten_max_evaluations` (skin, default 50 000) candidate layouts and stopped; the best route found is kept and every route check still runs; the counts are in `route.layout_plans[].evaluations` |
+| `draft/budget-exceeded` | draft | the draft did not finish within its time budget (`--budget-seconds`, default 120 s) or its scope holds more signals than the size budget (50 000); names the phase it stopped in, the expanded instances and the largest children, and suggests a narrower `--scope`, a lower `--depth` or a `--blackbox` (error, exit 1, no draft written) |
 | `region/wire-hugs-frame` | datapath, per variant | a wire runs parallel to a region frame edge closer than `route.frame_gap_pt` (default 6 pt; 1.5 × for a dashed wire beside the dashed frame) over more than 3 pt (error). The renderer first moves the edge past the wire: outward if the frame then covers no foreign block, else inward if it still holds its members |
 | `width/bundle-sum` | datapath | a heterogeneous bundle (`bundle_of`, or a pin `bundle`) has neither a net label nor a port label; bundles are named by protocol or function and never get a summed width slash (error) |
 | `svg/*` | all, per variant | figma-safe profile lint, §10.1 |
@@ -1135,6 +1256,27 @@ Layout pipeline for straight data trunks (CONVENTIONS §1.4):
    - The counts are recorded in `variants[].route.connectivity`.
 
 Still planned: `geometry/port-crowding`, `print/aspect` hints.
+
+### 9.6 Output formats: paper and study
+
+- `meta.print.format` is `paper` (default) or `study`; CLI `--format` on
+  `validate`, `render`, `deliver` and `draft` overrides it. With `study`,
+  `meta.print.profile` may be omitted.
+- Study uses `profiles/study-profile.json`: one variant `study`, no width or
+  height limit (`sized_to_content`). The renderer gets no column, so the canvas
+  is the content size, with no short-label retry and no spread; ELK spacing is
+  the skin's `elk.variants.study`. The PDF is optional (`--no-pdf`) and its
+  page is the content size.
+- The paper-only checks and their study treatment are listed centrally in
+  `lib/format.mjs` (`PAPER_ONLY_CHECKS`): skipped — `print/width-overflow`,
+  `print/max-height`, `deliver/does-not-fit`, `print/label-fallback`,
+  `print/variant-not-requested`, `variant/1col-skipped`, `print/small-font`,
+  `view/detail-collapsed`, `route/crossings`; downgraded to warnings —
+  `print/min-font`, `print/min-stroke`, `label/unreadable`, `view/caption`.
+  Every other check is enforced unchanged; the receipt lists what was relaxed.
+- **Size report.** Every render returns `size_report {content_width_pt,
+  content_height_pt, layers, spacing_pt, widest_layers, tallest_columns}`;
+  overflow messages quote it and `--why-size` prints it.
 
 ## 10. Rendering and print output
 
@@ -1368,6 +1510,28 @@ and missing hardware is `coverage/dropped-hardware` (error, §4.7). Abstraction
 collapses hardware into covering elements; only an explicitly narrowed scope
 leaves it out.
 
+### 11.6 Dependency resolution and netlist type fields
+
+- `check-rtl` accepts `--search-path <file|dir|glob>` (repeatable; a directory
+  means its files, a glob such as `rtl/**` recurses), `--exclude <glob>`,
+  `--prefer <file>` and `--emit-filelist <file.f>`; `--filelist` understands
+  `+incdir+`, `-I dir` and `-Idir`. From `--top` it follows instantiated
+  modules/interfaces, referenced packages and `` `include `` files; package
+  files compile first. Duplicate definitions are reported with every candidate
+  and the choice. The netlist records `inputs.include_dirs` and
+  `inputs.resolution {top, search_paths, excludes, prefer, scanned,
+  files[{path, defines}], duplicates[{name, kind, candidates, chosen, reason}],
+  unresolved[{kind, name, referenced_by}]}`. `--summary` prints one line per
+  module plus a resolution line and the diagnostics.
+- Ports, nets and registers may carry `type`, `enum {type, width,
+  items[{name, value, literal}]}`, `struct {type, kind: struct|union, width,
+  members[{name, width, msb, lsb, type?, enum?}]}` (MSB first) and
+  `packed_array {dims[], element_width, element_type?}`; top-level `types[]`
+  lists each named type once. Widths resolve through typedefs, enums, packed
+  structs/unions and packed arrays.
+- Dependencies include signals read inside called functions and tasks (inlined
+  semantics), so a value routed through a function is not `rtl/input-unused`.
+
 ## 12. Receipts, delivery, visual check
 
 - `deliver` freezes the spec bytes, re-runs every check on the frozen copy,
@@ -1388,6 +1552,22 @@ leaves it out.
   checked, mismatches 0, hidden registers 0). Every datapath variant carries
   `route.connectivity`, whose `wire_detached`, `wire_touching` and
   `bubble_detached` counts must all be 0.
+- `connectivity` also carries `arrows_checked` / `arrow_nonuniform`,
+  `dots_checked` / `dot_near_arrow` and `strokes_checked` /
+  `stroke_nonuniform`. The latency block carries `member_pairs_checked`,
+  `bundled_pairs_checked`, `pairs_skipped_bundled`, `state_pairs` and
+  `excluded_unmapped` (§4.9).
+- Every receipt has `format {name, profile, skipped_checks,
+  downgraded_checks, relaxed[{code, treatment, count}]}`; `checks.quality` is
+  `study` for study figures, and only a study receipt may omit a variant's
+  `pdf`.
+- **Superseded outputs are archived.** `deliver` never leaves old outputs
+  beside current ones: every existing SVG, PDF, PNG preview and receipt of the
+  same figure name moves to `<out>/../archive/<YYYY-MM-DD>-<name>-<sha8>/` with a
+  `README.md`, just before writing — and also when the delivery fails, so a
+  stale file never looks current. The receipt records `archived`. `render`
+  (preview) does not archive.
+
 ### 12.2 Evidence rule and per-region verification (hard rule, Phase 2)
 
 - A figure may only be verified against the **user's own** RTL, netlists

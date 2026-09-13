@@ -1,4 +1,5 @@
 references/local/
+.claude/
 node_modules
 .figgen-work/
 out/

@@ -272,6 +272,12 @@
             "bus_slave",
             "memory",
             "error_injector",
+            "arithmetic_unit",
+            "counter",
+            "fifo",
+            "arbiter",
+            "hash",
+            "permutation",
             "custom"
           ]
         },
@@ -390,10 +396,18 @@
           ]
         },
         "latency": {
-          "description": "Register stages from the inputs to this registered output (default 1).",
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 64
+          "description": "Register stages from the inputs to this output. An integer: a registered output (default 1). \"state\": a state (Moore/Mealy) output of a stateful protocol block (controller, FSM, bus slave, CSR bank, arbiter) whose latency depends on the state; no single number is claimed, hidden pipeline registers are still reported. An object {input pin id: stages} (0 = combinational; key \"default\" for the rest): a controller output whose latency differs by input (latency/controller-only).",
+          "oneOf": [
+            { "type": "integer", "minimum": 1, "maximum": 64 },
+            { "const": "state" },
+            { "type": "object", "minProperties": 1, "propertyNames": { "pattern": "^[A-Za-z_][A-Za-z0-9_]*$" }, "additionalProperties": { "type": "integer", "minimum": 0, "maximum": 64 } }
+          ]
+        },
+        "comb_from": {
+          "description": "Output ports: the input pins that reach this output with no register on the way; every other input reaches it only through registers, or not at all. comb/loop follows exactly these (without it, every input of a non-registered output counts as combinational). With a netlist the latency check verifies the list against the RTL (latency/comb-from).",
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "common.schema.json#/$defs/id" }
         }
       }
     },
@@ -742,6 +756,7 @@
                 "type": "string"
               },
               "pin_labels": {
+                "description": "Opt-in pin labels inside the box (CONVENTIONS §4.3, label/pin-clutter). Default off for every block: only pins whose identity is essential (minuend/subtrahend, A/B of a non-commutative op, mux data order) and that carry a readable port label print, at most 4 per block, never clock or reset pins, never RTL pin ids.",
                 "type": "boolean"
               },
               "invert_inputs": {
@@ -1066,6 +1081,7 @@
                 ]
               },
               "pin_labels": {
+                "description": "Opt-in pin labels inside the box (CONVENTIONS §4.3, label/pin-clutter). Default off for every block: only pins whose identity is essential (minuend/subtrahend, A/B of a non-commutative op, mux data order) and that carry a readable port label print, at most 4 per block, never clock or reset pins, never RTL pin ids.",
                 "type": "boolean"
               },
               "ports": {
@@ -1136,8 +1152,24 @@
           "type": "string",
           "maxLength": 160
         },
+        "rtl_unmapped": {
+          "description": "The author deliberately draws this net without an RTL mapping; the reason is counted in the receipt (latency.excluded_unmapped) so a reviewer sees where verification is weaker.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["reason"],
+          "properties": {
+            "reason": { "type": "string", "minLength": 3, "maxLength": 200 },
+            "rtl": {
+              "description": "The RTL signal the wire carries, kept for structural checks only: it bounds traced paths and verifies comb_from. No latency or cross-check claim is made on it.",
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["signal"],
+              "properties": { "instance": { "type": "string" }, "signal": { "type": "string" } }
+            }
+          }
+        },
         "bundle_of": {
-          "description": "Heterogeneous bundle (CONVENTIONS §2.1): the signals this net carries. It is drawn with its name (net label or port label), never with a summed width.",
+          "description": "Heterogeneous bundle (CONVENTIONS §2.1): the signals this net carries. It is drawn with its name (net label or port label), never with a summed width. Members are RTL signal names of the net's instance (meta.rtl.instance or rtl.instance), or dotted child paths (u_child.port); latency and structural checks expand them.",
           "type": "array",
           "minItems": 2,
           "items": {

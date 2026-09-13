@@ -49,8 +49,9 @@
     "print": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["profile"],
+      "anyOf": [{ "required": ["profile"] }, { "required": ["format"], "properties": { "format": { "const": "study" } } }],
       "properties": {
+        "format": { "description": "paper (default): column variants of a print profile. study: one figure sized to content for RTL analysis; print-only checks are relaxed (lib/format.mjs). --format on the CLI overrides it.", "enum": ["paper", "study"] },
         "profile": { "type": "string", "minLength": 1 },
         "variants": { "type": "array", "items": { "$ref": "#/$defs/variant_id" }, "minItems": 1, "uniqueItems": true },
         "max_height_in": {
