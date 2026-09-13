@@ -72,9 +72,10 @@ function gateFigure(netlist, output) {
   const x = expandToGates(cone, { prefix: 'g_' });
   const inputs = new Map(x.inputs.map((i) => [i.id ?? i.port, i.key]));
   const nets = x.nets.map((n) => (inputs.has(n.driver) ? { ...n, rtl: { signal: inputs.get(n.driver) } } : n.sinks.includes(x.output) ? { ...n, rtl: { signal: output } } : n));
+  // The figure draws one cone, so its declared scope is that cone (coverage/dropped-hardware).
   return {
     schema_version: 1, figure_type: 'datapath',
-    meta: { title: `cone ${output}`, print: { profile: 'ieee', variants: ['2col'] } },
+    meta: { title: `cone ${output}`, print: { profile: 'ieee', variants: ['2col'] }, scope: { cone: { outputs: [output], inputs: cone.inputs.map((i) => i.name) } } },
     clock_domains: [], elements: x.elements, nets,
     regions: [{ id: 'cls', label: 'gates', level: 'gate', members: x.elements.filter((e) => e.kind !== 'port').map((e) => e.id) }],
   };

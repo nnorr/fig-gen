@@ -189,6 +189,41 @@
                     }
                   }
                 }
+              },
+              "connectivity": {
+                "description": "Exact connectivity of the final SVG geometry (wire/detached, wire/touching, symbol/bubble-detached).",
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "wire_ends_checked",
+                  "wire_detached",
+                  "wire_touching",
+                  "bubbles_checked",
+                  "bubble_detached"
+                ],
+                "properties": {
+                  "wire_ends_checked": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "wire_detached": {
+                    "const": 0
+                  },
+                  "wire_touching": {
+                    "const": 0
+                  },
+                  "junctions_checked": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "bubbles_checked": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "bubble_detached": {
+                    "const": 0
+                  }
+                }
               }
             }
           },
@@ -465,6 +500,304 @@
           "rtl": {
             "type": "string"
           }
+        }
+      }
+    },
+    "coverage": {
+      "description": "Completeness against the declared RTL scope (coverage/dropped-hardware): delivery requires everything in scope to be represented.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "totals",
+        "regions"
+      ],
+      "properties": {
+        "scope": {
+          "type": "object"
+        },
+        "totals": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "registers",
+            "instances",
+            "nets",
+            "transfers"
+          ],
+          "properties": {
+            "registers": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "covered",
+                "total"
+              ],
+              "properties": {
+                "covered": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "total": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "instances": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "covered",
+                "total"
+              ],
+              "properties": {
+                "covered": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "total": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "nets": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "covered",
+                "total"
+              ],
+              "properties": {
+                "covered": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "total": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "memories": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "covered",
+                "total"
+              ],
+              "properties": {
+                "covered": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "total": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "transfers": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "represented",
+                "total"
+              ],
+              "properties": {
+                "represented": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "total": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        },
+        "regions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "registers",
+              "instances",
+              "nets"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "level": {
+                "type": "string"
+              },
+              "registers": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "covered",
+                  "total"
+                ],
+                "properties": {
+                  "covered": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "total": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              },
+              "instances": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "covered",
+                  "total"
+                ],
+                "properties": {
+                  "covered": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "total": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              },
+              "nets": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "covered",
+                  "total"
+                ],
+                "properties": {
+                  "covered": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "total": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "excluded": {
+          "type": "object"
+        },
+        "uncovered": {
+          "type": "object"
+        }
+      }
+    },
+    "latency": {
+      "description": "Drawn latency along every shown path through a drawn element equals the RTL latency, and no pipeline register is hidden inside a collapsed element (latency/hidden-register).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pairs_checked",
+        "mismatches",
+        "hidden_registers"
+      ],
+      "properties": {
+        "pairs_checked": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pairs_with_registers": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "mismatches": {
+          "const": 0
+        },
+        "hidden_registers": {
+          "const": 0
+        },
+        "paths": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "annotations": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "hidden": {
+          "type": "array",
+          "maxItems": 0,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "view": {
+      "description": "View preset and scope the figure was delivered at (SPEC §4.8), and any CLI overrides applied to the spec.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "preset",
+        "scope"
+      ],
+      "properties": {
+        "preset": {
+          "enum": [
+            "overview",
+            "block",
+            "mixed",
+            "detail"
+          ]
+        },
+        "scope": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "depth": {
+          "type": "integer"
+        },
+        "gate_regions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "blackbox": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "scope_module": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "collapsed_within_depth": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "overrides": {
+          "type": "object"
         }
       }
     }

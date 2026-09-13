@@ -138,6 +138,48 @@
           }
         }
       }
+    },
+    "view": {
+      "description": "View preset (SPEC §4.8): scope and abstraction the figure is delivered at. The scope is the declared scope for coverage; the receipt and caption state the preset and scope.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "preset"
+      ],
+      "properties": {
+        "preset": {
+          "enum": [
+            "overview",
+            "block",
+            "mixed",
+            "detail"
+          ]
+        },
+        "scope": {
+          "type": "string",
+          "pattern": "^$|^[A-Za-z_][A-Za-z0-9_\\[\\]]*(/[A-Za-z_][A-Za-z0-9_\\[\\]]*)*$"
+        },
+        "depth": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16
+        },
+        "gate_regions": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/id"
+          },
+          "uniqueItems": true
+        },
+        "blackbox": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
     }
   },
   "$defs": {
@@ -346,6 +388,12 @@
             "enable",
             "handshake"
           ]
+        },
+        "latency": {
+          "description": "Register stages from the inputs to this registered output (default 1).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
         }
       }
     },
@@ -423,6 +471,23 @@
         },
         "layout": {
           "$ref": "#/$defs/layout_hint"
+        },
+        "detail_ref": {
+          "description": "Sub-figure that draws this element in detail ((a)/(b) split of a scope too large for one figure).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "figure"
+          ],
+          "properties": {
+            "figure": {
+              "type": "string",
+              "minLength": 1
+            },
+            "id": {
+              "$ref": "common.schema.json#/$defs/id"
+            }
+          }
         }
       }
     },
@@ -1070,6 +1135,15 @@
           "description": "Required when class differs from the class derived from the sinks (net/class-style).",
           "type": "string",
           "maxLength": 160
+        },
+        "bundle_of": {
+          "description": "Heterogeneous bundle (CONVENTIONS §2.1): the signals this net carries. It is drawn with its name (net label or port label), never with a summed width.",
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },

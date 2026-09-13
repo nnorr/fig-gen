@@ -67,7 +67,10 @@
       },
       "crossing_weight": 100,
       "description": "jog_min_offset_pt: a data-net level change shorter than this is a redundant jog (error). max_crossings: warning thresholds per net class. crossing_weight: straightening cost of one wire crossing relative to a redundant jog (1000) and a bend (1).",
-      "min_parallel_gap_pt": 4
+      "min_parallel_gap_pt": 4,
+      "long_feedback_ratio": 0.5,
+      "frame_gap_pt": 6,
+      "long_feedback_description": "long_feedback_ratio: a returning (backward) branch spanning more than this fraction of the figure width is drawn with named connectors (route/long-feedback). frame_gap_pt: minimum distance of a wire running parallel to a region frame (region/wire-hugs-frame)."
     }
   },
   "elk": {
@@ -115,11 +118,11 @@
     },
     "gates": {
       "parametric": "ieee-distinctive",
-      "description": "Gate-level symbols (AND/OR/XOR/NAND/NOR/XNOR/NOT/BUF, n inputs) drawn from parameters; inverted pins get bubbles. Used for comb gate ops with more than two inputs, inversions, or inside gate-level regions.",
+      "description": "Gate-level symbols (AND/OR/XOR/NAND/NOR/XNOR/NOT/BUF, n inputs) drawn from parameters; inverted pins get bubbles (diameter 4 pt, CONVENTIONS §4.1) tangent to the body outline, with the outline stroke. Used for comb gate ops with more than two inputs, inversions, or inside gate-level regions.",
       "width": 22,
       "pin_pitch": 6,
       "min_height": 16,
-      "bubble_diameter": 3.5,
+      "bubble_diameter": 4,
       "xor_gap": 3.5,
       "fill": "logic"
     },
@@ -419,6 +422,15 @@
     "replicate": {
       "parametric": "box",
       "description": "Replication (CONVENTIONS §2.3.5): hollow outlined box with {N{ }}, one input, output N x input width.",
+      "fill": "logic",
+      "label_font": "secondary"
+    },
+    "connector": {
+      "parametric": "off-page-connector",
+      "description": "Named off-page connector (CONVENTIONS §1.6): a hollow tag pointing along the flow with the net name inside, drawn in pairs at the source and the sink of a long feedback/return net instead of a loop across the figure.",
+      "height": 10,
+      "tip": 4,
+      "pad": 2,
       "fill": "logic",
       "label_font": "secondary"
     }

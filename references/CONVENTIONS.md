@@ -294,6 +294,58 @@ junction  ━━━━●━━━━━▶           crossing  ━━━━┿�
   different row, a new stage) that isn't there, and every crossing is a
   decision the reader has to make.
 
+### 1.5 Connected geometry [house]
+
+Drawn geometry is exactly connected. A visible gap reads as "not connected",
+and a wire that touches another reads as a junction.
+
+- **Every wire end coincides with its pin anchor within 0.1 pt.** On a gate
+  the anchor comes from the actual outline:
+  - an input on the flat back of AND/NAND at that pin's y;
+  - an input on the curved back of OR/XOR (for XOR, the extra back line), at
+    the curve's x for that pin's y;
+  - an output at the apex: the arc apex of AND, the shield tip of OR/XOR, the
+    NOT triangle tip;
+  - an inverted pin at the bubble's outer tangent point (§4.1).
+
+  Anchors on blocks, bars and registers lie on the outline.
+- **Arrowheads:** the tip touches the pin, and the shaft ends exactly at the
+  arrowhead's base.
+- **Polylines** have no gaps between consecutive segments and are drawn with
+  miter or round joins, never with butt caps that leave notches at bends.
+- **T-junctions:** a branch leaves exactly on the trunk, with a junction dot
+  centered on the branch point. Every dot lies on the trunk.
+- **Pipeline-register bars:** a lane is continuous on both sides of the bar at
+  identical y and touches the bar outline.
+- **Crossings without a dot never touch:** no bend, end or short run of one
+  net lies on another net's wire.
+- Checked on the final SVG, after straightening and bubble placement:
+  `wire/detached` (error; reports the net, the point and the gap) and
+  `wire/touching` (error). The renderer collapses sub-2 pt zig-zags and slides
+  a run that touches a foreign wire into a free channel before the check.
+
+### 1.6 Long returns, frames and edges [house]
+
+- **Long feedback uses named off-page connectors.** A return net whose loop
+  would span more than half the content width (skin `route.long_feedback_ratio`)
+  or run around frames is cut into a pair of pentagon tags: a source tag after
+  the driver and a target tag before each sink. Both carry the net's name (its
+  `short_label` in tight variants), and connectivity treats the pair as one net.
+  All source tags share one column. `route/long-feedback` fires for a long loop
+  that is still drawn (`meta.style.connectors: false`).
+- **Wires keep clear of region frames.** No wire runs parallel to a frame edge
+  within 6 pt (9 pt for a dashed wire beside the dashed frame); crossing a frame
+  is fine. A frame edge never grows over a non-member block to clear a wire
+  (`region/wire-hugs-frame`). Route control such as `valid` straight through the
+  pipeline bars, not along the frame.
+- **Figure outputs** driven from the last stage sit on the right edge in one
+  column; an output from an earlier stage stays beside its driver.
+- **No step just before a pin.** A small level change in the last 10 pt before a
+  gate input, a figure port or a connector moves back to the branch's junction
+  or the start of its run.
+- **A net that ends at a connector tag** prints no separate net label; the tag
+  names it.
+
 ---
 
 ## 2. Bit width, bit slices, split/merge
@@ -311,7 +363,14 @@ junction  ━━━━●━━━━━▶           crossing  ━━━━┿�
   block output whose width none of the block's inputs carries (renderer error
   `width/missing` when no label fits). A width that is only carried through (a
   pipeline-register lane, a register, a mux, a same-width block) is labeled when
-  there is room and may be left to the label upstream.
+  there is room and may be left to the label upstream. A lane's width is labeled
+  once: when one side of a pipeline lane shows it, the other side with the same
+  width is not missing it.
+- **Heterogeneous bundles are named, never summed.** A bundle of different
+  signals (`bundle_of`, or a pin `bundle`) carries a protocol or function name
+  ("AHB-Lite", "mem ctrl") and no width slash (`width/bundle-sum`).
+- **A slash never covers a label**, and a width number keeps 1 pt from outlines
+  other than its own slash (bar edges included).
 - **A width label is a single integer or a symbolic expression** (`48`, `/W`,
   `/log₂N`, `/m`), **never a product** such as `6×8` or `6 × 8-bit` (renderer and
   lint error `width/product-notation`). Structure such as "N symbols of W bits" goes
@@ -619,8 +678,20 @@ solid+select    gray+wedge+span   no body, brackets  hollow+{ }    hollow+word
   symbols (`MUX`, `Σ` adder, `P–Q` subtracter, `π` multiplier, `COMP` comparator, `ALU`)
   [TI SDYZ001A]. **[house]** Borrow the *labels* (`Σ`, `COMP`, `ALU`), not full
   dependency notation. Paper readers don't know it well.
-- Inversion: a bubble (diameter 4 pt) at the pin. Do not draw a separate inverter
-  unless the inverter itself matters.
+- Inversion: a bubble (diameter 4 pt, from the skin; stroke equal to the body
+  outline) at the pin. Do not draw a separate inverter unless the inverter
+  itself matters.
+  - **Output bubble:** a circle tangent to the body at the output apex; its
+    left-most point touches the outline exactly (the AND arc, the OR/XOR
+    shield tip, the NOT tip). The output wire starts at its right-most point.
+  - **Input bubble:** tangent to the input edge at that pin's y (the flat back
+    of AND/NAND, or the curved back of OR/XOR using the curve's actual x). The
+    input wire ends at its left-most point.
+  - The same applies to DFF clock/reset pins and to any symbol with bubbles.
+  - Placement is computed from the symbol geometry (tangency between stroke
+    centerlines), never from fixed offsets, so it holds for every gate size,
+    input count and stroke width. A gap or overlap above 0.25 pt, or a wire
+    that does not meet its bubble, is `symbol/bubble-detached` (error).
 
 ### 4.1a Mixed abstraction levels in one figure
 
@@ -647,6 +718,64 @@ A figure may combine four levels; each region is drawn in its own style:
   regions must agree in width, and bit slices at the boundary are explicit.
 - Add a small legend of levels only when more than two levels appear in one
   figure.
+
+### 4.1b Completeness: collapse, never drop [house]
+
+- A figure has a **declared scope**: the top instance and its selected
+  hierarchy (`meta.scope.instance`, `hierarchy`), or a cone between named
+  signals (`meta.scope.cone`).
+- **Everything inside the scope is represented.** That means every RTL
+  instance, register (including memories) and live net, and every
+  datapath/control transfer between them. Each is either:
+  - drawn, or mapped by a net;
+  - contained in a collapsed or blackbox element whose RTL mapping covers it
+    (`rtl.instance` on an instance, or `rtl.covers` with instances and signal
+    globs); or
+  - inside the cone of an equivalence-checked gate region.
+- A transfer is represented when a wire connects the elements that represent
+  its two ends.
+- Clock and reset nets are implicit (§1). Dead logic, i.e. nets read by
+  nothing live, is excluded and counted in the receipt.
+- **The only way to exclude hardware is to narrow the declared scope
+  explicitly.** Leaving parts inside the scope out of the drawing is not
+  allowed: `coverage/dropped-hardware` (error). The receipt lists coverage per
+  region and for the whole scope (covered/total registers, instances, nets,
+  transfers).
+- **If the result does not fit 2col**, apply these fixes in order:
+  1. collapse more into blocks (e.g. a write path into one "AHB-Lite slave /
+     write path" block, a test-only injector into an "Error injector" block);
+  2. allow a taller figure, up to the profile's maximum height;
+  3. otherwise delivery fails (`deliver/does-not-fit`), with the suggestion to
+     narrow the scope or to split into sub-figures (a)/(b), where a collapsed
+     element links its detail figure (`detail_ref`, checked by
+     `detail/ref-unresolved`).
+
+  Never silently drop hardware.
+- *Why:* a figure that omits hardware reads as a claim that the hardware is
+  not there. Readers cannot tell an abstraction from an omission unless the
+  omission is a declared scope.
+
+### 4.1c View presets [house]
+
+One design is shown at several scopes and abstractions through named views.
+Each view declares its scope, and the caption says which view it is and what
+the scope covers.
+
+- **Overview:** the whole declared scope (e.g. the top IP).
+  - Every child instance is a functional block.
+  - Pipeline registers on the shown paths stay visible (§5.5).
+  - Buses and control are bundles.
+  - Completeness is shown by containment.
+- **Block:** the scope is one instance, drawn at rtl/block level. The ports
+  of that instance are the figure ports.
+- **Mixed:** a block or overview scope plus the gate regions and blackboxes
+  the author selects, and only those.
+- **Detail:** the scope expanded one or more hierarchy levels. Collapse only
+  where the 2col figure would otherwise not fit, and say so.
+- **Context** from outside the scope, such as a memory feeding the shown
+  block, is drawn only as a blackbox. Context on the path between two shown
+  parts is drawn too (e.g. an error injector between a memory and a decoder),
+  because skipping it would draw a wire that does not exist.
 
 ### 4.2 Arithmetic and GF operators
 
@@ -829,6 +958,31 @@ A figure may combine four levels; each region is drawn in its own style:
   mistakes in the spec.
 - Delay elements in DSP-style signal-flow graphs (FIR, IIR, LFSR, NTT loops) MAY use
   `D` / `z⁻¹` boxes instead of register rectangles. Pick one per figure.
+
+### 5.5 Registers inside collapsed blocks [house]
+
+- A collapsed or blackbox block that contains registers on a path shown in
+  the figure must make them visible, in one of two ways:
+  - **(a) Default, required for pipeline registers on a shown path:** keep the
+    register outside the block. Split the block at the register boundary into
+    stage blocks, and draw the pipeline-register bar (§5.3) or register
+    between them.
+  - **(b) Only for internal state not on a shown path, and for memories:**
+    mark the block registered. Its output ports carry `registered` and
+    `latency`, and the block shows a clock wedge on its bottom edge and a
+    "k stages" note ("registered read" for a memory).
+- A register counts as a **pipeline register** of a shown path when it feeds
+  no loop back to itself and every one of its sources, other than its clock
+  and reset, comes from that path. Registers that are also loaded from
+  elsewhere (CSRs, sticky flags, shared buffers) or that feed back to
+  themselves are internal state.
+- **Drawn latency equals RTL latency.** Along every shown path through a drawn
+  element, the register stages the figure draws must equal the minimum
+  register count between the mapped signals in the netlist.
+  `latency/hidden-register` (error) fires for a hidden pipeline register or
+  for any latency mismatch.
+- *Why:* a pipeline register absorbed into a block hides the latency. The
+  reader counts the bars and gets the wrong cycle count.
 
 ---
 
@@ -1180,6 +1334,19 @@ max_font_sizes: 2
 20. Facts taken from documents (slot, base, window, IRQ, instance) agree across
     all documents of the pinned revision, or the user's chosen authority is
     recorded and the overridden sources are listed in the receipt (§11.1).
+21. The figure declares its scope, and every instance, register, memory, net
+    and transfer inside it is drawn or covered by a collapsed element. Nothing
+    is dropped to fit; the figure is split or its scope narrowed (§4.1b).
+22. No pipeline register on a shown path is hidden inside a block. Blocks that
+    keep internal state show a clock wedge and their latency, and drawn latency
+    equals RTL latency (§5.5).
+23. Wires meet their pins exactly, junctions have dots on the trunk, lanes pass
+    bars level, crossings never touch, and bubbles are tangent to their gates
+    (§1.5, §4.1).
+24. Long returns are named connector pairs, no wire hugs a frame, bundles are
+    named without a summed width, a stage note names each path when latencies
+    differ ("IRQ: 2 stages, read: 1"), and no wire steps just before a pin
+    (§1.6, §2.1, §5.5).
 
 ---
 

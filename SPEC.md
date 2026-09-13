@@ -426,6 +426,121 @@ no-rtl-expression`, `equiv/not-evaluable`. The receipt records each gate
 region as `kind: gate-region` with `equivalence: {method, vectors, seed?,
 input_bits, result}`.
 
+### 4.7 Completeness, hidden registers and sub-figures (pre-phase 3)
+
+**Declared scope.** `meta.scope` names what the figure depicts:
+- `{instance, hierarchy: all|none}`: an instance relative to the netlist top
+  (omitted for the top), with or without its sub-hierarchy;
+- `{instance?, cone: {outputs[], inputs[]}}`: the logic from the named inputs
+  (exclusive) back from the named outputs, within one instance.
+
+Without `meta.scope`, the scope defaults to `meta.rtl.instance` (or the top)
+with its whole hierarchy, and `coverage/scope-undeclared` (warning) says so.
+
+**Coverage** (`lib/checks/coverage.mjs`, with a netlist). The items are:
+- instances under the scope;
+- registers (register arrays count as memories too);
+- live nets: readable from a port, register or instance connection, directly
+  or transitively;
+- transfers: dependency edges between items.
+
+Clock and reset nets are implicit; dead nets and `_V*` internals are excluded
+and counted.
+
+Owners, in priority order:
+1. a net's `rtl.signal`;
+2. an element's `rtl.signal`;
+3. `rtl.covers` signal globs (`glob`, relative to `meta.rtl.instance`, or
+   `inst/path:glob`);
+4. the signals inside an equivalence-checked gate region's cone;
+5. an instance subtree (`rtl.instance` of an instance element, or a `covers`
+   entry naming an instance).
+
+Signals joined by a plain port connection share an owner. An instance counts
+as covered when its subtree is owned, or when everything inside it is
+represented (drawn in detail).
+
+A transfer is represented when:
+- both ends have the same owner;
+- both ends are nets driven by the same element; or
+- a figure path leads from the source's owner to the target's owner and passes
+  through no net carrying another RTL mapping.
+
+Anything unrepresented is `coverage/dropped-hardware` (error). Its evidence
+lists the missing items by kind (`register`, `instance`, `net`, `transfer`).
+The receipt's `coverage` records the scope, the totals, the per-region counts
+(members, plus the region's `rtl.instance` subtree), the exclusions and the
+uncovered items.
+
+**Hidden registers and latency** (`lib/checks/latency.mjs`). For every drawn
+element that is not itself a register, pipeline register, synchronizer or
+memory element, and for every mapped input net → mapped output net:
+- The RTL path is traced through the netlist without passing through other
+  mapped nets. The minimum number of register stages is the RTL latency.
+- The drawn latency is the output pin's latency (`port_def.registered` with
+  `latency`, default 1).
+- A register on the path that the figure does not draw is a **pipeline
+  register** when two conditions hold: every non-clock/reset source of it is
+  reachable from the input, and it does not feed back to itself. A pipeline
+  register hidden this way is `latency/hidden-register` (error), unless the
+  element is a memory (`function.kind: memory`).
+- Otherwise the register is internal state, which is allowed when the drawn
+  latency equals the RTL latency.
+- Any latency mismatch is also `latency/hidden-register`.
+
+The receipt's `latency` records the pairs checked, the mismatches and the
+hidden registers (both must be 0), plus each path that crosses registers.
+
+**Sub-figures.** An element may carry `detail_ref {figure, id?}`, naming the
+figure that draws it in detail. `detail/ref-unresolved` (error) fires when
+that file (relative to the figure) or that id does not exist.
+
+**Fit.** When a required variant overflows its width or height,
+`deliver/does-not-fit` (error) lists the only allowed fixes, in order:
+1. collapse more hardware into covering blocks;
+2. raise `meta.print.max_height_in` up to the profile maximum;
+3. narrow `meta.scope`, or split into sub-figures linked with `detail_ref`.
+
+### 4.8 View presets and drafts
+
+A figure may carry a `view`: `{preset, scope, depth?, gate_regions?, blackbox?}`. The preset selects the abstraction; `scope` (an instance path, empty for the top) is the declared scope that coverage (§4.7) applies to. When `meta.scope` is absent, the view's scope fills it; when both are present they must agree (`view/scope-mismatch`).
+
+| preset | draws | checked (`lib/view.mjs`) |
+|---|---|---|
+| `overview` | the whole scope; child instances collapsed to functional blocks; pipeline registers on shown paths still drawn (rule §4.7); buses and control as bundles | no gate regions, and no mux, register or gate elements (`view/preset-violation`) |
+| `block` | one instance (`scope` required) at rtl/block level; its ports are the figure ports | every non-clock/reset port of the scope is a port element with `rtl.signal` or `rtl.covers` (`view/boundary-port`); no gate regions |
+| `mixed` | a block or overview scope plus the listed gate regions and blackboxes | every listed gate region exists (`view/gate-region-unknown`), every gate region is listed (`view/gate-region-unselected`), every listed blackbox is a blackbox element (`view/blackbox-unknown`) |
+| `detail` | the scope expanded `depth` (≥ 1) levels | instances inside the depth that the figure collapses are reported (`view/detail-collapsed`, warning): collapse only where 2col would otherwise fail |
+
+For every preset:
+- Elements mapped outside the scope are context, drawn only as blackboxes (`view/context-not-blackbox`).
+- The caption states the preset and the scope (`view/caption`: a warning, and an error under `--quality paper`).
+- The receipt records `view` (preset, scope, depth, selections, scope module), plus the CLI `overrides` when any were applied.
+- CLI: `validate`, `render` and `deliver` take `--view`, `--scope`, `--depth`, `--gate-region <id>` and `--blackbox <element or instance>`. These override the figure's `view` on a copy of the spec.
+
+**Draft.** `fig-gen draft --view <preset> --scope <path> --netlist n.json [--depth n] [--gate-region name=[inst:]out1,out2[;stop…]] [--blackbox <path>] [--repo-root <dir> --revision <sha>] [--out figure.json]` (`lib/draft.mjs`) generates a starting figure from the netlist. The author refines it; every check applies.
+
+What the draft draws:
+- **Ports:** the scope's ports become figure ports; clock and reset stay implicit.
+- **Instances:**
+  - instances within the depth are expanded (depth 0 for overview, block and mixed; `depth` for detail);
+  - a collapsed child that holds pipeline registers is expanded anyway;
+  - children holding a blackbox stub stay collapsed as memories, with a registered output where a register lies on an input path;
+  - collapsed instances keep their RTL ports, so the boundary check applies.
+- **Local logic** of each expanded instance is grouped by stage:
+  - stage = the longest path in pipeline registers from the instance inputs;
+  - a pipeline register has one data source and no feedback (raw self-dependencies count as feedback);
+  - one block per stage, one pipeline-register bar per boundary;
+  - state registers stay inside their stage block.
+- **Signal ownership:**
+  - only signals an instance assigns belong to its blocks; connection wires belong to their driver;
+  - an output port belongs to the logic that computes it.
+- **Gate regions** are expanded from the RTL cone: signals read outside the cone and the other outputs stop the cone, and pure copies of a gate output belong to that gate.
+- **Nets:**
+  - crossing signals become nets: mapped when single, bundled (unmapped, width = the sum) when several leave one element for another;
+  - a block output is marked registered when its latency is uniform from its mapped inputs, and left unmapped when it varies (unless it feeds a pipeline bar; a note then asks the author to regroup).
+- **Names:** a vocabulary function inferred from the cone's operation categories (general names only, with `function.basis` when a repository is given); else a readable generic name. Repeated names are numbered. All inferences are reported as notes.
+
 ## 5. `fsm` IR
 
 ```json
@@ -866,6 +981,17 @@ render; warnings are reported and allowed only under `--quality draft`.
 | `arrow/marker-overlap` | all renderers, per variant | two arrowheads of different connections overlap, or an arrowhead touches another connection's wire |
 | `arrow/label-proximity` | all renderers, per variant | foreign text within 1.5 pt of an arrowhead or of the last stretch of its shaft |
 | `doc/conflict`, `doc/authority-mismatch`, `doc/rtl-mismatch`, `doc/fact-unsupported` | microarch | documented facts across all documents (§7.4) |
+| `coverage/dropped-hardware` | datapath (netlist) | an instance, register, memory, live net or transfer inside the declared scope is neither drawn nor covered by a collapsed element (§4.7) |
+| `coverage/scope-undeclared` (warning), `coverage/scope-unknown` | datapath (netlist) | no `meta.scope` (the default scope is used); the declared scope instance does not exist |
+| `latency/hidden-register` | datapath (netlist) | a pipeline register on a shown path is hidden inside a collapsed element, or the latency drawn through an element differs from the RTL latency (§4.7) |
+| `detail/ref-unresolved` | datapath | an element's `detail_ref` figure or id does not exist |
+| `deliver/does-not-fit` | datapath, microarch | a required variant overflows width or height; fixes: collapse, taller up to the profile maximum, narrow the scope or split into sub-figures |
+| `wire/detached` | datapath, per variant (final SVG) | a wire end more than 0.1 pt from its pin anchor, an anchor off the symbol outline, an arrow shaft not meeting its base, a divergence without a junction dot, a dot off the trunk, a lane changing level through a bar, or notched joins |
+| `wire/touching` | datapath, per variant (final SVG) | a vertex of one net lies on another net's wire |
+| `symbol/bubble-detached` | datapath, per variant (final SVG) | an inversion bubble is not tangent to its body (gap or overlap > 0.25 pt) or its wire does not meet it |
+| `route/long-feedback` | datapath, per variant | a back edge spans more than `route.long_feedback_ratio` (skin, default 0.5) of the content width and is drawn as a loop; the renderer draws such nets as a pair of named off-page connectors unless `meta.style.connectors: false` (error) |
+| `region/wire-hugs-frame` | datapath, per variant | a wire runs parallel to a region frame edge closer than `route.frame_gap_pt` (default 6 pt; 1.5 × for a dashed wire beside the dashed frame) over more than 3 pt (error). The renderer first moves the edge past the wire: outward if the frame then covers no foreign block, else inward if it still holds its members |
+| `width/bundle-sum` | datapath | a heterogeneous bundle (`bundle_of`, or a pin `bundle`) has neither a net label nor a port label; bundles are named by protocol or function and never get a summed width slash (error) |
 | `svg/*` | all, per variant | figma-safe profile lint, §10.1 |
 
 ## 9. Layout
@@ -988,6 +1114,22 @@ Layout pipeline for straight data trunks (CONVENTIONS §1.4):
    pushed off any wire lying on an edge; then the geometry and route checks
    run. Route metrics are recorded per variant in the receipt
    (`variants[].route`).
+
+5. **Exact geometry** (pre-phase 3).
+   - Stage partitions follow forward edges only: back edges come from a DFS
+     from undriven elements. Figures with feedback nets use ELK depth-first
+     cycle breaking, so a result returning to an upstream block is the
+     reversed edge.
+   - After straightening:
+     - zig-zags shorter than 2 pt are collapsed;
+     - wire ends are extended to exact pin anchors (ELK keeps ports on the
+       node border; gate anchors sit on curved backs and bubble tangent
+       points);
+     - interior runs that touch a foreign wire slide into a free channel
+       (`detouchWires`), avoiding block outlines.
+   - `lib/render/connectivity.mjs` then parses the final SVG and runs
+     `wire/detached`, `wire/touching` and `symbol/bubble-detached`.
+   - The counts are recorded in `variants[].route.connectivity`.
 
 Still planned: `geometry/port-crowding`, `print/aspect` hints.
 
@@ -1216,9 +1358,11 @@ Cross-checks: `rtl/unknown-signal`, `rtl/width-mismatch`,
 `rtl/domain-mismatch` (clock root differs), `rtl/no-structural-path` (IR net
 from A to B has no dependency path between mapped signals),
 `rtl/latency-mismatch` (register count along RTL path ≠ IR stages),
-`rtl/fsm-encoding` (FSM state encodings ≠ RTL localparams). A coverage report
-(info) lists RTL registers not represented — figures are abstractions, so
-coverage is informative, never an error.
+`rtl/fsm-encoding` (FSM state encodings ≠ RTL localparams). Coverage is not
+informative-only. Everything inside the declared scope must be represented,
+and missing hardware is `coverage/dropped-hardware` (error, §4.7). Abstraction
+collapses hardware into covering elements; only an explicitly narrowed scope
+leaves it out.
 
 ## 12. Receipts, delivery, visual check
 
@@ -1235,6 +1379,11 @@ coverage is informative, never an error.
   result; renderer, elkjs, font file hashes; profile file hash; check codes run
   with counts; source pins with repository revision; RTL netlist SHA-256 +
   adapter id/version when cross-checked; VCD SHA-256 for grounded timing.
+  Datapath receipts with a netlist also carry `coverage` (scope, totals,
+  per-region counts, exclusions, uncovered items) and `latency` (pairs
+  checked, mismatches 0, hidden registers 0). Every datapath variant carries
+  `route.connectivity`, whose `wire_detached`, `wire_touching` and
+  `bubble_detached` counts must all be 0.
 ### 12.2 Evidence rule and per-region verification (hard rule, Phase 2)
 
 - A figure may only be verified against the **user's own** RTL, netlists

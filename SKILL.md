@@ -50,10 +50,33 @@ the JSON and re-run, so the fix survives the next render.
    (file + line at a pinned revision) to elements the reader may want to trace.
    Never write tool output into the user's RTL tree.
 
-4. **Write the candidate JSON first**, with a clear main data path left→right
-   and only the control signals the figure's point needs. Figures are
-   abstractions; completeness belongs in the netlist, not the picture. Give
-   long labels a `short_label` so the single-column variant can stay legible.
+4. **Write the candidate JSON first**, with a clear main data path left→right.
+   **Declare the scope** (`meta.scope`: an instance with its hierarchy, or a
+   cone between named signals). Abstraction may collapse hardware, never drop
+   it: every instance, register, memory and transfer inside the scope must be
+   drawn or covered by a collapsed element (`rtl.covers`, or `rtl.instance` on
+   an instance). To leave something out, narrow the scope; nothing else does
+   (`coverage/dropped-hardware`). Give long labels a `short_label` so the
+   single-column variant can stay legible.
+
+   **Pick a view preset** to deliver the same design at another scope or
+   abstraction without hand-rebuilding the IR:
+
+   | preset | use for |
+   |---|---|
+   | `overview` | the whole IP: children as functional blocks, pipeline bars kept, buses bundled |
+   | `block` | one instance (`--scope u_x/u_y`); its ports are the figure ports |
+   | `mixed` | a block or overview scope plus selected gate regions and blackboxes |
+   | `detail` | the scope expanded `--depth n` levels |
+
+   Start from `fig-gen draft --view <preset> --scope <path> --netlist n.json
+   [--gate-region name=out1,out2] [--blackbox <path>] [--repo-root <dir>
+   --revision <sha>] --out fig.json`. Then refine: rename blocks, regroup, add
+   context. Read the draft's notes; they list every name the generator
+   inferred and every wire it could not map. The figure's `view` records the
+   preset and scope. The caption must state both (`view/caption`), and the
+   completeness rule applies within that scope. Narrowing the scope is the
+   legitimate way to show one block.
 
 5. **Validate after every edit**:
 
@@ -142,9 +165,30 @@ the JSON and re-run, so the fix survives the next render.
   (`arrow/missing`), and no wire runs within 4 pt of an outline or another
   wire (`route/edge-hugging`). Both are errors; do not work around them.
 - Region frames enclose exactly their members; blackbox regions are not
-  framed (the hatch marks them). If a mixed-abstraction figure is too wide
-  for 2col, collapse detail that is not the figure's point into block-level
-  elements and say so in the caption, rather than squeezing spacing.
+  framed (the hatch marks them). No wire runs along a frame edge within 6 pt
+  (`region/wire-hugs-frame`).
+- Long feedback (more than half the width) is drawn as a pair of named
+  off-page connectors, not a loop around the figure (`route/long-feedback`).
+  Name heterogeneous bundles by protocol or function ("AHB-Lite"); they get no
+  summed width (`width/bundle-sum`). When a block's registered outputs differ
+  in latency, give those ports labels so the note names each path.
+- **Pipeline registers stay visible.** A collapsed block may not hide a
+  register that sits on a path the figure shows: split the block at the
+  register and draw the pipeline bar. Internal state (feedback, CSRs,
+  buffers) and memories may stay inside a block whose output ports are marked
+  `registered` with their `latency`; the block then gets a clock wedge and a
+  "k stages" note. Drawn latency must equal the RTL latency
+  (`latency/hidden-register`).
+- **If the figure does not fit 2col**, in this order: collapse more hardware
+  into blocks that cover it; allow a taller figure up to the profile's maximum
+  height; otherwise the delivery fails (`deliver/does-not-fit`): narrow the
+  scope, or split into sub-figures (a)/(b) where the collapsed element links
+  its detail figure with `detail_ref`. Never drop hardware to fit.
+- Geometry is exactly connected: wires end on their pin anchors (curved gate
+  backs, apexes, bubble tangent points) and inversion bubbles are tangent to
+  their gates (`wire/detached`, `wire/touching`, `symbol/bubble-detached`,
+  checked on the final SVG). These are renderer guarantees; if one fires,
+  report it rather than editing the SVG.
 
 ## Evidence rule (hard, no exceptions)
 

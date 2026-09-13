@@ -16,6 +16,11 @@ import { expandToGates, findModule, resolveCone } from '../lib/rtl/cone.mjs';
 import { verifySourcePins } from '../lib/source-pins.mjs';
 import { checkDocFacts } from '../lib/doc-facts.mjs';
 import { checkFunctionEvidence } from '../lib/checks/function-evidence.mjs';
+import { checkCoverage } from '../lib/checks/coverage.mjs';
+import { checkDetailRefs } from '../lib/checks/detail-refs.mjs';
+import { draftFigure } from '../lib/draft.mjs';
+import { applyViewOverrides, checkView, withViewScope } from '../lib/view.mjs';
+import { checkLatency } from '../lib/checks/latency.mjs';
 import { buildFigure, deliver, figureName } from '../lib/deliver.mjs';
 import { summarize } from '../lib/diagnostics.mjs';
 import { findChrome } from '../lib/env/chrome.mjs';
@@ -29,6 +34,10 @@ const USAGE = `usage:
   fig-gen render   <datapath|microarch> <figure.json> <out-dir> [--netlist n.json] [--variants 2col,1col] [--profiles p.json] [--quality paper]
   fig-gen deliver  <datapath|microarch> <figure.json> <out-dir> [--netlist n.json] [--variants 2col,1col] [--profiles p.json] [--quality paper]
                    (default: 2col required, 1col best effort; --variants makes the listed variants mandatory)
+                   view presets: [--view overview|block|mixed|detail] [--scope <instance path>] [--depth n]
+                                 [--gate-region <region id>...] [--blackbox <element or instance>...]
+  fig-gen draft --view <overview|block|mixed|detail> --scope <instance path> --netlist n.json [--depth n]
+                [--gate-region name=out1,out2[:stop1,stop2]...] [--blackbox <instance path>...] [--repo-root <dir> --revision <sha>] [--out figure.json]
   fig-gen crosscheck <datapath|microarch> <figure.json> --netlist netlist.json [--json]
   fig-gen expand-cone --netlist n.json --output <signal> [--index <n>] [--instance a/b] [--stop-at s1,s2]
                       [--max-gates 30] [--prefix g] [--no-bitblast] [--out fragment.json]
@@ -43,7 +52,7 @@ const USAGE = `usage:
 function parseArgs(argv) {
   const positional = [];
   const flags = {};
-  const multi = new Set(['files', 'stub', 'blackbox-json', 'include', 'define', 'param']);
+  const multi = new Set(['files', 'stub', 'blackbox-json', 'include', 'define', 'param', 'gate-region', 'blackbox']);
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
     if (!a.startsWith('--')) { positional.push(a); continue; }
@@ -71,7 +80,8 @@ function loadNetlistWithGuard(file) {
 async function cmdValidate({ positional, flags }) {
   const [type, file] = positional;
   if (!type || !file) return usage();
-  const doc = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const applied = applyViewOverrides(JSON.parse(fs.readFileSync(file, 'utf8')), viewOpts(flags));
+  const doc = type === 'datapath' ? withViewScope(applied.doc) : applied.doc;
   const figureDir = path.dirname(path.resolve(file));
   const result = await validateFigure(type, doc, { figureDir, quality: flags.quality });
   if (result.checks?.schema === 'pass') {
@@ -84,6 +94,18 @@ async function cmdValidate({ positional, flags }) {
       if (!guard.diagnostics.some((d) => d.severity === 'error')) {
         const cc = type === 'datapath' ? crosscheckDatapath(doc, netlist) : type === 'microarch' ? crosscheckSoc(doc, netlist) : null;
         if (cc) { result.diagnostics.push(...cc.diagnostics); result.checks.rtl = cc.stats; }
+        if (type === 'datapath') {
+          const cov = checkCoverage(doc, netlist);
+          const lat = checkLatency(doc, netlist);
+          result.diagnostics.push(...cov.diagnostics, ...lat.diagnostics);
+          result.checks.coverage = cov.report;
+          result.checks.latency = lat.report;
+        }
+        if (type === 'datapath' && doc.view) {
+          const vc = checkView(doc, { netlist, quality: flags.quality });
+          result.diagnostics.push(...vc.diagnostics);
+          result.checks.view = vc.report;
+        }
       }
     }
     const docNetlist = flags.netlist ? JSON.parse(fs.readFileSync(flags.netlist, 'utf8')) : null;
@@ -93,6 +115,7 @@ async function cmdValidate({ positional, flags }) {
       result.checks.doc_facts = df.report;
     }
     if (type === 'datapath') {
+      result.diagnostics.push(...checkDetailRefs(doc, { figureDir }).diagnostics);
       const fe = checkFunctionEvidence(doc, { figureDir, netlist: docNetlist, quality: flags.quality });
       result.diagnostics.push(...fe.diagnostics);
       result.checks.function_evidence = fe.report;
@@ -110,7 +133,7 @@ async function cmdValidate({ positional, flags }) {
 async function cmdRender({ positional, flags }) {
   const [type, file, outDir] = positional;
   if (!type || !file || !outDir) return usage();
-  const build = await buildFigure({ type, figurePath: file, netlistPath: flags.netlist, profilesPath: flags.profiles, variants: flags.variants?.split(','), quality: flags.quality });
+  const build = await buildFigure({ type, figurePath: file, netlistPath: flags.netlist, profilesPath: flags.profiles, variants: flags.variants?.split(','), quality: flags.quality, view: viewOpts(flags) });
   fs.mkdirSync(outDir, { recursive: true });
   const name = figureName(file);
   const written = [];
@@ -128,7 +151,7 @@ async function cmdRender({ positional, flags }) {
 async function cmdDeliver({ positional, flags }) {
   const [type, file, outDir] = positional;
   if (!type || !file || !outDir) return usage();
-  const result = await deliver({ type, figurePath: file, outDir, netlistPath: flags.netlist, profilesPath: flags.profiles, variants: flags.variants?.split(','), quality: flags.quality });
+  const result = await deliver({ type, figurePath: file, outDir, netlistPath: flags.netlist, profilesPath: flags.profiles, variants: flags.variants?.split(','), quality: flags.quality, view: viewOpts(flags) });
   print({
     ok: result.ok,
     written: result.written,
@@ -146,8 +169,11 @@ async function cmdCrosscheck({ positional, flags }) {
   if (!type || !file || !flags.netlist) return usage();
   const doc = JSON.parse(fs.readFileSync(file, 'utf8'));
   const { netlist, guard } = loadNetlistWithGuard(flags.netlist);
-  const cc = guard.diagnostics.some((d) => d.severity === 'error') ? { diagnostics: [], stats: {} } : (type === 'datapath' ? crosscheckDatapath(doc, netlist) : crosscheckSoc(doc, netlist));
-  const diagnostics = [...guard.diagnostics, ...cc.diagnostics];
+  const guarded = guard.diagnostics.some((d) => d.severity === 'error');
+  const cc = guarded ? { diagnostics: [], stats: {} } : (type === 'datapath' ? crosscheckDatapath(doc, netlist) : crosscheckSoc(doc, netlist));
+  const extra = !guarded && type === 'datapath' ? { coverage: checkCoverage(doc, netlist), latency: checkLatency(doc, netlist) } : {};
+  if (extra.coverage) cc.stats = { ...cc.stats, coverage: extra.coverage.report?.totals, latency: { ...extra.latency.report, paths: undefined } };
+  const diagnostics = [...guard.diagnostics, ...cc.diagnostics, ...(extra.coverage?.diagnostics || []), ...(extra.latency?.diagnostics || [])];
   const ok = !diagnostics.some((d) => d.severity === 'error');
   if (flags.json) print({ ok, stats: cc.stats, diagnostics });
   else { for (const d of diagnostics) console.error(line(d)); console.log(`${ok ? 'pass' : 'fail'} ${JSON.stringify(cc.stats)}`); }
@@ -197,6 +223,28 @@ async function cmdExpandCone({ flags }) {
   else print(fragment);
   for (const d of exp.diagnostics) console.error(line(d));
   return exp.diagnostics.some((d) => d.severity === 'error') ? EXIT.fail : EXIT.ok;
+}
+
+const viewOpts = (flags) => ({
+  preset: flags.view, scope: flags.scope, depth: flags.depth !== undefined ? Number(flags.depth) : undefined,
+  gateRegions: flags['gate-region'], blackbox: flags.blackbox,
+});
+
+// Draft a starting figure for a view preset from the user's netlist. The
+// author refines it; validate/deliver apply every check to the result.
+async function cmdDraft({ flags }) {
+  if (!flags.netlist || !flags.view) return usage();
+  const { netlist, guard } = loadNetlistWithGuard(flags.netlist);
+  if (guard.diagnostics.some((d) => d.severity === 'error')) {
+    for (const d of guard.diagnostics) console.error(line(d));
+    return EXIT.fail;
+  }
+  const draft = draftFigure(netlist, { preset: flags.view, scope: flags.scope ?? '', depth: flags.depth !== undefined ? Number(flags.depth) : undefined, gateRegions: flags['gate-region'] || [], blackbox: flags.blackbox || [], ...(flags['repo-root'] && flags.revision ? { repository: { root: flags['repo-root'], revision: flags.revision } } : {}) });
+  const text = `${JSON.stringify(draft.doc, null, 2)}\n`;
+  if (flags.out) fs.writeFileSync(flags.out, text);
+  else process.stdout.write(text);
+  for (const n of draft.notes) console.error(`note: ${n}`);
+  return EXIT.ok;
 }
 
 async function cmdLintSvg({ positional, flags }) {
@@ -309,6 +357,7 @@ const commands = {
   deliver: cmdDeliver,
   crosscheck: cmdCrosscheck,
   'expand-cone': cmdExpandCone,
+  draft: cmdDraft,
   'lint-svg': cmdLintSvg,
   'check-rtl': cmdCheckRtl,
   adapters: cmdAdapters,

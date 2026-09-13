@@ -42,7 +42,8 @@
         "instance": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_\\[\\]]*(/[A-Za-z_][A-Za-z0-9_\\[\\]]*)*$" },
         "module": { "type": "string" },
         "signal": { "type": "string" },
-        "state_register": { "type": "string" }
+        "state_register": { "type": "string" },
+        "covers": { "description": "RTL hardware this element represents without drawing it (coverage/dropped-hardware): \"a/b\" covers an instance subtree; \"a/b:glob\" covers signals and registers matching glob in instance a/b; a bare glob names signals of the figure base instance (meta.rtl.instance).", "type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1, "pattern": "^[A-Za-z_*?][A-Za-z0-9_\\[\\]/.*?]*(:[A-Za-z0-9_*?\\[\\].]+)?$"} }
       }
     },
     "print": {
@@ -74,7 +75,8 @@
         "mux_indices": { "type": "boolean" },
         "color": { "type": "boolean" },
         "clock_wiring": { "enum": ["implicit", "explicit"] },
-        "show_priority": { "type": "boolean" }
+        "show_priority": { "type": "boolean" },
+        "connectors": { "description": "Datapath: draw long feedback/return nets with named off-page connectors (default true).", "type": "boolean" }
       }
     },
     "repository": {
@@ -104,7 +106,9 @@
             "instance": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_\\[\\]]*(/[A-Za-z_][A-Za-z0-9_\\[\\]]*)*$" },
             "module": { "type": "string" }
           }
-        }
+        },
+        "scope": { "description": "Declared RTL scope of the figure (coverage/dropped-hardware): everything inside it must be represented. Narrow it explicitly to leave hardware out.", "type": "object", "additionalProperties": false, "properties": {"instance": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_\\[\\]]*(/[A-Za-z_][A-Za-z0-9_\\[\\]]*)*$"}, "hierarchy": {"enum": ["all", "none"]}, "cone": {"type": "object", "additionalProperties": false, "required": ["outputs"], "properties": {"outputs": {"type": "array", "minItems": 1, "items": {"type": "string"}}, "inputs": {"type": "array", "items": {"type": "string"}}}}} },
+        "legend": { "description": "Datapath: draw the abstraction-level legend when more than two levels appear (default true); set false when the caption defines the levels.", "type": "boolean" }
       }
     },
     "params": {
