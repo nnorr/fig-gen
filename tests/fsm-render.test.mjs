@@ -78,7 +78,8 @@ test('generated state names drop the shared prefix and stay readable; labels win
   // conjunctions never stand alone; a long glued comparison breaks before its operator
   assert.ok(wrap('mode is not MODE RSVD and word count is not 0', 20).every((l) => l !== 'and' && l !== 'or'));
   assert.ok(wrap('command valid and command ready and not ((command logn = 9 or command logn = 10) and command op <= 2)', 20).every((l) => l !== 'not'));
-  assert.ok(wrap('(seen with accept & required) = required', 20).every((l) => l.length <= 24));
+  // a comparison is kept whole up to a column-wide line (40 characters)
+  assert.ok(wrap('(seen with accept & required) = required', 20).every((l) => l.length <= 40));
 });
 
 test('semantic checks: every fsm code fires on its defect and a clean machine passes', async () => {

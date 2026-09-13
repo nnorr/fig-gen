@@ -1199,7 +1199,10 @@ the scope covers.
     not";
   - literals print as numbers.
 
-  Lines wrap between words but never inside a name.
+  Lines wrap between words but never inside a name. A comparison ("mode is not
+  MODE RSVD") stays on one line when it fits a column line (40 characters); an
+  operand word is never left alone on a line apart from its operator, and "and"
+  / "or" end the line they continue.
 - **Moore outputs [house]:** inside the bubble under a thin divider, or under the
   name: `BUSY / en=1`. List only outputs that are asserted (non-default).
 - **Mealy outputs [house]:** on the arc after a slash: `start / load=1`.
@@ -1245,6 +1248,9 @@ WaveJSON input [ext: WaveDrom tutorial].
   Rising edges at column boundaries. Faint vertical gridlines (`#DDDDDD`, 0.4 pt) at
   every rising edge. Put **cycle indices** above the top lane at 6.5 pt (`0 1 2 3 …`),
   following WaveDrom `head.tick`.
+- **Names and vectors [house]:** a lane of named values (enum states) prints no
+  width suffix. Show one bit of a one-hot or per-client vector as its own 1-bit
+  lane ("client 0 valid"), not as a hex bus.
 - **Lane order [house]:** `clk` first, then `rst`, then signals grouped by interface
   (request channel, response channel). Groups are labeled with a bracket on the left,
   as in WaveDrom groups. Signal names are right-aligned at 7 pt in the left gutter.

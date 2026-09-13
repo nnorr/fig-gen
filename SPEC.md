@@ -1054,7 +1054,11 @@ Rules:
     hashes and the VCD hash.
   - A module defined nowhere (a memory macro) stops with
     `sim/blackbox-without-model`; the behavioural model must come from the
-    user.
+    user. Look for where the project's own build expects such models (a
+    Makefile or file list path such as `rtl/mem/`) and report that path; a
+    model outside the repository is the user's to supply, never fig-gen's to
+    write. If the user skips it, the figure is recorded as "blocked:
+    behavioural memory model not in repository; skipped by user decision".
   - Other stops: `sim/simulator-missing`, `sim/compile-failed`,
     `sim/run-failed`, `sim/scenario-failed`, `sim/timeout`, `sim/no-vcd`,
     `sim/file-missing`.
@@ -1072,6 +1076,12 @@ Rules:
   - Label radix reads enum item names from the netlist and drops the prefix
     shared by all items, as for state labels.
   - Lane names are readable and qualified only on collision.
+  - Bit selection: `path[i]` or `path[msb:lsb]` of one declared vector draws
+    those bits as their own lane ("valid bit 0", or an `--alias`), so one-hot
+    and per-client vectors show as bit lanes. Bits outside the declared range
+    are `timing/vcd-bit-select` (error).
+  - A lane whose values print as names (`radix: label`) carries no width
+    suffix ("state", not "state /4").
   - `provenance.generator.lanes_sha256` pins the generated lanes; `meta` and
     `fit` edits are outside the hash.
   - Codes: `timing/vcd-signal-missing`, `timing/vcd-window`,
@@ -1379,6 +1389,7 @@ render; warnings are reported and allowed only under `--quality draft`.
 | `label/bundle-name-omitted` | datapath, per variant | a named bundle (`bundle_of`, or ending at a pin with `bundle`) whose name finds no spot; the name-room retry runs first (error in paper variants, warning in study) |
 | `label/stage-naming` | datapath | blocks of one function where some use `function.stage` and others do not (same vocabulary kind, or a custom name that repeats a staged block's word and numbers a stage) (error) |
 | `print/stage-label-omitted` | datapath, per variant | a pipeline bar with a `label` that finds no spot above it (error in paper variants, warning in study) |
+| `width/sub-bundle-cover` | datapath | a named heterogeneous bundle (driver pin `bundle`) fans out to sink pins that take sub-bundles (their own `bundle`, narrower than the net); the distinct sub-bundles must carry exactly the bundle's width, and no sink may also take the whole bundle (error) |
 | `fsm/arc-overlap` | fsm, per variant (final SVG) | two transitions share a run of track (error; the plan fails) |
 | `fsm/split-suggested` (info) | fsm, per variant | no plan fits; lists linked sub-figure groups along the dominant chain (`collapsed` + `detail_ref`) |
 | `fsm/rtl-output-mismatch`, `fsm/rtl-output-not-moore` | fsm, netlist | a drawn Moore output value differs from the RTL in that state, or the output depends on more than the state (error) |
@@ -1387,6 +1398,7 @@ render; warnings are reported and allowed only under `--quality draft`.
 | `timing/value-compacted` (info) | timing, per variant | a bus value prints its lossless short form to fit its segment |
 | `timing/value-overflow` | timing, per variant | a bus value is wider than its segment even in short form (error) |
 | `timing/vcd-signal-missing`, `timing/vcd-window` | vcd2wave | a signal or clock not (uniquely) in the VCD; a window past the dumped edges (error) |
+| `timing/vcd-bit-select` | vcd2wave | a bit selection outside the vector's declared range (error) |
 | `timing/vcd-radix-label`, `timing/vcd-partial-x` (warning) | vcd2wave | label radix without netlist names (hex used); partly unknown bits drawn as x |
 | `timing/lanes-edited` | timing, deliver | lanes differ from the generator output, so `simulated` does not apply (the level falls to `sim-compared` or `unverified`) |
 | `sim/blackbox-without-model` | simulate | a module is defined nowhere; simulation needs the user's behavioural model (error) |
