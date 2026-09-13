@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "figure_type": "fsm",
+  "meta": {
+    "title": "Run / flush controller",
+    "print": { "profile": "acm-sigconf" }
+  },
+  "machine": { "name": "ctrl.state_q", "state_width": 2, "encoding": "binary", "kind": "mixed", "default": "hold" },
+  "inputs": [
+    { "name": "start", "width": 1 },
+    { "name": "last", "width": 1 },
+    { "name": "abort", "width": 1 },
+    { "name": "flush_done", "width": 1 }
+  ],
+  "outputs": [
+    { "name": "busy", "width": 1, "type": "moore" },
+    { "name": "load_cnt", "width": 1, "type": "mealy" }
+  ],
+  "reset": { "state": "IDLE", "condition": "!rst_n", "async": true },
+  "states": [
+    { "id": "IDLE", "encoding": "2'b00", "outputs": { "busy": "0" } },
+    { "id": "RUN", "encoding": "2'b01", "outputs": { "busy": "1" } },
+    { "id": "FLUSH", "encoding": "2'b10", "outputs": { "busy": "1" } },
+    { "id": "DONE", "encoding": "2'b11", "outputs": { "busy": "0" } }
+  ],
+  "transitions": [
+    { "id": "t_start", "from": "IDLE", "to": "RUN", "guard": "start" },
+    { "id": "t_run", "from": "RUN", "to": "RUN", "guard": "!last" },
+    { "id": "t_last", "from": "RUN", "to": "FLUSH", "guard": "last", "actions": { "load_cnt": "1" } },
+    { "id": "t_flush", "from": "FLUSH", "to": "DONE", "guard": "flush_done" },
+    { "id": "t_done", "from": "DONE", "to": "IDLE" },
+    { "id": "t_abort", "from": "*", "except": ["IDLE"], "to": "IDLE", "guard": "abort", "priority": -1, "style": "any_state" }
+  ]
+}

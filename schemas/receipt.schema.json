@@ -1,0 +1,207 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rtl-figures.local/schemas/receipt.schema.json",
+  "title": "rtl-figures delivery receipt (schema_version 1, skeleton)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "kind", "figure", "tool", "variants", "checks", "verification"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "kind": { "const": "rtl-figures-receipt" },
+    "figure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "spec_sha256", "spec_bytes"],
+      "properties": {
+        "type": { "enum": ["datapath", "fsm", "timing", "microarch"] },
+        "spec_sha256": { "$ref": "#/$defs/sha256" },
+        "spec_bytes": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "node"],
+      "properties": {
+        "version": { "type": "string" },
+        "node": { "type": "string" },
+        "dependencies": { "type": "object", "additionalProperties": { "type": "string" } },
+        "fonts": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["family", "sha256"], "properties": { "family": { "type": "string" }, "sha256": { "$ref": "#/$defs/sha256" } } } },
+        "profile_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "variants": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "svg", "pdf", "min_font_pt", "min_stroke_pt", "svg_lint"],
+        "properties": {
+          "id": { "type": "string" },
+          "svg": { "$ref": "#/$defs/artifact" },
+          "pdf": {
+            "allOf": [{ "$ref": "#/$defs/artifact" }],
+            "required": ["fonts_present"],
+            "properties": { "fonts_present": { "const": false } },
+            "unevaluatedProperties": false
+          },
+          "min_font_pt": { "type": "number" },
+          "min_stroke_pt": { "type": "number" },
+          "short_labels_used": { "type": "array", "items": { "type": "string" } },
+          "svg_lint": { "const": "pass" }
+        }
+      }
+    },
+    "checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["codes_run", "errors", "warnings"],
+      "properties": {
+        "codes_run": { "type": "array", "items": { "type": "string" } },
+        "errors": { "const": 0 },
+        "warnings": { "type": "integer", "minimum": 0 },
+        "quality": { "enum": ["paper", "draft"] }
+      }
+    },
+    "source_pins": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["revision", "verified"],
+      "properties": { "revision": { "type": "string", "pattern": "^[0-9a-f]{40}$" }, "verified": { "type": "integer", "minimum": 0 } }
+    },
+    "rtl": { "$ref": "#/$defs/rtl_evidence" },
+    "verification": { "$ref": "#/$defs/verification" }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "file_hash": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": { "path": { "type": "string" }, "sha256": { "$ref": "#/$defs/sha256" } }
+    },
+    "artifact": {
+      "type": "object",
+      "required": ["path", "sha256", "bytes", "width_pt", "height_pt"],
+      "properties": {
+        "path": { "type": "string" },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "bytes": { "type": "integer", "minimum": 1 },
+        "width_pt": { "type": "number", "exclusiveMinimum": 0 },
+        "height_pt": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "rtl_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["adapter", "top", "netlist_sha256", "rtl_files", "crosscheck"],
+      "properties": {
+        "adapter": { "type": "object", "additionalProperties": false, "required": ["id", "version"], "properties": { "id": { "type": "string" }, "version": { "type": "string" } } },
+        "top": { "type": "string" },
+        "netlist_sha256": { "$ref": "#/$defs/sha256" },
+        "rtl_files": { "type": "array", "items": { "$ref": "#/$defs/file_hash" } },
+        "blackboxes": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["module", "origin"], "properties": { "module": { "type": "string" }, "origin": { "enum": ["user", "auto"] } } } },
+        "crosscheck": { "enum": ["pass", "fail", "not-run"] }
+      }
+    },
+    "simulation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["simulator", "top", "stimulus", "rtl_files", "vcd_sha256", "clock", "window", "signals"],
+      "properties": {
+        "simulator": { "type": "object", "additionalProperties": false, "required": ["id", "version"], "properties": { "id": { "type": "string" }, "version": { "type": "string" } } },
+        "top": { "type": "string" },
+        "stimulus": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "files"],
+          "properties": {
+            "kind": { "enum": ["sv-testbench", "cpp-harness", "bfm-script"] },
+            "files": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/file_hash" } },
+            "dpi_models": { "type": "array", "items": { "$ref": "#/$defs/file_hash" } },
+            "seed": { "type": "integer" }
+          }
+        },
+        "rtl_files": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/file_hash" } },
+        "defines": { "type": "object", "additionalProperties": { "type": "string" } },
+        "params": { "type": "object" },
+        "vcd_sha256": { "$ref": "#/$defs/sha256" },
+        "clock": { "type": "object", "additionalProperties": false, "required": ["path", "edge"], "properties": { "path": { "type": "string" }, "edge": { "enum": ["pos", "neg"] } } },
+        "window": { "type": "object", "additionalProperties": false, "required": ["first_cycle", "cycles"], "properties": { "first_cycle": { "type": "integer", "minimum": 0 }, "cycles": { "type": "integer", "minimum": 1 } } },
+        "signals": { "type": "array", "minItems": 1, "items": { "type": "object", "additionalProperties": false, "required": ["lane", "rtl_path"], "properties": { "lane": { "type": "string" }, "rtl_path": { "type": "string" } } } },
+        "generated_wavejson_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "required": ["level"],
+      "properties": {
+        "level": { "enum": ["simulated", "sim-compared", "structural-only", "unverified"] },
+        "scope_note": { "const": "Simulation evidence covers only the recorded stimulus and cycle window." },
+        "reason": { "type": "string", "minLength": 1 },
+        "simulation": { "type": "object" },
+        "compare": { "type": "object" },
+        "structural": { "type": "object" },
+        "failed": {
+          "description": "Evidence from a higher level that was attempted and failed (e.g. sim-compare mismatches).",
+          "type": "object"
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "level": { "const": "simulated" } } },
+          "then": {
+            "required": ["simulation", "scope_note"],
+            "properties": { "simulation": { "allOf": [{ "$ref": "#/$defs/simulation" }], "required": ["generated_wavejson_sha256"] } }
+          }
+        },
+        {
+          "if": { "properties": { "level": { "const": "sim-compared" } } },
+          "then": {
+            "required": ["simulation", "compare", "scope_note"],
+            "properties": {
+              "simulation": { "$ref": "#/$defs/simulation" },
+              "compare": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["compared_cells", "dont_care_cells", "skipped_symbolic_values", "mismatches"],
+                "properties": {
+                  "compared_cells": { "type": "integer", "minimum": 1 },
+                  "dont_care_cells": { "type": "integer", "minimum": 0 },
+                  "skipped_symbolic_values": { "type": "integer", "minimum": 0 },
+                  "value_map_used": { "type": "boolean" },
+                  "mismatches": { "type": "array", "maxItems": 0 }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "level": { "const": "structural-only" } } },
+          "then": {
+            "required": ["structural"],
+            "properties": {
+              "structural": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["netlist_sha256", "crosscheck"],
+                "properties": {
+                  "datapath_figure_sha256": { "$ref": "#/$defs/sha256" },
+                  "netlist_sha256": { "$ref": "#/$defs/sha256" },
+                  "crosscheck": { "const": "pass" },
+                  "latencies_checked": { "type": "integer", "minimum": 0 }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "level": { "const": "unverified" } } },
+          "then": { "required": ["reason"] }
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  }
+}

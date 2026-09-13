@@ -1,0 +1,184 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rtl-figures.local/schemas/timing.schema.json",
+  "title": "rtl-figures timing figure: WaveJSON (rendered by WaveDrom) plus a paper/check layer (schema_version 1, skeleton)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "figure_type", "meta", "wavejson"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "figure_type": { "const": "timing" },
+    "meta": { "$ref": "common.schema.json#/$defs/meta" },
+    "wavejson": { "$ref": "#/$defs/wavejson" },
+    "clock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": { "name": { "type": "string" }, "edge": { "enum": ["pos", "neg"] } }
+    },
+    "signals": {
+      "description": "Paper metadata per WaveJSON signal name.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "width": { "$ref": "common.schema.json#/$defs/width" },
+          "short_name": { "$ref": "common.schema.json#/$defs/short_label" },
+          "radix": { "enum": ["hex", "dec", "bin", "label"] },
+          "rtl": { "$ref": "common.schema.json#/$defs/rtl_ref" },
+          "source": { "$ref": "common.schema.json#/$defs/source_pin" }
+        }
+      }
+    },
+    "latencies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["edge", "cycles"],
+        "properties": {
+          "edge": { "type": "string", "pattern": "^[A-Za-z0-9]\\s*[-~<>|+]+\\s*[A-Za-z0-9]$" },
+          "cycles": { "type": "integer", "minimum": 0 },
+          "datapath_ref": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["figure", "from", "to"],
+            "properties": {
+              "figure": { "type": "string" },
+              "from": { "$ref": "common.schema.json#/$defs/endpoint" },
+              "to": { "$ref": "common.schema.json#/$defs/endpoint" }
+            }
+          }
+        }
+      }
+    },
+    "handshakes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["valid", "ready", "protocol"],
+        "properties": {
+          "valid": { "type": "string" },
+          "ready": { "type": "string" },
+          "data": { "type": "string" },
+          "protocol": { "enum": ["valid_ready", "req_ack"] }
+        }
+      }
+    },
+    "fit": {
+      "type": "object",
+      "propertyNames": { "$ref": "common.schema.json#/$defs/variant_id" },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "hscale": { "type": "number", "minimum": 0.5, "maximum": 4 },
+          "max_cycles": { "type": "integer", "minimum": 1 },
+          "max_signals": { "type": "integer", "minimum": 1 },
+          "names": { "enum": ["full", "short"] }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": { "enum": ["hand", "vcd"] },
+        "vcd": { "type": "string" },
+        "vcd_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "scope": { "type": "string" },
+        "clock": { "type": "string" },
+        "first_cycle": { "type": "integer", "minimum": 0 },
+        "cycles": { "type": "integer", "minimum": 1 },
+        "sample": { "enum": ["pre_edge"] },
+        "rtl_map": {
+          "description": "WaveJSON lane name -> RTL hierarchical path in the simulation.",
+          "type": "object",
+          "additionalProperties": { "type": "string", "pattern": "^[A-Za-z_][\\w$]*(\\.[A-Za-z_][\\w$]*(\\[\\d+\\])?)*$" }
+        },
+        "stimulus": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "files"],
+          "properties": {
+            "kind": { "enum": ["sv-testbench", "cpp-harness", "bfm-script"] },
+            "files": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+            "top": { "type": "string" }
+          }
+        },
+        "compare_vcd": { "type": "string" },
+        "compare": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ignore": { "type": "array", "items": { "type": "string" } },
+            "values": { "type": "object", "additionalProperties": { "type": "object", "additionalProperties": { "type": "string" } } },
+            "align_on": { "type": "object", "additionalProperties": false, "required": ["lane", "event"], "properties": { "lane": { "type": "string" }, "event": { "enum": ["rise", "fall", "change"] }, "occurrence": { "type": "integer", "minimum": 1 } } }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "wavejson": {
+      "description": "WaveDrom WaveJSON (supported subset checked semantically; unknown WaveDrom keys are rejected so they cannot silently change rendering).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["signal"],
+      "properties": {
+        "signal": { "$ref": "#/$defs/lanes" },
+        "edge": { "type": "array", "items": { "type": "string", "maxLength": 80 } },
+        "head": { "$ref": "#/$defs/headfoot" },
+        "foot": { "$ref": "#/$defs/headfoot" },
+        "config": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "hscale": { "type": "number", "minimum": 0.5, "maximum": 4 },
+            "skin": { "const": "default" }
+          }
+        }
+      }
+    },
+    "headfoot": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "text": { "type": "string", "maxLength": 80 },
+        "tick": { "type": "integer" },
+        "every": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "lanes": {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          { "$ref": "#/$defs/lane" },
+          { "type": "object", "maxProperties": 0 },
+          { "type": "array", "prefixItems": [{ "type": "string" }], "items": { "anyOf": [{ "$ref": "#/$defs/lane" }, { "type": "object", "maxProperties": 0 }, { "type": "array" }] } }
+        ]
+      }
+    },
+    "lane": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["wave"],
+      "properties": {
+        "name": { "type": "string", "maxLength": 40 },
+        "wave": { "type": "string", "pattern": "^[pnPNhlHL01xz.=2-9|ud<>]*$" },
+        "data": {
+          "oneOf": [
+            { "type": "array", "items": { "type": "string", "maxLength": 24 } },
+            { "type": "string", "maxLength": 200 }
+          ]
+        },
+        "node": { "type": "string", "pattern": "^[.A-Za-z0-9]*$" },
+        "period": { "type": "number", "exclusiveMinimum": 0 },
+        "phase": { "type": "number" }
+      }
+    }
+  }
+}

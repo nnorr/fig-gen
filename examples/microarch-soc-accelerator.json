@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "figure_type": "microarch",
+  "meta": {
+    "title": "Accelerator slot on a small SoC",
+    "print": { "profile": "acm-sigconf", "variants": ["1col", "2col"] },
+    "style": { "grayscale": true, "font_family": "Arial", "svg_profile": "figma-safe" }
+  },
+  "blocks": [
+    { "id": "cpu", "kind": "core", "label": "CPU", "rtl": { "instance": "u_cpu" } },
+    { "id": "intc", "kind": "interrupt_controller", "label": "IRQ ctrl", "short_label": "INTC" },
+    { "id": "sram", "kind": "memory", "label": "SRAM", "sublabel": "64 KiB" },
+    { "id": "br", "kind": "bridge", "label": "AHB-to-APB bridge", "short_label": "AHB→APB" },
+    { "id": "uart", "kind": "peripheral", "label": "UART" },
+    { "id": "timer", "kind": "peripheral", "label": "Timer" },
+    { "id": "acc", "kind": "accelerator", "label": "Accelerator slot", "short_label": "Accel", "emphasis": true,
+      "detail_ref": { "figure": "datapath-pipelined-xor.json" }, "rtl": { "instance": "u_acc", "module": "acc_top" } },
+    { "id": "flash", "kind": "offchip", "label": "Boot flash", "short_label": "Flash" }
+  ],
+  "fabrics": [
+    { "id": "ahb", "protocol": "AHB-Lite", "addr_width": 32, "data_width": 32, "topology": "bus", "memory_mapped": true },
+    { "id": "apb", "protocol": "APB", "addr_width": 32, "data_width": 32, "topology": "bus", "memory_mapped": true }
+  ],
+  "attachments": [
+    { "id": "at_cpu", "fabric": "ahb", "block": "cpu", "role": "manager" },
+    { "id": "at_sram", "fabric": "ahb", "block": "sram", "role": "subordinate", "address": { "base": "0x0000_0000", "size": "0x0001_0000" } },
+    { "id": "at_acc", "fabric": "ahb", "block": "acc", "role": "subordinate",
+      "address": { "base": "0x6100_0000", "end": "0x6100_0FFF" },
+      "rtl": { "instance": "u_acc", "base_param": "BASE_ADDR" } },
+    { "id": "at_br_s", "fabric": "ahb", "block": "br", "role": "subordinate", "address": { "base": "0x4000_0000", "size": "0x1000_0000" } },
+    { "id": "at_br_m", "fabric": "apb", "block": "br", "role": "manager" },
+    { "id": "at_uart", "fabric": "apb", "block": "uart", "role": "subordinate", "address": { "base": "0x4000_0000", "size": "0x0000_1000" } },
+    { "id": "at_timer", "fabric": "apb", "block": "timer", "role": "subordinate", "address": { "base": "0x4000_1000", "size": "0x0000_1000" } }
+  ],
+  "links": [
+    { "id": "irq_acc", "from": "acc", "to": "intc", "class": "interrupt", "irq": 5, "label": "irq" },
+    { "id": "irq_uart", "from": "uart", "to": "intc", "class": "interrupt", "irq": 1 },
+    { "id": "irq_cpu", "from": "intc", "to": "cpu", "class": "interrupt" },
+    { "id": "boot", "from": "flash", "to": "cpu", "class": "sideband", "label": "boot" }
+  ],
+  "domains": [
+    { "id": "clk_sys", "kind": "clock", "label": "sys clk", "members": ["cpu", "intc", "sram", "br", "uart", "timer", "acc"] },
+    { "id": "pd_on", "kind": "power", "label": "always-on", "members": ["cpu", "intc", "sram", "br", "uart", "timer"], "always_on": true },
+    { "id": "pd_acc", "kind": "power", "label": "switchable", "members": ["acc"] }
+  ],
+  "crossings": [
+    { "link": "irq_acc", "from": "pd_acc", "to": "pd_on", "via": "isolation" },
+    { "attachment": "at_acc", "from": "pd_on", "to": "pd_acc", "via": "isolation" }
+  ],
+  "groups": [
+    { "id": "soc", "label": "SoC", "members": ["cpu", "intc", "sram", "br", "uart", "timer", "acc"], "style": "chip" }
+  ],
+  "annotations": [
+    { "kind": "callout", "block": "acc", "target": { "figure": "datapath-pipelined-xor.json" } }
+  ],
+  "address_map": { "table": true, "alignment": "0x1000" }
+}

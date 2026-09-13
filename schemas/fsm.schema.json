@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rtl-figures.local/schemas/fsm.schema.json",
+  "title": "rtl-figures FSM IR (schema_version 1, skeleton)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "figure_type", "meta", "machine", "reset", "states", "transitions"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "figure_type": { "const": "fsm" },
+    "meta": { "$ref": "common.schema.json#/$defs/meta" },
+    "params": { "$ref": "common.schema.json#/$defs/params" },
+    "machine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "encoding"],
+      "properties": {
+        "name": { "type": "string" },
+        "state_width": { "type": "integer", "minimum": 1, "maximum": 64 },
+        "encoding": { "enum": ["binary", "onehot", "gray", "custom", "auto"] },
+        "kind": { "enum": ["moore", "mealy", "mixed"] },
+        "default": { "enum": ["hold", "none"] },
+        "show_implicit_hold": { "type": "boolean" },
+        "rtl": { "$ref": "common.schema.json#/$defs/rtl_ref" },
+        "source": { "$ref": "common.schema.json#/$defs/source_pin" }
+      }
+    },
+    "inputs": { "type": "array", "items": { "$ref": "#/$defs/signal" } },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "allOf": [{ "$ref": "#/$defs/signal" }],
+        "required": ["type"],
+        "properties": { "type": { "enum": ["moore", "mealy"] } },
+        "unevaluatedProperties": false
+      }
+    },
+    "reset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state"],
+      "properties": {
+        "state": { "$ref": "common.schema.json#/$defs/id" },
+        "condition": { "type": "string" },
+        "async": { "type": "boolean" }
+      }
+    },
+    "states": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id"],
+        "properties": {
+          "id": { "$ref": "common.schema.json#/$defs/id" },
+          "label": { "type": "string", "maxLength": 40 },
+          "short_label": { "$ref": "common.schema.json#/$defs/short_label" },
+          "labels": { "$ref": "common.schema.json#/$defs/label_by_variant" },
+          "encoding": { "$ref": "common.schema.json#/$defs/sv_literal" },
+          "outputs": { "type": "object", "additionalProperties": { "type": "string" } },
+          "terminal": { "type": "boolean" },
+          "source": { "$ref": "common.schema.json#/$defs/source_pin" },
+          "layout": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": { "row": { "type": "integer", "minimum": 0 }, "col": { "type": "integer", "minimum": 0 } }
+          }
+        }
+      }
+    },
+    "transitions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "from", "to"],
+        "properties": {
+          "id": { "$ref": "common.schema.json#/$defs/id" },
+          "from": { "oneOf": [{ "$ref": "common.schema.json#/$defs/id" }, { "const": "*" }] },
+          "except": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/id" } },
+          "to": { "$ref": "common.schema.json#/$defs/id" },
+          "guard": { "type": "string", "maxLength": 200 },
+          "short_guard": { "type": "string", "maxLength": 60 },
+          "priority": { "type": "integer" },
+          "actions": { "type": "object", "additionalProperties": { "type": "string" } },
+          "style": { "enum": ["normal", "any_state"] },
+          "source": { "$ref": "common.schema.json#/$defs/source_pin" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "signal": {
+      "type": "object",
+      "required": ["name", "width"],
+      "properties": {
+        "name": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$" },
+        "width": { "$ref": "common.schema.json#/$defs/width" },
+        "short_label": { "$ref": "common.schema.json#/$defs/short_label" }
+      }
+    }
+  }
+}

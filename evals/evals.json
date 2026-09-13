@@ -1,0 +1,136 @@
+{
+  "skill_name": "rtl-figures",
+  "notes": "Phase-1 sketch in skill-creator format. Prompts referring to 'the RS engine' assume the evaluator points the run at a local checkout of the user's RS ECC accelerator RTL (not bundled, not redistributable); generic prompts use tests/fixtures. Expectations become gradable once render/deliver exist (phase 2+). Outputs go to rtl-figures-workspace/iteration-N/ as a sibling of the skill.",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "draw the RS decoder datapath for the paper — PIPELINE=2 version, show where the two register stages cut the Horner chain. rtl is in ../rs-ecc-accelerator/rtl",
+      "expected_output": "A datapath IR grounded in a Verilator netlist of rs_decode (PIPELINE=2), with syndrome computation, mid-Horner and syndrome pipeline_register bars, correction logic, and outputs; delivered as 1col and 2col SVG+PDF with a receipt.",
+      "files": [],
+      "expectations": [
+        "check-rtl was run with a work dir outside the RTL repository and the RTL tree has no new files",
+        "The datapath JSON validates with 0 errors",
+        "Exactly two pipeline_register elements appear, matching the RTL registers h1_mid/h2_mid/sym_mid/valid_mid and s1_s2/s2_s2/sym_s2/valid_s2",
+        "Bus widths on the figure match the netlist (8-bit syndromes, 48-bit symbol lanes or 6x8 split)",
+        "Both 1col and 2col SVG and PDF files exist and the receipt lists them",
+        "Every SVG passes lint-svg (figma-safe) and every PDF has no font resources",
+        "Smallest printed font in each variant is at least the profile minimum",
+        "No macro, vendor or tool-license names appear in any generated file"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "FSM of blk_acc_rs_engine please (the main sequencer, IDLE/RUN/FLUSH/DONE). acm format",
+      "expected_output": "An fsm IR whose state encodings match the RTL localparams, with the soft-reset arc drawn once as an any-state arc, the async reset entry arrow, guards abbreviated for 1col, and busy as a Moore output.",
+      "files": [],
+      "expectations": [
+        "States IDLE, RUN, FLUSH, DONE with encodings 3'b000, 3'b001, 3'b010, 3'b011",
+        "Soft reset is modeled as one transition with from '*', not one arc per state",
+        "RUN has a self-loop or implicit hold for the not-last-word case",
+        "The default arc to IDLE for unused encodings is either shown or explicitly noted as omitted",
+        "fsm validation reports 0 errors and all states reachable",
+        "Both ACM 1col and 2col variants delivered"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "timing diagram of a ROUND_TRIP transaction with word_count=2 on the RS engine: start pulse, encode pass, the prefetch stall, decode, 2-cycle flush, done. i want it from real simulation not hand drawn",
+      "expected_output": "A timing IR with provenance kind 'vcd', produced from a small self-written testbench simulated with Verilator --trace and converted with vcd2wave; latency annotation of 2 cycles consistent with PIPELINE=2.",
+      "files": [],
+      "expectations": [
+        "A testbench was written in the workspace, not in the RS repository",
+        "provenance.kind is 'vcd' with a vcd_sha256",
+        "The window shows the dec_prefetch_q stall cycle between encode and decode",
+        "The latency annotation from is_dec_pass_eff to dec_valid_o states 2 cycles and matches the waves",
+        "Clock wave is regular and wave lengths equal window.cycles"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "here's a wavedrom snippet from my notes, make it print-ready for a 3.5in column: { signal: [ {name:'clk', wave:'p.......'}, {name:'req', wave:'01..0...'}, {name:'ack', wave:'0..10...'}, {name:'data', wave:'x=..x...', data:['A']} ] }",
+      "expected_output": "The WaveJSON embedded unchanged in a timing figure, rendered by the pinned wavedrom library, post-processed to figma-safe SVG, with a req/ack handshake declaration and a node/edge arrow; IEEE 1col and 2col SVG+PDF.",
+      "files": [],
+      "expectations": [
+        "The authored WaveJSON appears unchanged under wavejson (annotations added only via node/edge/head)",
+        "A handshakes entry with protocol req_ack is present",
+        "1col SVG root width is 3.5in (252pt) with a matching viewBox",
+        "Every SVG passes lint-svg (no <style>, <use>, <marker>, class attributes)",
+        "Smallest printed font in the 1col variant is at least the profile minimum"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "I hand-drew this waveform of the decoder output valid/corrected data for fig 5, check it against the RTL before I submit. the scenario is one decode of a single-symbol error with PIPELINE=2",
+      "expected_output": "A sim-compared verification: a small testbench/BFM script in the workspace drives one decode, Verilator VCD produced, lanes mapped to RTL paths, cycle-by-cycle compare; mismatches reported by lane/cycle/drawn/simulated value; receipt level sim-compared only if zero mismatches, otherwise unverified with the mismatch list.",
+      "files": [],
+      "expectations": [
+        "provenance.rtl_map maps every compared lane to an RTL hierarchical path",
+        "The receipt verification.level is 'sim-compared' only if mismatches is empty; otherwise 'unverified'",
+        "Each reported mismatch names the lane, the cycle, the drawn value and the simulated value",
+        "Symbolic bus labels are counted as skipped unless a value map was given",
+        "The response states that simulation covers only this stimulus, not all behavior",
+        "No files were written into the RTL repository"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "no time to simulate — just draw the 2-cycle decode latency timing for the RS engine and make sure the latency matches the pipeline",
+      "expected_output": "A timing figure whose latency edge is checked against the datapath IR register stages, with the datapath IR cross-checked against the Verilator netlist; receipt level structural-only, never simulated.",
+      "files": [],
+      "expectations": [
+        "The receipt verification.level is 'structural-only'",
+        "latencies entry references a datapath figure whose RTL cross-check passed",
+        "The response does not describe the waveform as simulated or verified by simulation"
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "generate the AHB write + ROUND_TRIP start sequence waveform straight from simulation using the built-in bus helper, just the bus signals and busy/irq, cycles 0-20",
+      "expected_output": "A bfm-script stimulus (generic AHB-Lite write transactions) wrapped around the user's top in the work directory, Verilator VCD, vcd2wavejson with the requested window and lanes; receipt level simulated with stimulus, RTL and VCD hashes.",
+      "files": [],
+      "expectations": [
+        "stimulus.kind is 'bfm-script' and its files are hashed in the receipt",
+        "The receipt records top module, RTL file hashes, VCD hash, clock path, window first_cycle 0 cycles 21, and the lane-to-RTL-path list",
+        "verification.level is 'simulated' and generated_wavejson_sha256 matches the delivered WaveJSON lanes",
+        "The BFM helper and generated testbench contain no project-specific names beyond the user's own top and port map"
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "SoC integration figure for the paper: a CPU on an AHB-Lite system bus with an AHB-to-APB bridge (UART, timer), on-chip SRAM, and our accelerator in slave slot 1 at 0x6100_0000-0x6100_0FFF with a level interrupt to the CPU's interrupt controller (line 21). The accelerator only sees a 12-bit local address. Please check it against the SoC top RTL.",
+      "expected_output": "A microarch figure with two fabrics (AHB-Lite, APB) and a bridge, manager/subordinate attachments with address ranges, an interrupt link with irq 21, a drill-down detail_ref from the accelerator block to its datapath figure, an address-map table, 1col and 2col figma-safe SVG + outlined PDF in the netlist-mono theme; SoC-level RTL cross-check at structural-only level.",
+      "files": [],
+      "expectations": [
+        "Blocks and fabrics use generic names (CPU, system bus, accelerator slot); no project, vendor, core-IP or macro names",
+        "The accelerator attachment has role subordinate and address 0x6100_0000-0x6100_0FFF; bridge ranges lie inside the bridge window; memmap checks report no overlap",
+        "An interrupt-class link from the accelerator to the interrupt controller carries irq 21",
+        "The accelerator block has a detail_ref to a datapath figure and the 12-bit local address is shown or noted",
+        "An address-map table figure is delivered from the same data",
+        "The receipt verification.level is 'structural-only' (instance, base address and IRQ connection resolved in the netlist) and never 'simulated'",
+        "Both 1col and 2col variants pass svg lint and print checks"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "make a block diagram of the SoC: CPU on AHB-Lite, the RS ECC engine as a slave with its input/result buffers and two internal codeword memories",
+      "expected_output": "A microarch IR with an interconnect bar, accelerator group with buffers and memories marked impl-neutral, 1col and 2col variants.",
+      "files": [],
+      "expectations": [
+        "Memories are labeled generically (no macro or technology names)",
+        "The accelerator subsystem is a group boundary",
+        "microarch validation reports 0 errors"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "extract the netlist of tests/fixtures/rtl/tiny/tiny_top.sv and draw the datapath with the clock-domain crossing",
+      "expected_output": "Datapath with two clock domains and a ff2 synchronizer element on s0_q[0] → s2_q; the auto-blackboxed ext_mem shown hatched with inferred port widths.",
+      "files": ["tests/fixtures/rtl/tiny/tiny_top.sv"],
+      "expectations": [
+        "check-rtl summary lists ext_mem as an auto blackbox with CK/ADR/DI/DO/WE widths 1/4/8/8/1",
+        "The figure contains a synchronizer element from the clk_a domain to the clk_b domain",
+        "Semantic validation reports no cdc/unsynchronized error"
+      ]
+    }
+  ]
+}

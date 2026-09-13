@@ -1,0 +1,169 @@
+{
+  "skin": "netlist-mono",
+  "version": "1.1.0",
+  "description": "Default datapath theme: clean monochrome schematic in the spirit of netlistsvg (idea only; geometry drawn fresh for rtl-figures). Tokens follow references/CONVENTIONS.md §12. All units are print points. Override per figure (meta.style) or per lab theme (a skin file with the same shape; unspecified keys inherit).",
+  "tokens": {
+    "background": "#FFFFFF",
+    "ink": "#000000",
+    "ctrl": "#000000",
+    "fill": { "logic": "#FFFFFF", "storage": "#D9D9D9", "bar": "#BFBFBF", "offchip": "#BFBFBF", "ink": "#000000" },
+    "font": { "family": "Arial, Helvetica, sans-serif", "label_pt": 8, "secondary_pt": 7 },
+    "stroke": {
+      "wire": 0.6,
+      "bus": 1.2,
+      "control": 0.6,
+      "outline": { "default": 0.8 }
+    },
+    "dash": { "control": [2, 1.5], "reset": [0.8, 1.2] },
+    "junction_diam_factor": 2.5,
+    "arrow": { "length": 4.5, "width": 3.2, "at": ["bus", "control"] },
+    "bus_slash": { "length": 6, "offset": 7, "label_gap": 1.5 },
+    "min_gap": { "wire": 6, "block": 14 },
+    "block_margin": 5
+  },
+  "elk": {
+    "variants": {
+      "2col": {
+        "elk.layered.spacing.nodeNodeBetweenLayers": 22,
+        "elk.spacing.nodeNode": 4,
+        "elk.spacing.edgeNode": 6,
+        "elk.spacing.edgeEdge": 6,
+        "elk.layered.spacing.edgeNodeBetweenLayers": 7,
+        "elk.layered.spacing.edgeEdgeBetweenLayers": 6
+      },
+      "1col": {
+        "elk.layered.spacing.nodeNodeBetweenLayers": 21,
+        "elk.spacing.nodeNode": 4,
+        "elk.spacing.edgeNode": 5,
+        "elk.spacing.edgeEdge": 6,
+        "elk.layered.spacing.edgeNodeBetweenLayers": 6,
+        "elk.layered.spacing.edgeEdgeBetweenLayers": 6
+      }
+    }
+  },
+  "symbols": {
+    "mux": {
+      "style": "bar",
+      "indices": false,
+      "index_font": "secondary",
+      "index_gap": 1.5,
+      "select_side": "NORTH",
+      "bar": { "width": 5, "pin_pitch": 12, "fill": "ink" },
+      "trapezoid": { "width": 16, "pin_pitch": 12, "taper_ratio": 0.5, "end_pad": 8, "fill": "logic", "index_inset": 1 }
+    },
+    "join": {
+      "parametric": "bus-bar",
+      "width": 2.5,
+      "pin_pitch": 12,
+      "fill": "ink",
+      "label": "{ }",
+      "label_font": "secondary"
+    },
+    "split": {
+      "parametric": "bus-bar",
+      "width": 2.5,
+      "pin_pitch": 12,
+      "fill": "ink",
+      "slice_labels": true,
+      "label_font": "secondary",
+      "label_gap": 1.5
+    },
+    "register": {
+      "size": [16, 24],
+      "fill": "storage",
+      "body": [
+        { "el": "rect", "x": 0, "y": 0, "width": 16, "height": 24, "role": "outline" },
+        { "el": "path", "d": "M5 24 L8 19.5 L11 24", "role": "wedge" }
+      ],
+      "pins": {
+        "d": { "x": 0, "y": 12, "side": "WEST", "class": "data" },
+        "q": { "x": 16, "y": 12, "side": "EAST", "class": "data" },
+        "en": { "x": 8, "y": 0, "side": "NORTH", "class": "control", "optional": "enable" },
+        "rst": { "x": 12, "y": 24, "side": "SOUTH", "class": "reset", "optional": "reset_pin" }
+      },
+      "label": { "inside": true, "font": "secondary" }
+    },
+    "xor": {
+      "size": [24, 20],
+      "fill": "logic",
+      "body": [
+        { "el": "path", "d": "M0 0 Q6 10 0 20", "role": "line" },
+        { "el": "path", "d": "M5 0 Q15 0 24 10 Q15 20 5 20 Q11 10 5 0 Z", "role": "outline" },
+        { "el": "path", "d": "M0 5 L7.25 5 M0 15 L7.25 15", "role": "line" }
+      ],
+      "pins": {
+        "in0": { "x": 0, "y": 5, "side": "WEST", "class": "data" },
+        "in1": { "x": 0, "y": 15, "side": "WEST", "class": "data" },
+        "out": { "x": 24, "y": 10, "side": "EAST", "class": "data" }
+      }
+    },
+    "and": {
+      "size": [22, 20],
+      "fill": "logic",
+      "body": [
+        { "el": "path", "d": "M2 0 L12 0 A10 10 0 0 1 12 20 L2 20 Z", "role": "outline" },
+        { "el": "path", "d": "M0 5 L2 5 M0 15 L2 15", "role": "line" }
+      ],
+      "pins": {
+        "in0": { "x": 0, "y": 5, "side": "WEST", "class": "data" },
+        "in1": { "x": 0, "y": 15, "side": "WEST", "class": "data" },
+        "out": { "x": 22, "y": 10, "side": "EAST", "class": "data" }
+      }
+    },
+    "or": {
+      "size": [24, 20],
+      "fill": "logic",
+      "body": [
+        { "el": "path", "d": "M2 0 Q14 0 24 10 Q14 20 2 20 Q8 10 2 0 Z", "role": "outline" },
+        { "el": "path", "d": "M0 5 L4.25 5 M0 15 L4.25 15", "role": "line" }
+      ],
+      "pins": {
+        "in0": { "x": 0, "y": 5, "side": "WEST", "class": "data" },
+        "in1": { "x": 0, "y": 15, "side": "WEST", "class": "data" },
+        "out": { "x": 24, "y": 10, "side": "EAST", "class": "data" }
+      }
+    },
+    "add": {
+      "size": [20, 32],
+      "fill": "logic",
+      "body": [
+        { "el": "path", "d": "M0 0 L20 8 L20 24 L0 32 L0 19 L4 16 L0 13 Z", "role": "outline" }
+      ],
+      "text": { "value": "+", "x": 12, "y": 16, "font": "label" },
+      "pins": {
+        "in0": { "x": 0, "y": 6, "side": "WEST", "class": "data" },
+        "in1": { "x": 0, "y": 26, "side": "WEST", "class": "data" },
+        "out": { "x": 20, "y": 16, "side": "EAST", "class": "data" }
+      }
+    },
+    "pipeline_register": {
+      "parametric": "bar",
+      "width": 7,
+      "lane_pitch": 12,
+      "margin": 6,
+      "fill": "bar",
+      "outline": true,
+      "wedge": true,
+      "label": { "above": true, "font": "secondary" }
+    },
+    "port": {
+      "parametric": "label-pin",
+      "height": 8,
+      "gap": 2.5,
+      "font": "label"
+    }
+  },
+  "yosys_cell_map": {
+    "$mux": "mux",
+    "$pmux": "mux",
+    "$dff": "register",
+    "$adff": "register",
+    "$dffe": "register",
+    "$adffe": "register",
+    "$xor": "xor",
+    "$and": "and",
+    "$or": "or",
+    "$add": "add",
+    "$concat": "join"
+  }
+}

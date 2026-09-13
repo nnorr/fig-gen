@@ -1,0 +1,185 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rtl-figures.local/schemas/rtl-netlist.schema.json",
+  "title": "Normalized RTL netlist produced by any extraction adapter",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "kind", "adapter", "top", "modules", "hierarchy", "diagnostics"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "kind": { "const": "rtl-netlist" },
+    "adapter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version"],
+      "properties": { "id": { "type": "string" }, "version": { "type": "string" } }
+    },
+    "top": { "type": "string" },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "sha256"],
+            "properties": { "path": { "type": "string" }, "sha256": { "type": "string" }, "role": { "enum": ["rtl", "stub-user", "stub-auto"] } }
+          }
+        },
+        "defines": { "type": "object", "additionalProperties": { "type": "string" } },
+        "params": { "type": "object" }
+      }
+    },
+    "modules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "orig_name", "ports", "nets", "registers", "instances"],
+        "properties": {
+          "name": { "type": "string" },
+          "orig_name": { "type": "string" },
+          "params": { "type": "object" },
+          "source": { "$ref": "#/$defs/loc" },
+          "blackbox": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["origin", "confidence"],
+            "properties": { "origin": { "enum": ["user", "auto"] }, "confidence": { "enum": ["declared", "inferred"] } }
+          },
+          "ports": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "dir", "width"],
+              "properties": {
+                "name": { "type": "string" },
+                "dir": { "enum": ["in", "out", "inout", "unknown"] },
+                "width": { "type": "integer", "minimum": 1 },
+                "msb": { "type": "integer" },
+                "lsb": { "type": "integer" },
+                "signed": { "type": "boolean" },
+                "direction_inferred": { "type": "boolean" },
+                "source": { "$ref": "#/$defs/loc" }
+              }
+            }
+          },
+          "nets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "width"],
+              "properties": {
+                "name": { "type": "string" },
+                "width": { "type": "integer", "minimum": 1 },
+                "msb": { "type": "integer" },
+                "lsb": { "type": "integer" },
+                "array": { "type": "array", "items": { "type": "string" } },
+                "kind": { "enum": ["wire", "var", "param", "port"] },
+                "value": { "type": "string" },
+                "source": { "$ref": "#/$defs/loc" }
+              }
+            }
+          },
+          "registers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "width", "clock"],
+              "properties": {
+                "name": { "type": "string" },
+                "width": { "type": "integer", "minimum": 1 },
+                "array": { "type": "array", "items": { "type": "string" } },
+                "scope": { "type": "string" },
+                "clock": { "type": "object", "additionalProperties": false, "required": ["net", "edge"], "properties": { "net": { "type": "string" }, "edge": { "enum": ["pos", "neg"] } } },
+                "reset": { "type": "object", "additionalProperties": false, "properties": { "net": { "type": "string" }, "active": { "enum": ["low", "high"] }, "async": { "type": "boolean" }, "inferred_by": { "type": "string" } } },
+                "clock_root": { "type": "string" },
+                "source": { "$ref": "#/$defs/loc" }
+              }
+            }
+          },
+          "instances": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "module", "connections"],
+              "properties": {
+                "name": { "type": "string" },
+                "scope": { "type": "string" },
+                "module": { "type": "string" },
+                "orig_module": { "type": "string" },
+                "source": { "$ref": "#/$defs/loc" },
+                "connections": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["port", "expr"],
+                    "properties": {
+                      "port": { "type": "string" },
+                      "dir": { "enum": ["in", "out", "inout", "unknown"] },
+                      "width": { "type": "integer" },
+                      "expr": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": ["kind"],
+                        "properties": {
+                          "kind": { "enum": ["net", "slice", "const", "concat", "expr", "open"] },
+                          "net": { "type": "string" },
+                          "msb": { "type": "integer" },
+                          "lsb": { "type": "integer" },
+                          "nets": { "type": "array", "items": { "type": "string" } },
+                          "value": { "type": "string" },
+                          "width": { "type": "integer" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "deps": {
+            "description": "Signal-level dependency edges: each target is written from the listed sources (comb or seq).",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["target", "sources", "kind"],
+              "properties": {
+                "target": { "type": "string" },
+                "sources": { "type": "array", "items": { "type": "string" } },
+                "kind": { "enum": ["comb", "seq"] },
+                "source": { "$ref": "#/$defs/loc" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "hierarchy": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "module"],
+        "properties": { "path": { "type": "string" }, "module": { "type": "string" }, "blackbox": { "type": "boolean" } }
+      }
+    },
+    "diagnostics": { "type": "array", "items": { "type": "object" } }
+  },
+  "$defs": {
+    "loc": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file", "line"],
+      "properties": { "file": { "type": "string" }, "line": { "type": "integer", "minimum": 1 }, "col": { "type": "integer" } }
+    }
+  }
+}

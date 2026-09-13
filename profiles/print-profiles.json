@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "note": "Width profiles are data. Values follow references/CONVENTIONS.md §0.1–0.3 and §12 (canvas = final printed size, in pt). User profiles with the same shape can be passed via --profiles.",
+  "font_pt": { "label": 8, "secondary": 7, "hard_min": 6 },
+  "profiles": {
+    "ieee": {
+      "label": "IEEE Transactions/journals, IEEEtran conference (non-compsoc)",
+      "variants": {
+        "1col": { "width_pt": 252, "max_height_pt": 187.2, "min_font_pt": 6, "warn_font_pt": 7, "min_stroke_pt": 0.5 },
+        "2col": { "width_pt": 515.5, "max_height_pt": 230.4, "min_font_pt": 6, "warn_font_pt": 7, "min_stroke_pt": 0.5 }
+      }
+    },
+    "ieee-compsoc-conf": {
+      "label": "IEEEtran compsoc,conference",
+      "variants": {
+        "1col": { "width_pt": 243, "max_height_pt": 187.2, "min_font_pt": 6, "warn_font_pt": 7, "min_stroke_pt": 0.5 },
+        "2col": { "width_pt": 504, "max_height_pt": 230.4, "min_font_pt": 6, "warn_font_pt": 7, "min_stroke_pt": 0.5 }
+      }
+    },
+    "acm-sigconf": {
+      "label": "ACM acmart sigconf",
+      "variants": {
+        "1col": { "width_pt": 241.1, "max_height_pt": 187.2, "min_font_pt": 6, "warn_font_pt": 7, "min_stroke_pt": 0.5 },
+        "2col": { "width_pt": 506.3, "max_height_pt": 230.4, "min_font_pt": 6, "warn_font_pt": 7, "min_stroke_pt": 0.5 }
+      }
+    }
+  }
+}

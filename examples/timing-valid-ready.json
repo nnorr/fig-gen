@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "figure_type": "timing",
+  "meta": {
+    "title": "Valid/ready transfer through a 2-stage pipeline",
+    "print": { "profile": "ieee", "variants": ["1col", "2col"] }
+  },
+  "wavejson": {
+    "signal": [
+      { "name": "clk", "wave": "p......." },
+      ["in",
+        { "name": "in_valid", "wave": "01.0....", "node": ".a......" },
+        { "name": "in_ready", "wave": "1......." },
+        { "name": "in_data", "wave": "x==x....", "data": ["D0", "D1"] }
+      ],
+      {},
+      ["out",
+        { "name": "out_valid", "wave": "0..1.0..", "node": "...b...." },
+        { "name": "out_data", "wave": "x..==x..", "data": ["Q0", "Q1"] }
+      ]
+    ],
+    "edge": ["a~>b 2 cycles"],
+    "head": { "tick": 0 },
+    "config": { "hscale": 1 }
+  },
+  "clock": { "name": "clk", "edge": "pos" },
+  "signals": {
+    "in_data": { "width": 8, "radix": "label" },
+    "out_data": { "width": 8, "radix": "label" },
+    "in_valid": { "short_name": "iv" },
+    "out_valid": { "short_name": "ov" }
+  },
+  "latencies": [
+    { "edge": "a~>b", "cycles": 2, "datapath_ref": { "figure": "datapath-pipelined-xor.json", "from": "a", "to": "y" } }
+  ],
+  "handshakes": [
+    { "valid": "in_valid", "ready": "in_ready", "data": "in_data", "protocol": "valid_ready" }
+  ],
+  "fit": {
+    "1col": { "hscale": 1, "names": "short" },
+    "2col": { "hscale": 2 }
+  },
+  "provenance": { "kind": "hand" }
+}
