@@ -232,6 +232,69 @@
               }
             }
           },
+          "fsms": {
+            "description": "State machines: a register whose next value is chosen by a case on itself (SPEC §5). Guards are expression trees in the exprs format; constants written as parameters keep the name in `param`.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["register", "next", "width", "encoding_source", "states", "reset", "transitions", "default"],
+              "properties": {
+                "register": { "type": "string" },
+                "next": { "type": ["string", "null"] },
+                "width": { "type": "integer", "minimum": 1 },
+                "encoding_source": { "enum": ["enum", "localparam", "literal"] },
+                "enum_type": { "type": "string" },
+                "states": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["name", "value"],
+                    "properties": { "name": { "type": "string" }, "value": { "type": "string" } }
+                  }
+                },
+                "reset": {
+                  "oneOf": [
+                    { "type": "null" },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["state", "net", "active", "async"],
+                      "properties": { "state": { "type": "string" }, "net": { "type": "string" }, "active": { "enum": ["low", "high"] }, "async": { "type": "boolean" } }
+                    }
+                  ]
+                },
+                "transitions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["id", "from", "to", "guard", "priority"],
+                    "properties": {
+                      "id": { "type": "string" },
+                      "from": { "type": "string", "description": "A state name, or * for an any-state override." },
+                      "to": { "type": "string" },
+                      "guard": { "type": ["object", "null"] },
+                      "priority": { "type": "integer" },
+                      "sync_override": { "type": "boolean", "description": "A synchronous assignment in the clocked block that takes precedence over the next-state logic from every state." },
+                      "via_default": { "type": "boolean", "description": "The state has no case item of its own; the default branch decides." },
+                      "source": { "$ref": "#/$defs/loc" }
+                    }
+                  }
+                },
+                "overrides": { "type": "array", "items": { "type": "string" }, "description": "Ids of sync_override transitions; the case transitions are implicitly guarded by their negation." },
+                "default": {
+                  "oneOf": [
+                    { "type": "null" },
+                    { "type": "object", "additionalProperties": false, "required": ["kind"], "properties": { "kind": { "const": "hold" } } },
+                    { "type": "object", "additionalProperties": false, "required": ["kind", "state"], "properties": { "kind": { "const": "to" }, "state": { "type": "string" } } }
+                  ]
+                },
+                "source": { "$ref": "#/$defs/loc" }
+              }
+            }
+          },
           "deps": {
             "description": "Signal-level dependency edges: each target is written from the listed sources (comb or seq).",
             "type": "array",

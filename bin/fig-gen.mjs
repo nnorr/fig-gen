@@ -33,8 +33,8 @@ const EXIT = { ok: 0, fail: 1, usage: 2, notImplemented: 3 };
 
 const USAGE = `usage:
   fig-gen validate <datapath|fsm|timing|microarch> <figure.json> [--netlist netlist.json] [--format paper|study] [--json]
-  fig-gen render   <datapath|microarch> <figure.json> <out-dir> [--netlist n.json] [--variants 2col,1col] [--profiles p.json] [--quality paper] [--format paper|study] [--no-pdf] [--why-size]
-  fig-gen deliver  <datapath|microarch> <figure.json> <out-dir> [--netlist n.json] [--variants 2col,1col] [--profiles p.json] [--quality paper] [--format paper|study] [--no-pdf] [--why-size] [--preview [--scale n]]
+  fig-gen render   <datapath|microarch|fsm> <figure.json> <out-dir> [--netlist n.json] [--variants 2col,1col] [--profiles p.json] [--quality paper] [--format paper|study] [--no-pdf] [--why-size]
+  fig-gen deliver  <datapath|microarch|fsm> <figure.json> <out-dir> [--netlist n.json] [--variants 2col,1col] [--profiles p.json] [--quality paper] [--format paper|study] [--no-pdf] [--why-size] [--preview [--scale n]]
                    (default: paper, 2col required, 1col best effort; --variants makes the listed variants mandatory)
                    (--format study: one figure sized to content for RTL analysis; print-only checks relaxed, correctness kept;
                     --no-pdf skips the PDF in study; --preview also writes <name>.<variant>.png (headless Chrome);
@@ -54,7 +54,9 @@ const USAGE = `usage:
   fig-gen draft --type microarch --netlist n.json [--scope <instance path>] [--out figure.json] [--format paper|study] [--layout-seconds s]
                 (overview: a block per child instance, scope registers grouped by name prefix; s_/m_axil_, s_/m_axi_ and
                  s_/m_axis_ ports become AXI4-Lite and AXI4 fabrics and AXI4-Stream interfaces; host and memory off-chip)
-  fig-gen crosscheck <datapath|microarch> <figure.json> --netlist netlist.json [--json]
+  fig-gen draft --type fsm --netlist n.json [--scope <instance path or module>] [--state <register>] [--format paper|study] [--out figure.json]
+                (a starting fsm figure from the netlist's extracted state machine, cross-checked against the same netlist)
+  fig-gen crosscheck <datapath|microarch|fsm> <figure.json> --netlist netlist.json [--json]
   fig-gen expand-cone --netlist n.json --output <signal> [--index <n>] [--instance a/b] [--stop-at s1,s2]
                       [--max-gates 30] [--prefix g] [--no-bitblast] [--out fragment.json]
   fig-gen lint-svg <file.svg> [--json]
@@ -109,7 +111,7 @@ async function cmdValidate({ positional, flags }) {
       const { netlist, guard } = loadNetlistWithGuard(flags.netlist);
       result.diagnostics.push(...guard.diagnostics);
       if (!guard.diagnostics.some((d) => d.severity === 'error')) {
-        const cc = type === 'datapath' ? crosscheckDatapath(doc, netlist) : type === 'microarch' ? crosscheckSoc(doc, netlist) : null;
+        const cc = type === 'datapath' ? crosscheckDatapath(doc, netlist) : type === 'microarch' ? crosscheckSoc(doc, netlist) : type === 'fsm' ? (await import('../lib/checks/fsm-crosscheck.mjs')).crosscheckFsm(doc, netlist) : null;
         if (cc) { result.diagnostics.push(...cc.diagnostics); result.checks.rtl = cc.stats; }
         if (type === 'datapath') {
           const cov = checkCoverage(doc, netlist);
@@ -231,7 +233,7 @@ async function cmdCrosscheck({ positional, flags }) {
   const doc = JSON.parse(fs.readFileSync(file, 'utf8'));
   const { netlist, guard } = loadNetlistWithGuard(flags.netlist);
   const guarded = guard.diagnostics.some((d) => d.severity === 'error');
-  const cc = guarded ? { diagnostics: [], stats: {} } : (type === 'datapath' ? crosscheckDatapath(doc, netlist) : crosscheckSoc(doc, netlist));
+  const cc = guarded ? { diagnostics: [], stats: {} } : (type === 'datapath' ? crosscheckDatapath(doc, netlist) : type === 'fsm' ? (await import('../lib/checks/fsm-crosscheck.mjs')).crosscheckFsm(doc, netlist) : crosscheckSoc(doc, netlist));
   const extra = !guarded && type === 'datapath' ? { coverage: checkCoverage(doc, netlist), latency: checkLatency(doc, netlist) } : {};
   if (extra.coverage) cc.stats = { ...cc.stats, coverage: extra.coverage.report?.totals, latency: { ...extra.latency.report, paths: undefined } };
   const diagnostics = [...guard.diagnostics, ...cc.diagnostics, ...(extra.coverage?.diagnostics || []), ...(extra.latency?.diagnostics || [])];
@@ -294,6 +296,7 @@ const viewOpts = (flags) => ({
 // Draft a starting figure for a view preset from the user's netlist. The
 // author refines it; validate/deliver apply every check to the result.
 async function cmdDraft({ flags }) {
+  if (flags.type === 'fsm') return cmdDraftFsm({ flags });
   const microarch = flags.type === 'microarch';
   if (flags.type !== undefined && !['datapath', 'microarch'].includes(flags.type)) return usage();
   if (flags.bundle !== undefined && (microarch || !['prefix', 'handshake'].includes(flags.bundle))) return usage();
@@ -346,6 +349,38 @@ async function cmdDraft({ flags }) {
   const pt = (v) => Math.round(v * 10) / 10;
   if (layout.skipped) console.error(`note: layout not run (${layout.skipped}); the checks above are semantic only, delivery can still fail layout, fit and connector checks`);
   else console.error(`note: layout ${layout.variant}: ${pt(layout.width_pt)} × ${pt(layout.height_pt)} pt${layout.max_height_pt ? ` (max height ${pt(layout.max_height_pt)} pt)` : ''}; ${layout.residual.length ? `${layout.residual.length} layout residual${layout.residual.length > 1 ? 's' : ''} (listed as residual (layout):)` : 'no layout residuals'}`);
+  return EXIT.ok;
+}
+
+// draft --type fsm: a starting fsm figure from the netlist's extracted state
+// machine, checked against the same netlist (schema and RTL cross-check).
+async function cmdDraftFsm({ flags }) {
+  if (!flags.netlist || (flags.format && !FORMATS.includes(flags.format))) return usage();
+  const { netlist, guard } = loadNetlistWithGuard(flags.netlist);
+  if (guard.diagnostics.some((d) => d.severity === 'error')) {
+    for (const d of guard.diagnostics) console.error(line(d));
+    return EXIT.fail;
+  }
+  const { draftFsm } = await import('../lib/draft-fsm.mjs');
+  let draft;
+  try {
+    draft = draftFsm(netlist, { scope: flags.scope ?? '', state: flags.state, format: flags.format });
+  } catch (error) {
+    if (!error.diagnostic) throw error;
+    console.error(line(error.diagnostic));
+    return EXIT.fail;
+  }
+  const text = `${JSON.stringify(draft.doc, null, 2)}\n`;
+  if (flags.out) fs.writeFileSync(flags.out, text);
+  else process.stdout.write(text);
+  for (const n of draft.notes) console.error(`note: ${n}`);
+  const { crosscheckFsm } = await import('../lib/checks/fsm-crosscheck.mjs');
+  const residual = [...await validateSchema('fsm', draft.doc)];
+  const cc = residual.length ? { diagnostics: [], stats: null } : crosscheckFsm(draft.doc, netlist);
+  residual.push(...cc.diagnostics.filter((d) => d.severity === 'error'));
+  for (const r of residual) console.error(`residual: ${r.code}: ${r.message}`);
+  if (cc.stats) console.error(`note: RTL cross-check: ${cc.stats.states_checked} states, ${cc.stats.transitions_checked} transitions, ${cc.stats.guards_compared} guards compared`);
+  console.error(residual.length ? `note: the draft still fails ${residual.length} of its own checks (listed as residual:); refine it before delivery` : 'note: the draft passes its own checks (schema, RTL cross-check)');
   return EXIT.ok;
 }
 

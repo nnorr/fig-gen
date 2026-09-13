@@ -307,6 +307,19 @@ study, analyse or explore RTL rather than to make a paper figure.
   (`cmd`, `rsp`, `cfg`: `label/unreadable` suggests the expansion).
 - `fig-gen preview <svg|figure.json>` (or `deliver --preview`) writes a PNG to
   look at before handing a figure over.
+- **State machines.** Run `check-rtl` first; the netlist then carries the
+  extracted machines. Start from `fig-gen draft --type fsm --netlist n.json
+  --scope <module or instance> --state <register>`, which passes its own RTL
+  cross-check.
+  - Refine state labels and add `short_guard` for long guards; never rename
+    state ids (they are the RTL names).
+  - Leave out RTL states or arcs only through `machine.scope` with a reason.
+  - Keep the recovery arc when unused encodings recover to a safe state; it is
+    part of the design's safety story.
+  - With `--netlist`, a delivered machine is `structural-only`; it is never
+    labelled simulated.
+  - If an 11-state chain does not fit 2col, deliver it in the study format or
+    split it; do not drop states or arcs.
 
 ## Evidence rule (hard, no exceptions)
 

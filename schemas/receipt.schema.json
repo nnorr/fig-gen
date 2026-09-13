@@ -216,8 +216,13 @@
                     "justification": {
                       "description": "Why the bend remains; null for an avoidable bend, which is reported as route/data-jog (an error in paper, a warning in study).",
                       "anyOf": [
-                        { "type": "string", "minLength": 1 },
-                        { "type": "null" }
+                        {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     }
                   }
@@ -802,8 +807,18 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["net", "reason"],
-            "properties": { "net": { "type": "string" }, "reason": { "type": "string" } }
+            "required": [
+              "net",
+              "reason"
+            ],
+            "properties": {
+              "net": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
           }
         },
         "mismatches": {
@@ -1242,7 +1257,8 @@
             "block",
             "region",
             "stub",
-            "gate-region"
+            "gate-region",
+            "fsm"
           ]
         },
         "label": {
@@ -1515,6 +1531,17 @@
                     "const": "pass"
                   },
                   "latencies_checked": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "fsm_figure_sha256": {
+                    "$ref": "#/$defs/sha256"
+                  },
+                  "states_checked": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "transitions_checked": {
                     "type": "integer",
                     "minimum": 0
                   }

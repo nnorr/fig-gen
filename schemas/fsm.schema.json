@@ -4,45 +4,156 @@
   "title": "fig-gen FSM IR (schema_version 1, skeleton)",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "figure_type", "meta", "machine", "reset", "states", "transitions"],
+  "required": [
+    "schema_version",
+    "figure_type",
+    "meta",
+    "machine",
+    "reset",
+    "states",
+    "transitions"
+  ],
   "properties": {
-    "schema_version": { "const": 1 },
-    "figure_type": { "const": "fsm" },
-    "meta": { "$ref": "common.schema.json#/$defs/meta" },
-    "params": { "$ref": "common.schema.json#/$defs/params" },
+    "schema_version": {
+      "const": 1
+    },
+    "figure_type": {
+      "const": "fsm"
+    },
+    "meta": {
+      "$ref": "common.schema.json#/$defs/meta"
+    },
+    "params": {
+      "$ref": "common.schema.json#/$defs/params"
+    },
     "machine": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "encoding"],
+      "required": [
+        "name",
+        "encoding"
+      ],
       "properties": {
-        "name": { "type": "string" },
-        "state_width": { "type": "integer", "minimum": 1, "maximum": 64 },
-        "encoding": { "enum": ["binary", "onehot", "gray", "custom", "auto"] },
-        "kind": { "enum": ["moore", "mealy", "mixed"] },
-        "default": { "enum": ["hold", "none"] },
-        "show_implicit_hold": { "type": "boolean" },
-        "rtl": { "$ref": "common.schema.json#/$defs/rtl_ref" },
-        "source": { "$ref": "common.schema.json#/$defs/source_pin" }
+        "name": {
+          "type": "string"
+        },
+        "state_width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "encoding": {
+          "enum": [
+            "binary",
+            "onehot",
+            "gray",
+            "custom",
+            "auto"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "moore",
+            "mealy",
+            "mixed"
+          ]
+        },
+        "default": {
+          "enum": [
+            "hold",
+            "none"
+          ]
+        },
+        "show_implicit_hold": {
+          "type": "boolean"
+        },
+        "rtl": {
+          "$ref": "common.schema.json#/$defs/rtl_ref"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/source_pin"
+        },
+        "show_default_recovery": {
+          "description": "Draw the RTL default branch (unused encodings) as one dashed arc from an \"other codes\" marker.",
+          "type": "boolean"
+        },
+        "default_recovery": {
+          "description": "State the RTL default branch recovers to.",
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "scope": {
+          "description": "Narrowed scope: RTL states and transitions deliberately left out of the figure (fsm/undrawn-*), with the reason.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "reason"
+          ],
+          "properties": {
+            "omit_states": {
+              "type": "array",
+              "items": {
+                "$ref": "common.schema.json#/$defs/id"
+              }
+            },
+            "omit_transitions_to": {
+              "type": "array",
+              "items": {
+                "$ref": "common.schema.json#/$defs/id"
+              }
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 300
+            }
+          }
+        }
       }
     },
-    "inputs": { "type": "array", "items": { "$ref": "#/$defs/signal" } },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/signal"
+      }
+    },
     "outputs": {
       "type": "array",
       "items": {
-        "allOf": [{ "$ref": "#/$defs/signal" }],
-        "required": ["type"],
-        "properties": { "type": { "enum": ["moore", "mealy"] } },
+        "allOf": [
+          {
+            "$ref": "#/$defs/signal"
+          }
+        ],
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "moore",
+              "mealy"
+            ]
+          }
+        },
         "unevaluatedProperties": false
       }
     },
     "reset": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["state"],
+      "required": [
+        "state"
+      ],
       "properties": {
-        "state": { "$ref": "common.schema.json#/$defs/id" },
-        "condition": { "type": "string" },
-        "async": { "type": "boolean" }
+        "state": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "condition": {
+          "type": "string"
+        },
+        "async": {
+          "type": "boolean"
+        }
       }
     },
     "states": {
@@ -51,20 +162,51 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id"],
+        "required": [
+          "id"
+        ],
         "properties": {
-          "id": { "$ref": "common.schema.json#/$defs/id" },
-          "label": { "type": "string", "maxLength": 40 },
-          "short_label": { "$ref": "common.schema.json#/$defs/short_label" },
-          "labels": { "$ref": "common.schema.json#/$defs/label_by_variant" },
-          "encoding": { "$ref": "common.schema.json#/$defs/sv_literal" },
-          "outputs": { "type": "object", "additionalProperties": { "type": "string" } },
-          "terminal": { "type": "boolean" },
-          "source": { "$ref": "common.schema.json#/$defs/source_pin" },
+          "id": {
+            "$ref": "common.schema.json#/$defs/id"
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "short_label": {
+            "$ref": "common.schema.json#/$defs/short_label"
+          },
+          "labels": {
+            "$ref": "common.schema.json#/$defs/label_by_variant"
+          },
+          "encoding": {
+            "$ref": "common.schema.json#/$defs/sv_literal"
+          },
+          "outputs": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "terminal": {
+            "type": "boolean"
+          },
+          "source": {
+            "$ref": "common.schema.json#/$defs/source_pin"
+          },
           "layout": {
             "type": "object",
             "additionalProperties": false,
-            "properties": { "row": { "type": "integer", "minimum": 0 }, "col": { "type": "integer", "minimum": 0 } }
+            "properties": {
+              "row": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "col": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
           }
         }
       }
@@ -74,18 +216,68 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "from", "to"],
+        "required": [
+          "id",
+          "from",
+          "to"
+        ],
         "properties": {
-          "id": { "$ref": "common.schema.json#/$defs/id" },
-          "from": { "oneOf": [{ "$ref": "common.schema.json#/$defs/id" }, { "const": "*" }] },
-          "except": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/id" } },
-          "to": { "$ref": "common.schema.json#/$defs/id" },
-          "guard": { "type": "string", "maxLength": 200 },
-          "short_guard": { "type": "string", "maxLength": 60 },
-          "priority": { "type": "integer" },
-          "actions": { "type": "object", "additionalProperties": { "type": "string" } },
-          "style": { "enum": ["normal", "any_state"] },
-          "source": { "$ref": "common.schema.json#/$defs/source_pin" }
+          "id": {
+            "$ref": "common.schema.json#/$defs/id"
+          },
+          "from": {
+            "oneOf": [
+              {
+                "$ref": "common.schema.json#/$defs/id"
+              },
+              {
+                "const": "*"
+              }
+            ]
+          },
+          "except": {
+            "type": "array",
+            "items": {
+              "$ref": "common.schema.json#/$defs/id"
+            }
+          },
+          "to": {
+            "$ref": "common.schema.json#/$defs/id"
+          },
+          "guard": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "short_guard": {
+            "type": "string",
+            "maxLength": 60
+          },
+          "priority": {
+            "type": "integer"
+          },
+          "actions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "style": {
+            "enum": [
+              "normal",
+              "any_state"
+            ]
+          },
+          "recovery": {
+            "description": "The RTL default branch: from every unused encoding to `to` (from must be \"*\").",
+            "type": "boolean"
+          },
+          "sync_override": {
+            "description": "A synchronous assignment that takes precedence over the next-state logic in every state (from must be \"*\").",
+            "type": "boolean"
+          },
+          "source": {
+            "$ref": "common.schema.json#/$defs/source_pin"
+          }
         }
       }
     }
@@ -93,11 +285,25 @@
   "$defs": {
     "signal": {
       "type": "object",
-      "required": ["name", "width"],
+      "required": [
+        "name",
+        "width"
+      ],
       "properties": {
-        "name": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$" },
-        "width": { "$ref": "common.schema.json#/$defs/width" },
-        "short_label": { "$ref": "common.schema.json#/$defs/short_label" }
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+        },
+        "width": {
+          "$ref": "common.schema.json#/$defs/width"
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "short_label": {
+          "$ref": "common.schema.json#/$defs/short_label"
+        }
       }
     }
   }

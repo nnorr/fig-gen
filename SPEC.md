@@ -728,6 +728,78 @@ What the draft draws:
 - `rtl` mapping: `{ "module": "...", "state_register": "state_q",
   "encodings_from": "localparam" }` enables encoding cross-checks (§11.5).
 
+### 5.1 Implemented (checkpoint 3a)
+
+- **Extraction (`check-rtl`).** The normalized netlist carries
+  `modules[].fsms[]`. A state machine is a register whose next value is chosen
+  by a `case` on itself, directly or through a combinational next-state variable
+  (an `if` chain testing the register with `==`/`!=` also counts).
+  - Each entry records `register`, `next`, `width` and `encoding_source`
+    (`enum` items, localparams kept by name through Verilator's `origParamName`,
+    or literals).
+  - It also records `states[{name, value}]`, `reset {state, net, active, async}`,
+    `transitions[{id, from, to, guard, priority}]` and `default`
+    (`hold` or `to` a state).
+  - Guards are expression trees in the `exprs` format, and named constants keep
+    `param`.
+  - A constant state assigned in the clocked block before the next-state
+    assignment (other than reset) is a `from: "*"` transition with
+    `sync_override: true`, listed in `overrides`.
+  - An unexpected statement shape warns `rtl/fsm-unparsed`; extraction never
+    breaks the netlist.
+- **Cross-check (`crosscheckFsm`).** It locates the machine through
+  `machine.rtl { module | instance, state_register }`, or the top module.
+  - Every drawn state and encoding exists. Every drawn transition exists with an
+    equivalent guard: by truth table over at most 16 atoms, otherwise
+    structurally. Drawn priorities guard later arcs by the negation of earlier
+    ones.
+  - A self-loop equals "no exit taken". A drawn any-state arc matches an RTL
+    override, otherwise it expands to every state (minus `except`).
+  - The reset state, condition and async flag match, and drawn states are
+    reachable from reset.
+  - Undrawn RTL states and transitions are errors unless
+    `machine.scope { omit_states, omit_transitions_to, reason }` narrows the
+    figure.
+  - The RTL `default:` branch over unused encodings is a transition with
+    `recovery: true` (from `"*"`), drawn when `machine.show_default_recovery`.
+    It never counts as an undrawn transition.
+- **Draft.** `fig-gen draft --type fsm --netlist n.json [--scope instance|module]
+  [--state register] [--format paper|study] [--out]` builds a figure that passes
+  its own cross-check. It gives:
+  - readable state labels (the prefix all states share is dropped:
+    `OwnerMetaCounter0` → "Meta counter 0");
+  - encodings, and guards as SV text;
+  - Moore outputs that depend only on the state;
+  - the synchronous override as one any-state arc, and the recovery arc when
+    encodings are unused;
+  - internal guard signals declared as inputs, noted.
+- **Renderer.** Netlist-mono look: 0.9 pt wires, 1 pt outlines, one arrowhead
+  size, 8/7 pt text.
+  - **States:** rounded rectangles with the readable name, the encoding digits
+    (binary up to 8 bits, else hex; `meta.style.show_encodings: false` hides
+    them) and asserted Moore outputs.
+  - **Reset:** an entry arrow from a solid dot, labelled "reset" or the readable
+    condition. There are no double outlines.
+  - **Any-state arcs:** drawn once each from a hollow "any state" marker
+    ("except X").
+  - **Recovery arc:** one dashed arc from a hollow "other codes" marker.
+  - **Guards:** printed readably. Identifiers go through the label dictionary;
+    `&&`/`||`/`!` print as "and"/"or"/"not", `!=` as "is not", and literals as
+    numbers. Lines wrap between words but never inside a readable name, and a
+    Mealy action starts its own line ("/ flush load = 1").
+  - **Routing:** orthogonal ELK layered routing.
+  - **Fit plans, in order:** left to right, short labels, left to right in rows
+    wrapped to the column shape, then top to bottom. The first plan without size
+    errors is kept, and every plan is listed in `layout.plans`.
+  - **Wrapped plans:** ELK graph wrapping can lose or misroute a row-crossing
+    edge. Such a plan fails with `fsm/edge-unrouted` or `fsm/edge-detached`;
+    a transition is never dropped silently.
+- **Delivery.** `render`, `deliver`, `validate` and `crosscheck` accept `fsm`.
+  With a netlist, the one machine region is `structural-only`: cross-check
+  passed, with the figure hash and states and transitions checked. Otherwise it
+  is `unverified`. Paper delivers 2col (required) and 1col (best effort); study
+  sizes the figure to its content.
+
 ## 6. `timing` IR (WaveJSON + paper layer)
 
 Timing figures are **rendered by WaveDrom** (npm `wavedrom`, pinned, called
@@ -1204,6 +1276,16 @@ render; warnings are reported and allowed only under `--quality draft`.
 | `latency/holds-state` | datapath (netlist) | an element with `holds_state: true` covers no register with feedback (error) |
 | `latency/state-escape` (warning) | datapath (netlist) | an output declares `"state"` but its drawn inputs reach it with fixed latencies; the evidence carries the map to declare |
 | `preview/chrome-missing`, `preview/rasterise-failed`, `preview/scale`, `preview/svg-size` | preview, deliver `--preview` | no headless Chrome (doctor discovers it; `FIGGEN_CHROME` overrides), the rasteriser failed, a scale outside 1–8, or an SVG without a size (error) |
+| `fsm/unknown-state`, `fsm/encoding-width`, `fsm/encoding-duplicate`, `fsm/guard-parse`, `fsm/guard-unknown-identifier`, `fsm/output-kind`, `fsm/duplicate-transition` | fsm | a transition names no drawn state; an encoding of the wrong width, with x/z digits, missing (unless `auto`) or not one-hot under `onehot`; two states with one code; a guard outside the §5 subset; a guard identifier that is not a declared input, output, parameter or `state`; a Moore output on a transition or a Mealy output on a state, or an undeclared output; the same arc twice (error) |
+| `fsm/unreachable` | fsm (figure, and RTL with a netlist) | a drawn state not reachable from reset over the drawn arcs, or in the RTL (error) |
+| `fsm/ambiguous-guards` (warning) | fsm | two transitions from one state with equal priority whose guards can both be true (truth table over at most 16 atoms) |
+| `fsm/rtl-not-found`, `fsm/rtl-state-missing`, `fsm/rtl-encoding-mismatch`, `fsm/rtl-transition-missing`, `fsm/rtl-guard-mismatch`, `fsm/rtl-reset-mismatch` | fsm, netlist | no extracted machine at `machine.rtl`; a drawn state, encoding, transition, guard or reset that the RTL does not have (error) |
+| `fsm/undrawn-state`, `fsm/undrawn-transition` | fsm, netlist | an RTL state, transition or synchronous override that is not drawn, unless `machine.scope` lists it with a reason; the recovery arc is required only with `machine.show_default_recovery` (error) |
+| `fsm/edge-detached`, `fsm/edge-through-state`, `fsm/edge-unrouted` | fsm, per variant (final SVG) | an arc that does not end on its state's outline; an arc crossing a state box; a transition the layout returned without a route (a plan with it fails; never dropped silently) (error) |
+| `rtl/fsm-unparsed` (warning) | check-rtl | a next-state statement shape the extraction does not understand, with its location |
+| `label/bundle-name-omitted` | datapath, per variant | a named bundle (`bundle_of`, or ending at a pin with `bundle`) whose name finds no spot; the name-room retry runs first (error in paper variants, warning in study) |
+| `label/stage-naming` | datapath | blocks of one function where some use `function.stage` and others do not (same vocabulary kind, or a custom name that repeats a staged block's word and numbers a stage) (error) |
+| `print/stage-label-omitted` | datapath, per variant | a pipeline bar with a `label` that finds no spot above it (error in paper variants, warning in study) |
 | `svg/*` | all, per variant | figma-safe profile lint, §10.1 |
 
 ## 9. Layout

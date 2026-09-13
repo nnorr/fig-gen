@@ -1165,28 +1165,41 @@ the scope covers.
 
 ## 8. FSM figures
 
-- **States [house]:** circles (or rounded rectangles when names are long), 0.8 pt
-  outline. Use one size for all states, big enough for the longest name at 8 pt. State
-  name inside, centered, in Title or UPPER case as in the RTL enum.
+- **States [house]:** rounded rectangles (corner radius 3 pt) with the skin
+  outline (1 pt), sized to their text. The readable state name is centred inside
+  at 8 pt, never the raw RTL id: a prefix shared by all states is dropped
+  (`OwnerMetaCounter0` → "Meta counter 0", `S_IDLE` → "Idle").
 - **Do not use double circles.** *Why:* in automata theory a double circle means an
   accepting state. Hardware readers may read it as "final/halt". Mark a terminal state
   with a label instead.
-- **Encoding [house]:** optional. Put it **under the name** inside the bubble at 6.5 pt
-  (`2'b01`), or in a small table next to the diagram when using one-hot/gray encoding.
-  Show encoding only when the paper discusses it.
-- **Reset arc [house]:** a short arrow from a small filled dot (or from the text
-  `rst`) into the reset state. It has no source state and no condition label.
-  *Why:* this is UML/statechart practice. It avoids a fake "RESET" state.
+- **Encoding [house]:** under the name at 7 pt as digits (binary up to 8 bits,
+  `010`; else hex, `0x1A`). Hide it with `meta.style.show_encodings: false` when
+  the paper does not discuss encodings.
+- **Reset arc [house]:** a short arrow from a small filled dot into the reset
+  state, labelled "reset" (or the readable condition when it is not simply the
+  reset net). It has no source state. *Why:* this is UML/statechart practice. It
+  avoids a fake "RESET" state.
+- **Any-state and recovery arcs [house]:** an arc taken from every state
+  (a synchronous override such as a soft reset) is drawn **once**, from a hollow
+  dot captioned "any state" ("except Idle"), never as one arc per state. The RTL
+  `default:` branch over unused encodings is one **dashed** arc from a hollow dot
+  captioned "other codes", drawn only when the figure asks for it. It must never
+  look like an unconditional jump.
 - **Self-loops [house]:** a small loop on the side facing away from the most other
   edges (default top). Label it with the hold condition (`!done`). A self-loop that
   just means "stay otherwise" MAY be left out if the caption says "unlabeled
   conditions hold state".
-- **Transitions:** smooth curves (cubic), 0.6 pt, arrowhead at target. Use straight
-  lines when the pair has only one direction. Use gently curved arcs in opposite
-  directions for back-and-forth pairs.
-- **Condition labels:** next to the arc near its middle, on the outside of the curve,
-  never touching the stroke. Use Verilog-ish boolean syntax (`start && !busy`) or math
-  (`cnt = N−1`). Pick one per figure.
+- **Transitions [house]:** orthogonal routes in the one wire stroke (0.9 pt), the
+  one skin arrowhead at the target outline. No arc crosses a state box, and every
+  arc ends exactly on its target's outline.
+- **Condition labels [house]:** beside their own arc (within 12 pt, nearer to it
+  than to any other arc), never on a stroke. Write guards in readable words:
+  - identifiers become names through the label dictionary ("command valid");
+  - `&&`, `||`, `!` print as "and", "or", "not"; `==` as "=" and `!=` as "is
+    not";
+  - literals print as numbers.
+
+  Lines wrap between words but never inside a name.
 - **Moore outputs [house]:** inside the bubble under a thin divider, or under the
   name: `BUSY / en=1`. List only outputs that are asserted (non-default).
 - **Mealy outputs [house]:** on the arc after a slash: `start / load=1`.
@@ -1194,9 +1207,12 @@ the scope covers.
 - **Default-transition rule:** each state's outgoing conditions must be mutually
   exclusive and complete. Use `else` / `otherwise` for the fall-through. The renderer
   SHOULD check this when conditions are given in its boolean expression subset.
-- **Layout [house]:** place the main flow left → right or clockwise from the reset
-  state (top-left). Error/abort states go at the bottom. Arcs SHOULD NOT cross state
-  bubbles, and SHOULD cross each other at most twice in the whole figure.
+- **Layout [house]:** place the main flow left → right from the reset state. A
+  machine too wide for the column is laid out in rows shaped like the column,
+  then top to bottom. A layout that loses or misroutes a transition is rejected
+  (`fsm/edge-unrouted`, `fsm/edge-detached`); a transition is never dropped. A
+  long machine that fits no plan is delivered in the study format or split into
+  sub-figures, not squeezed.
 - **Controller + datapath figures:** draw the FSM as one rectangle `Control FSM` above
   the datapath, with outputs as control nets (§1) going down. Draw the state diagram
   as a separate subfigure (a)/(b), not inline.

@@ -3,61 +3,169 @@
   "$id": "https://fig-gen.local/schemas/common.schema.json",
   "title": "fig-gen shared definitions",
   "$defs": {
-    "id": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$", "maxLength": 64 },
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+      "maxLength": 64
+    },
     "width": {
       "description": "Positive integer or width expression over params (identifiers, + - * /, parentheses, clog2(), max()).",
       "oneOf": [
-        { "type": "integer", "minimum": 1, "maximum": 65536 },
-        { "type": "string", "pattern": "^[A-Za-z0-9_+\\-*/(), ]+$", "minLength": 1, "maxLength": 120 }
+        {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65536
+        },
+        {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_+\\-*/(), ]+$",
+          "minLength": 1,
+          "maxLength": 120
+        }
       ]
     },
-    "sv_literal": { "type": "string", "pattern": "^([0-9]+)?'[sS]?[bBoOdDhH][0-9a-fA-FxXzZ_?]+$|^[0-9]+$" },
+    "sv_literal": {
+      "type": "string",
+      "pattern": "^([0-9]+)?'[sS]?[bBoOdDhH][0-9a-fA-FxXzZ_?]+$|^[0-9]+$"
+    },
     "endpoint": {
       "type": "string",
       "pattern": "^[A-Za-z_][A-Za-z0-9_]*(/[A-Za-z_][A-Za-z0-9_]*)*(\\.[A-Za-z_][A-Za-z0-9_]*)?(\\[[0-9]+(:[0-9]+)?\\])?$"
     },
-    "variant_id": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$" },
-    "short_label": { "type": "string", "minLength": 1, "maxLength": 40 },
+    "variant_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "short_label": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 40
+    },
     "label_by_variant": {
       "type": "object",
-      "propertyNames": { "$ref": "#/$defs/variant_id" },
-      "additionalProperties": { "enum": ["full", "short"] }
+      "propertyNames": {
+        "$ref": "#/$defs/variant_id"
+      },
+      "additionalProperties": {
+        "enum": [
+          "full",
+          "short"
+        ]
+      }
     },
-    "net_class": { "enum": ["data", "control", "clock", "reset"] },
+    "net_class": {
+      "enum": [
+        "data",
+        "control",
+        "clock",
+        "reset"
+      ]
+    },
     "source_pin": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["file", "line"],
+      "required": [
+        "file",
+        "line"
+      ],
       "properties": {
-        "file": { "type": "string", "pattern": "^(?!/)(?!.*(^|/)\\.\\.?(/|$))(?!\\.git/)[^\\\\\\u0000-\\u001f]+$" },
-        "line": { "type": "integer", "minimum": 1 },
-        "end_line": { "type": "integer", "minimum": 1 },
-        "match": { "type": "string", "minLength": 1, "maxLength": 200 }
+        "file": {
+          "type": "string",
+          "pattern": "^(?!/)(?!.*(^|/)\\.\\.?(/|$))(?!\\.git/)[^\\\\\\u0000-\\u001f]+$"
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "end_line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "match": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
       }
     },
     "rtl_ref": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "instance": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_\\[\\]]*(/[A-Za-z_][A-Za-z0-9_\\[\\]]*)*$" },
-        "module": { "type": "string" },
-        "signal": { "type": "string" },
-        "state_register": { "type": "string" },
-        "covers": { "description": "RTL hardware this element represents without drawing it (coverage/dropped-hardware): \"a/b\" covers an instance subtree; \"a/b:glob\" covers signals and registers matching glob in instance a/b; a bare glob names signals of the figure base instance (meta.rtl.instance).", "type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1, "pattern": "^[A-Za-z_*?][A-Za-z0-9_\\[\\]/.*?]*(:[A-Za-z0-9_*?\\[\\].]+)?$"} }
+        "instance": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_\\[\\]]*(/[A-Za-z_][A-Za-z0-9_\\[\\]]*)*$"
+        },
+        "module": {
+          "type": "string"
+        },
+        "signal": {
+          "type": "string"
+        },
+        "state_register": {
+          "type": "string"
+        },
+        "covers": {
+          "description": "RTL hardware this element represents without drawing it (coverage/dropped-hardware): \"a/b\" covers an instance subtree; \"a/b:glob\" covers signals and registers matching glob in instance a/b; a bare glob names signals of the figure base instance (meta.rtl.instance).",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[A-Za-z_*?][A-Za-z0-9_\\[\\]/.*?]*(:[A-Za-z0-9_*?\\[\\].]+)?$"
+          }
+        }
       }
     },
     "print": {
       "type": "object",
       "additionalProperties": false,
-      "anyOf": [{ "required": ["profile"] }, { "required": ["format"], "properties": { "format": { "const": "study" } } }],
+      "anyOf": [
+        {
+          "required": [
+            "profile"
+          ]
+        },
+        {
+          "required": [
+            "format"
+          ],
+          "properties": {
+            "format": {
+              "const": "study"
+            }
+          }
+        }
+      ],
       "properties": {
-        "format": { "description": "paper (default): column variants of a print profile. study: one figure sized to content for RTL analysis; print-only checks are relaxed (lib/format.mjs). --format on the CLI overrides it.", "enum": ["paper", "study"] },
-        "profile": { "type": "string", "minLength": 1 },
-        "variants": { "type": "array", "items": { "$ref": "#/$defs/variant_id" }, "minItems": 1, "uniqueItems": true },
+        "format": {
+          "description": "paper (default): column variants of a print profile. study: one figure sized to content for RTL analysis; print-only checks are relaxed (lib/format.mjs). --format on the CLI overrides it.",
+          "enum": [
+            "paper",
+            "study"
+          ]
+        },
+        "profile": {
+          "type": "string",
+          "minLength": 1
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/variant_id"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
         "max_height_in": {
           "type": "object",
-          "propertyNames": { "$ref": "#/$defs/variant_id" },
-          "additionalProperties": { "type": "number", "exclusiveMinimum": 0 }
+          "propertyNames": {
+            "$ref": "#/$defs/variant_id"
+          },
+          "additionalProperties": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
         }
       }
     },
@@ -65,57 +173,183 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "grayscale": { "type": "boolean" },
-        "font_family": { "type": "string", "minLength": 1 },
-        "font_size_pt": { "type": "number", "minimum": 5, "maximum": 14 },
-        "svg_profile": { "enum": ["figma-safe", "print-compact"] },
-        "width_labels": { "enum": ["value", "symbolic", "both"] },
-        "gates": { "enum": ["distinctive", "rectangular"] },
-        "skin": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
-        "mux_style": { "enum": ["bar", "trapezoid"] },
-        "mux_indices": { "type": "boolean" },
-        "color": { "type": "boolean" },
-        "clock_wiring": { "enum": ["implicit", "explicit"] },
-        "show_priority": { "type": "boolean" },
-        "connectors": { "description": "Datapath: draw long feedback/return nets with named off-page connectors (default true).", "type": "boolean" }
+        "grayscale": {
+          "type": "boolean"
+        },
+        "font_family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "font_size_pt": {
+          "type": "number",
+          "minimum": 5,
+          "maximum": 14
+        },
+        "svg_profile": {
+          "enum": [
+            "figma-safe",
+            "print-compact"
+          ]
+        },
+        "width_labels": {
+          "enum": [
+            "value",
+            "symbolic",
+            "both"
+          ]
+        },
+        "gates": {
+          "enum": [
+            "distinctive",
+            "rectangular"
+          ]
+        },
+        "skin": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "mux_style": {
+          "enum": [
+            "bar",
+            "trapezoid"
+          ]
+        },
+        "mux_indices": {
+          "type": "boolean"
+        },
+        "color": {
+          "type": "boolean"
+        },
+        "clock_wiring": {
+          "enum": [
+            "implicit",
+            "explicit"
+          ]
+        },
+        "show_priority": {
+          "type": "boolean"
+        },
+        "connectors": {
+          "description": "Datapath: draw long feedback/return nets with named off-page connectors (default true).",
+          "type": "boolean"
+        },
+        "show_encodings": {
+          "description": "FSM: print each state encoding under its name (default true).",
+          "type": "boolean"
+        }
       }
     },
     "repository": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["root", "revision"],
+      "required": [
+        "root",
+        "revision"
+      ],
       "properties": {
-        "root": { "type": "string", "minLength": 1 },
-        "revision": { "type": "string", "pattern": "^[0-9a-f]{40}$" }
+        "root": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        }
       }
     },
     "meta": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["title", "print"],
+      "required": [
+        "title",
+        "print"
+      ],
       "properties": {
-        "title": { "type": "string", "minLength": 1, "maxLength": 160 },
-        "caption": { "type": "string", "maxLength": 600 },
-        "print": { "$ref": "#/$defs/print" },
-        "style": { "$ref": "#/$defs/style" },
-        "repository": { "$ref": "#/$defs/repository" },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "caption": {
+          "type": "string",
+          "maxLength": 600
+        },
+        "print": {
+          "$ref": "#/$defs/print"
+        },
+        "style": {
+          "$ref": "#/$defs/style"
+        },
+        "repository": {
+          "$ref": "#/$defs/repository"
+        },
         "rtl": {
           "description": "RTL scope the figure depicts: an instance path relative to the netlist top (omit for the top itself).",
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "instance": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_\\[\\]]*(/[A-Za-z_][A-Za-z0-9_\\[\\]]*)*$" },
-            "module": { "type": "string" }
+            "instance": {
+              "type": "string",
+              "pattern": "^[A-Za-z_][A-Za-z0-9_\\[\\]]*(/[A-Za-z_][A-Za-z0-9_\\[\\]]*)*$"
+            },
+            "module": {
+              "type": "string"
+            }
           }
         },
-        "scope": { "description": "Declared RTL scope of the figure (coverage/dropped-hardware): everything inside it must be represented. Narrow it explicitly to leave hardware out.", "type": "object", "additionalProperties": false, "properties": {"instance": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_\\[\\]]*(/[A-Za-z_][A-Za-z0-9_\\[\\]]*)*$"}, "hierarchy": {"enum": ["all", "none"]}, "cone": {"type": "object", "additionalProperties": false, "required": ["outputs"], "properties": {"outputs": {"type": "array", "minItems": 1, "items": {"type": "string"}}, "inputs": {"type": "array", "items": {"type": "string"}}}}} },
-        "legend": { "description": "Datapath: draw the abstraction-level legend when more than two levels appear (default true); set false when the caption defines the levels.", "type": "boolean" }
+        "scope": {
+          "description": "Declared RTL scope of the figure (coverage/dropped-hardware): everything inside it must be represented. Narrow it explicitly to leave hardware out.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "instance": {
+              "type": "string",
+              "pattern": "^[A-Za-z_][A-Za-z0-9_\\[\\]]*(/[A-Za-z_][A-Za-z0-9_\\[\\]]*)*$"
+            },
+            "hierarchy": {
+              "enum": [
+                "all",
+                "none"
+              ]
+            },
+            "cone": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "outputs"
+              ],
+              "properties": {
+                "outputs": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "inputs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "legend": {
+          "description": "Datapath: draw the abstraction-level legend when more than two levels appear (default true); set false when the caption defines the levels.",
+          "type": "boolean"
+        }
       }
     },
     "params": {
       "type": "object",
-      "propertyNames": { "$ref": "#/$defs/id" },
-      "additionalProperties": { "type": "integer" }
+      "propertyNames": {
+        "$ref": "#/$defs/id"
+      },
+      "additionalProperties": {
+        "type": "integer"
+      }
     }
   }
 }

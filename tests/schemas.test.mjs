@@ -66,9 +66,15 @@ test('timing input is WaveJSON; unknown WaveDrom keys and bad wave characters ar
 });
 
 test('validate reports semantic checks as not implemented (truthful coverage)', async () => {
-  const result = await validateFigure('fsm', load('fsm-run-flush.json'));
+  const timing = { schema_version: 1, figure_type: 'timing', meta: { title: 't', print: { profile: 'acm' } },
+    wavejson: { signal: [{ name: 'clk', wave: 'p...' }] } };
+  const result = await validateFigure('timing', timing);
   assert.equal(result.checks.semantic.status, 'not-implemented');
-  assert.ok(result.checks.semantic.planned.includes('fsm/unreachable'));
+  assert.ok(result.checks.semantic.planned.includes('timing/wave-length'));
+  // FSM semantic checks run (SPEC §5): the result names the codes it ran.
+  const fsm = await validateFigure('fsm', load('fsm-run-flush.json'));
+  assert.notEqual(fsm.checks.semantic.status, 'not-implemented');
+  assert.ok(fsm.checks.semantic.codes.includes('fsm/unreachable'));
 });
 
 test('rtl-netlist schema rejects a non-conforming adapter result', async () => {

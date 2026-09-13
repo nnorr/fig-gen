@@ -1199,6 +1199,10 @@
             }
           }
         },
+        "width_label": {
+          "description": "A bundle (bundle_of, or a pin bundle) that forms one data word (e.g. data and ECC bytes read as one codeword) is labeled with its width like any multi-bit data net; width/missing then applies. Protocol bundles (AHB, valid/ready groups) leave it off and are drawn without a summed width.",
+          "type": "boolean"
+        },
         "bundle_of": {
           "description": "Heterogeneous bundle (CONVENTIONS §2.1): the signals this net carries. It is drawn with its name (net label or port label), never with a summed width. Members are RTL signal names of the net's instance (meta.rtl.instance or rtl.instance), or dotted child paths (u_child.port); latency and structural checks expand them.",
           "type": "array",
