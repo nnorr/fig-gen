@@ -127,6 +127,33 @@
             },
             "unevaluatedProperties": false
           },
+          "preview": {
+            "description": "PNG preview of the SVG rasterised by headless Chrome (deliver --preview).",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "sha256",
+              "bytes",
+              "scale"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "sha256": {
+                "$ref": "#/$defs/sha256"
+              },
+              "bytes": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "scale": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            }
+          },
           "min_font_pt": {
             "type": "number"
           },
@@ -152,7 +179,9 @@
                 "minimum": 0
               },
               "data_jogs_redundant": {
-                "const": 0
+                "description": "Redundant jogs on data wires. Paper blocks delivery on any (route/data-jog is an error), so a paper receipt records 0; a study receipt may record the warned count.",
+                "type": "integer",
+                "minimum": 0
               },
               "data_bends_unavoidable": {
                 "type": "integer",
@@ -162,7 +191,9 @@
                 "type": "object"
               },
               "edge_hugging": {
-                "const": 0
+                "description": "Wires running along a block edge. Paper blocks delivery on any (route/edge-hugging is an error), so a paper receipt records 0; a study receipt may record the warned count.",
+                "type": "integer",
+                "minimum": 0
               },
               "data_bends": {
                 "type": "array",
@@ -183,8 +214,11 @@
                       "type": "integer"
                     },
                     "justification": {
-                      "type": "string",
-                      "minLength": 1
+                      "description": "Why the bend remains; null for an avoidable bend, which is reported as route/data-jog (an error in paper, a warning in study).",
+                      "anyOf": [
+                        { "type": "string", "minLength": 1 },
+                        { "type": "null" }
+                      ]
                     }
                   }
                 }

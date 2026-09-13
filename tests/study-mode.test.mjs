@@ -263,7 +263,9 @@ test('a variant that is no longer produced is archived, not left beside the curr
   }
 });
 
-test('a failed delivery archives stale outputs of the same figure so they never look current', async () => {
+// Rule changed in trial 2 (N5): archiving happens only after a successful
+// delivery; a failure leaves the last good outputs and their receipt in place.
+test('a failed delivery keeps the last good outputs in place and archives nothing', async () => {
   const dir = tmp();
   try {
     const out = path.join(dir, 'out');
@@ -276,9 +278,12 @@ test('a failed delivery archives stale outputs of the same figure so they never 
     const failed = await deliver({ type: 'datapath', figurePath: writeFigure(brokenDir, 'datapath-pipelined-xor', doc), outDir: out });
     assert.equal(failed.ok, false);
     assert.deepEqual(failed.written, []);
-    assert.deepEqual(fs.readdirSync(out), [], 'no stale deliverable remains');
-    assert.ok(fs.existsSync(path.join(failed.archived, 'datapath-pipelined-xor.receipt.json')));
-    assert.match(fs.readFileSync(path.join(failed.archived, 'README.md'), 'utf8'), /superseded by a new delivery/);
+    assert.equal(failed.archived, undefined);
+    assert.deepEqual(fs.readdirSync(out).sort(), good.written.map((f) => path.basename(f)).sort(), 'the last good deliverable stays');
+    assert.equal(fs.existsSync(path.join(dir, 'archive')), false);
+    const again = await deliver({ type: 'datapath', figurePath: example('datapath-pipelined-xor.json'), outDir: out });
+    assert.ok(fs.existsSync(path.join(again.archived, 'datapath-pipelined-xor.receipt.json')), 'the next successful delivery archives them');
+    assert.match(fs.readFileSync(path.join(again.archived, 'README.md'), 'utf8'), /superseded by a new delivery/);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

@@ -8,7 +8,7 @@
   },
   "blocks": [
     { "id": "cpu", "kind": "core", "label": "CPU" },
-    { "id": "intc", "kind": "interrupt_controller", "label": "IRQ ctrl", "short_label": "INTC" },
+    { "id": "intc", "kind": "interrupt_controller", "label": "Interrupt controller", "short_label": "INTC" },
     { "id": "sram", "kind": "memory", "label": "SRAM", "sublabel": "64 KiB" },
     { "id": "br", "kind": "bridge", "label": "AHB-to-APB bridge", "short_label": "AHB-APB" },
     { "id": "uart", "kind": "peripheral", "label": "UART" },

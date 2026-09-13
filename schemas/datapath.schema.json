@@ -52,6 +52,21 @@
         "$ref": "#/$defs/net"
       }
     },
+    "latency_unverified": {
+      "description": "Explicit opt-out of latency/unverified: the figure draws registers of its scope but no latency pair can be compared (e.g. a pure structure overview). The reason is recorded in the latency report and the receipt; nothing else is relaxed.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reason"
+      ],
+      "properties": {
+        "reason": {
+          "type": "string",
+          "minLength": 12,
+          "maxLength": 300
+        }
+      }
+    },
     "annotations": {
       "type": "array",
       "items": {
@@ -331,6 +346,14 @@
         "required": [
           "name"
         ]
+      },
+      "else": {
+        "description": "function.name is printed only for kind custom; on a vocabulary kind write the distinguishing word in qualifier (\"Nonce client\" + controller) and a short_label on the element.",
+        "not": {
+          "required": [
+            "name"
+          ]
+        }
       }
     },
     "port_def": {
@@ -396,7 +419,7 @@
           ]
         },
         "latency": {
-          "description": "Register stages from the inputs to this output. An integer: a registered output (default 1). \"state\": a state (Moore/Mealy) output of a stateful protocol block (controller, FSM, bus slave, CSR bank, arbiter) whose latency depends on the state; no single number is claimed, hidden pipeline registers are still reported. An object {input pin id: stages} (0 = combinational; key \"default\" for the rest): a controller output whose latency differs by input (latency/controller-only).",
+          "description": "Register stages from the inputs to this output. An integer: a registered output (default 1). \"state\": a state (Moore/Mealy) output of a stateful protocol block (controller, FSM, bus slave, CSR bank, arbiter) whose latency depends on the state; no single number is claimed, hidden pipeline registers are still reported. An object {input pin id: stages} (0 = combinational; key \"default\" for the rest): a controller output whose latency differs by input (latency/controller-only), or an output of any block marked holds_state. On a bundled pin the number is the minimum over its members. \"state\" where the netlist shows a fixed latency from an input warns (latency/state-escape).",
           "oneOf": [
             { "type": "integer", "minimum": 1, "maximum": 64 },
             { "const": "state" },
@@ -482,6 +505,10 @@
         },
         "rtl": {
           "$ref": "common.schema.json#/$defs/rtl_ref"
+        },
+        "holds_state": {
+          "description": "The block holds state (registers with feedback) although its function kind is not a stateful protocol kind: its outputs may declare latency per input pin or \"state\" (latency/controller-only). With a netlist the latency check requires a register with feedback in its rtl.covers or rtl.instance subtree (latency/holds-state).",
+          "type": "boolean"
         },
         "layout": {
           "$ref": "#/$defs/layout_hint"

@@ -24,6 +24,7 @@ import { checkLatency } from '../lib/checks/latency.mjs';
 import { buildFigure, deliver, figureName } from '../lib/deliver.mjs';
 import { summarize } from '../lib/diagnostics.mjs';
 import { findChrome } from '../lib/env/chrome.mjs';
+import { DEFAULT_SCALE, chromeMissing, previewChrome, rasterizeSvg } from '../lib/preview.mjs';
 import { checkNetlistEvidence, checkRtlInputs } from '../lib/evidence.mjs';
 import { FORMATS, relaxDiagnostics, resolveFormat, withFormat } from '../lib/format.mjs';
 
@@ -33,17 +34,26 @@ const EXIT = { ok: 0, fail: 1, usage: 2, notImplemented: 3 };
 const USAGE = `usage:
   fig-gen validate <datapath|fsm|timing|microarch> <figure.json> [--netlist netlist.json] [--format paper|study] [--json]
   fig-gen render   <datapath|microarch> <figure.json> <out-dir> [--netlist n.json] [--variants 2col,1col] [--profiles p.json] [--quality paper] [--format paper|study] [--no-pdf] [--why-size]
-  fig-gen deliver  <datapath|microarch> <figure.json> <out-dir> [--netlist n.json] [--variants 2col,1col] [--profiles p.json] [--quality paper] [--format paper|study] [--no-pdf] [--why-size]
+  fig-gen deliver  <datapath|microarch> <figure.json> <out-dir> [--netlist n.json] [--variants 2col,1col] [--profiles p.json] [--quality paper] [--format paper|study] [--no-pdf] [--why-size] [--preview [--scale n]]
                    (default: paper, 2col required, 1col best effort; --variants makes the listed variants mandatory)
                    (--format study: one figure sized to content for RTL analysis; print-only checks relaxed, correctness kept;
-                    --no-pdf skips the PDF in study; superseded outputs of the figure move to <out-dir>/../archive/)
+                    --no-pdf skips the PDF in study; --preview also writes <name>.<variant>.png (headless Chrome);
+                    after a successful delivery superseded outputs move to <out-dir>/../archive/; a failed one leaves them)
+  fig-gen preview  <file.svg|figure.json> [--out file.png] [--scale n] [--format paper|study]
+                   (PNG via headless Chrome; a figure JSON is rendered first and its main variant is rasterised)
                    view presets: [--view overview|block|mixed|detail] [--scope <instance path>] [--depth n]
                                  [--gate-region <region id>...] [--blackbox <element or instance>...]
   fig-gen draft --view <overview|block|mixed|detail> --scope <instance path> --netlist n.json [--depth n]
                 [--gate-region name=out1,out2[:stop1,stop2]...] [--blackbox <instance path>...] [--repo-root <dir> --revision <sha>] [--out figure.json]
-                [--format paper|study] [--budget-seconds s]
+                [--format paper|study] [--budget-seconds s] [--layout-seconds s] [--bundle prefix|handshake]
                 (--format study: --view may be omitted (detail, depth 1); controllers and state drawn apart from logic;
-                 a draft over its budget, default 120 s, stops with draft/budget-exceeded naming a narrower scope)
+                 a draft over its budget, default 120 s, stops with draft/budget-exceeded naming a narrower scope;
+                 --bundle: ports and nets sharing a name prefix, or a valid/ready/data handshake set, become one bundle,
+                 latency still checked per member; the draft is laid out once (2col, or study) and layout, fit and
+                 connector errors are listed as "residual (layout):"; --layout-seconds 0 skips the layout, default 60)
+  fig-gen draft --type microarch --netlist n.json [--scope <instance path>] [--out figure.json] [--format paper|study] [--layout-seconds s]
+                (overview: a block per child instance, scope registers grouped by name prefix; s_/m_axil_, s_/m_axi_ and
+                 s_/m_axis_ ports become AXI4-Lite and AXI4 fabrics and AXI4-Stream interfaces; host and memory off-chip)
   fig-gen crosscheck <datapath|microarch> <figure.json> --netlist netlist.json [--json]
   fig-gen expand-cone --netlist n.json --output <signal> [--index <n>] [--instance a/b] [--stop-at s1,s2]
                       [--max-gates 30] [--prefix g] [--no-bitblast] [--out fragment.json]
@@ -64,7 +74,7 @@ function parseArgs(argv) {
     const a = argv[i];
     if (!a.startsWith('--')) { positional.push(a); continue; }
     const key = a.slice(2);
-    if (['json', 'summary', 'quiet', 'no-bitblast', 'no-pdf', 'why-size'].includes(key)) { flags[key] = true; continue; }
+    if (['json', 'summary', 'quiet', 'no-bitblast', 'no-pdf', 'why-size', 'preview'].includes(key)) { flags[key] = true; continue; }
     if (multi.has(key)) {
       flags[key] = flags[key] || [];
       while (i + 1 < argv.length && !argv[i + 1].startsWith('--')) flags[key].push(argv[++i]);
@@ -103,7 +113,7 @@ async function cmdValidate({ positional, flags }) {
         if (cc) { result.diagnostics.push(...cc.diagnostics); result.checks.rtl = cc.stats; }
         if (type === 'datapath') {
           const cov = checkCoverage(doc, netlist);
-          const lat = checkLatency(doc, netlist);
+          const lat = checkLatency(doc, netlist, { quality: flags.quality });
           result.diagnostics.push(...cov.diagnostics, ...lat.diagnostics);
           result.checks.coverage = cov.report;
           result.checks.latency = lat.report;
@@ -164,7 +174,7 @@ async function cmdRender({ positional, flags }) {
 async function cmdDeliver({ positional, flags }) {
   const [type, file, outDir] = positional;
   if (!type || !file || !outDir) return usage();
-  const result = await deliver({ type, figurePath: file, outDir, netlistPath: flags.netlist, profilesPath: flags.profiles, variants: flags.variants?.split(','), quality: flags.quality, view: viewOpts(flags), format: flags.format, pdf: !flags['no-pdf'] });
+  const result = await deliver({ type, figurePath: file, outDir, netlistPath: flags.netlist, profilesPath: flags.profiles, variants: flags.variants?.split(','), quality: flags.quality, view: viewOpts(flags), format: flags.format, pdf: !flags['no-pdf'], ...(flags.preview ? { preview: { scale: flags.scale !== undefined ? Number(flags.scale) : DEFAULT_SCALE } } : {}) });
   print({
     ok: result.ok,
     format: result.receipt?.format ?? { name: result.evidence?.format?.name },
@@ -177,6 +187,42 @@ async function cmdDeliver({ positional, flags }) {
     diagnostics: result.diagnostics.map(line),
   });
   return result.ok ? EXIT.ok : EXIT.fail;
+}
+
+// preview <file.svg|figure.json>: a PNG to look at. A figure JSON is rendered
+// (paper or study) and its main variant rasterised; nothing else is written.
+async function cmdPreview({ positional, flags }) {
+  const [file] = positional;
+  if (!file) return usage();
+  const scale = flags.scale !== undefined ? Number(flags.scale) : DEFAULT_SCALE;
+  const chrome = previewChrome();
+  if (!chrome.available) {
+    const d = chromeMissing(chrome);
+    print({ ok: false, written: [], diagnostics: [line(d)], fix: d.supportedFixes });
+    return EXIT.fail;
+  }
+  let svg;
+  let target = flags.out;
+  const diagnostics = [];
+  if (/\.svg$/i.test(file)) {
+    svg = fs.readFileSync(file, 'utf8');
+    target ??= file.replace(/\.svg$/i, '.png');
+  } else {
+    const doc = JSON.parse(fs.readFileSync(file, 'utf8'));
+    const build = await buildFigure({ type: doc.figure_type, figurePath: file, format: flags.format, pdf: false });
+    diagnostics.push(...build.diagnostics);
+    const main = build.artifacts.find((a) => !a.id.startsWith('addrmap.'));
+    if (!build.ok || !main) {
+      print({ ok: false, written: [], counts: summarize(diagnostics), diagnostics: diagnostics.map(line) });
+      return EXIT.fail;
+    }
+    svg = main.svg;
+    target ??= path.join(path.dirname(file), `${figureName(file)}.${main.id}.png`);
+  }
+  const shot = await rasterizeSvg(svg, target, { scale, chrome });
+  diagnostics.push(...shot.diagnostics);
+  print({ ok: shot.ok, written: shot.ok ? [target] : [], ...(shot.ok ? { size_px: shot.size, bytes: shot.bytes } : {}), chrome: chrome.executable, counts: summarize(diagnostics), diagnostics: diagnostics.map(line) });
+  return shot.ok ? EXIT.ok : EXIT.fail;
 }
 
 async function cmdCrosscheck({ positional, flags }) {
@@ -248,7 +294,11 @@ const viewOpts = (flags) => ({
 // Draft a starting figure for a view preset from the user's netlist. The
 // author refines it; validate/deliver apply every check to the result.
 async function cmdDraft({ flags }) {
-  if (!flags.netlist || (!flags.view && flags.format !== 'study')) return usage();
+  const microarch = flags.type === 'microarch';
+  if (flags.type !== undefined && !['datapath', 'microarch'].includes(flags.type)) return usage();
+  if (flags.bundle !== undefined && (microarch || !['prefix', 'handshake'].includes(flags.bundle))) return usage();
+  if (microarch && flags.view !== undefined && flags.view !== 'overview') return usage();
+  if (!flags.netlist || (!microarch && !flags.view && flags.format !== 'study')) return usage();
   const { netlist, guard } = loadNetlistWithGuard(flags.netlist);
   if (guard.diagnostics.some((d) => d.severity === 'error')) {
     for (const d of guard.diagnostics) console.error(line(d));
@@ -268,7 +318,8 @@ async function cmdDraft({ flags }) {
   }
   let draft;
   try {
-    draft = draftFigure(netlist, { format: flags.format, preset: flags.view, scope: flags.scope ?? '', depth: flags.depth !== undefined ? Number(flags.depth) : undefined, gateRegions: flags['gate-region'] || [], blackbox: flags.blackbox || [], ...(flags['budget-seconds'] !== undefined ? { budget: { seconds: Number(flags['budget-seconds']) } } : {}), ...(flags['repo-root'] && revision ? { repository: { root: flags['repo-root'], revision } } : {}) });
+    if (microarch) draft = (await import('../lib/draft-microarch.mjs')).draftMicroarch(netlist, { scope: flags.scope ?? '' });
+    else draft = draftFigure(netlist, { format: flags.format, preset: flags.view, scope: flags.scope ?? '', depth: flags.depth !== undefined ? Number(flags.depth) : undefined, gateRegions: flags['gate-region'] || [], blackbox: flags.blackbox || [], ...(flags.bundle ? { bundle: flags.bundle } : {}), ...(flags['budget-seconds'] !== undefined ? { budget: { seconds: Number(flags['budget-seconds']) } } : {}), ...(flags['repo-root'] && revision ? { repository: { root: flags['repo-root'], revision } } : {}) });
   } catch (error) {
     // A draft over its time or size budget reports where it stopped and how to narrow the scope.
     if (!error.diagnostic) throw error;
@@ -281,11 +332,20 @@ async function cmdDraft({ flags }) {
   else process.stdout.write(text);
   for (const n of draft.notes) console.error(`note: ${n}`);
   // The draft is checked like any figure; residual errors are notes to fix, not a failed draft.
-  const { draftResiduals } = await import('../lib/draft-check.mjs');
+  const { draftLayout, draftMicroarchResiduals, draftResiduals } = await import('../lib/draft-check.mjs');
   // Residuals are judged as the figure will be delivered: paper quality unless the draft is a study figure.
-  const residual = await draftResiduals(JSON.parse(text), netlist, { quality: flags.quality ?? (flags.format === 'study' ? undefined : 'paper'), figureDir: flags.out ? (await import('node:path')).dirname((await import('node:path')).resolve(flags.out)) : process.cwd() });
+  const checkOpts = { quality: flags.quality ?? (flags.format === 'study' ? undefined : 'paper'), figureDir: flags.out ? path.dirname(path.resolve(flags.out)) : process.cwd() };
+  const drafted = JSON.parse(text);
+  const residual = microarch ? await draftMicroarchResiduals(drafted, netlist, checkOpts) : await draftResiduals(drafted, netlist, checkOpts);
   for (const r of residual) console.error(`residual: ${r.code}: ${r.message}`);
-  console.error(residual.length ? `note: the draft still fails ${residual.length} of its own checks (listed as residual:); refine it before delivery` : 'note: the draft passes its own checks (schema, semantics, labels, view, RTL cross-check, coverage, latency)');
+  const checkList = microarch ? 'schema, semantics, labels, view, RTL cross-check, coverage' : 'schema, semantics, labels, view, RTL cross-check, coverage, latency';
+  console.error(residual.length ? `note: the draft still fails ${residual.length} of its own checks (listed as residual:); refine it before delivery` : `note: the draft passes its own checks (${checkList})`);
+  // Layout, fit and connectors (N2): one bounded render in the delivery format, reported apart.
+  const layout = await draftLayout(drafted, { type: microarch ? 'microarch' : 'datapath', format: flags.format, ...(flags['layout-seconds'] !== undefined ? { seconds: Number(flags['layout-seconds']) } : {}) });
+  for (const r of layout.residual) console.error(`residual (layout): ${r.code}: ${r.message}`);
+  const pt = (v) => Math.round(v * 10) / 10;
+  if (layout.skipped) console.error(`note: layout not run (${layout.skipped}); the checks above are semantic only, delivery can still fail layout, fit and connector checks`);
+  else console.error(`note: layout ${layout.variant}: ${pt(layout.width_pt)} × ${pt(layout.height_pt)} pt${layout.max_height_pt ? ` (max height ${pt(layout.max_height_pt)} pt)` : ''}; ${layout.residual.length ? `${layout.residual.length} layout residual${layout.residual.length > 1 ? 's' : ''} (listed as residual (layout):)` : 'no layout residuals'}`);
   return EXIT.ok;
 }
 
@@ -446,6 +506,7 @@ const commands = {
   validate: cmdValidate,
   render: cmdRender,
   deliver: cmdDeliver,
+  preview: cmdPreview,
   crosscheck: cmdCrosscheck,
   'expand-cone': cmdExpandCone,
   draft: cmdDraft,

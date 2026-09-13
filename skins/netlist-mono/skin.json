@@ -76,6 +76,10 @@
       "description": "Dash patterns of nets and microarch links scale with stroke.wire (control 3.33× / 2.5× the wire stroke; reset and interrupt 1.33× / 2×; sideband and power ×1.5 of their 0.6 pt originals) so dashes stay readable at the wire weight. boundary and domain_* dash group/chip and domain outlines drawn at stroke.boundary.",
       "microarch_description": "stroke.emphasis: emphasized block outline and DMA links; stroke.boundary with dash.boundary: group/chip outlines; dash.domain_*: drawn clock/reset/power domain boundaries; dash.interrupt/sideband/power: microarch link classes."
     },
+    "net_label": {
+      "max_wire_distance_pt": 12,
+      "description": "A net name sits at most max_wire_distance_pt from its own wire, nearer to it than to any other net's wire and nearer to it than to any block outline it faces (label/ambiguous-anchor); the placer offers only such spots."
+    },
     "junction_diam_factor": 3,
     "junction_min_diam": 2.4,
     "junction_description": "Junction dot diameter = junction_diam_factor × the net stroke (never below junction_min_diam), so a dot reads as a dot at any wire weight.",
@@ -112,6 +116,9 @@
       "description": "jog_min_offset_pt: a data-net level change shorter than this is a redundant jog (error). max_crossings: warning thresholds per net class. crossing_weight: straightening cost of one wire crossing relative to a redundant jog (1000) and a bend (1).",
       "min_parallel_gap_pt": 4,
       "long_feedback_ratio": 0.5,
+      "connector_min_layers": 2,
+      "collinear_gap_pt": 1.5,
+      "connector_layers_description": "connector_min_layers: a returning net becomes a connector pair only between blocks at least this many drawn block layers apart; nearer blocks keep the wire, routed above or below them (never decided by tag positions). collinear_gap_pt: parallel runs of two nets closer than this over more than 0.5 pt read as one wire (wire/collinear-overlap, error in every format); the router keeps min_parallel_gap_pt between them.",
       "frame_gap_pt": 6,
       "dot_arrow_clearance": 8,
       "arrow_min_shaft_pt": 0,

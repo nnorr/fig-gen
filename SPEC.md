@@ -655,6 +655,33 @@ What the draft draws:
 - **Connectors on final routes.** Connectors are chosen on a probe layout; a
   branch that is still long on the final routes gets connectors in one more
   pass, kept when it has fewer errors.
+- **Trial 2.**
+  - *Connector or wire* is decided from the blocks, never from where tags
+    land: a return between blocks fewer than `route.connector_min_layers` (2)
+    drawn layers apart stays a wire routed above or below them. Only when the
+    wired figure does not fit is it drawn as connectors
+    (`route/short-return-connectors`).
+  - *Stateful blocks.* `holds_state: true` lets any block declare per-input
+    or `"state"` latency; with a netlist it must cover a register with feedback
+    (`latency/holds-state`). Drafts emit it with per-input maps instead of
+    unmapped nets. A figure with registers in scope and no compared latency
+    pair fails `latency/unverified` under `--quality paper` unless
+    `latency_unverified: { reason }` (12–300 characters) says why.
+  - *Drafts* run a fast layout pass (`--layout-seconds`, default 60; 0 skips;
+    skipped above 160 elements or 400 connections) and print layout, fit and
+    connector residuals as `residual (layout):`. `--bundle prefix|handshake`
+    bundles ports by name prefix or handshake stem, member latency still
+    checked. `draft --type microarch` drafts blocks, register groups, fabrics,
+    streams and off-chip blocks from the netlist.
+  - *Printed names.* Duplicate checks run on the text printed in each variant;
+    short labels keep the qualifier words. Readable names expand RTL
+    abbreviations (`cmd` → command, `rsp` → response; see `label/unreadable`).
+  - *Unused ports* sit at the figure edge (inputs left, outputs right) with a
+    6 pt stub and an "unused" mark; *constants* are outlined value boxes at
+    the pin printing a readable value (`1'b0` → 0, `8'hFF` → all ones).
+  - *Delivery* stages outputs in temporary files and archives superseded
+    outputs only after a successful delivery; a failed one leaves the last good
+    outputs. `--preview` also writes `<name>.<variant>.png`.
 
 ## 5. `fsm` IR
 
@@ -1166,6 +1193,17 @@ render; warnings are reported and allowed only under `--quality draft`.
 | `draft/budget-exceeded` | draft | the draft did not finish within its time budget (`--budget-seconds`, default 120 s) or its scope holds more signals than the size budget (50 000); names the phase it stopped in, the expanded instances and the largest children, and suggests a narrower `--scope`, a lower `--depth` or a `--blackbox` (error, exit 1, no draft written) |
 | `region/wire-hugs-frame` | datapath, per variant | a wire runs parallel to a region frame edge closer than `route.frame_gap_pt` (default 6 pt; 1.5 × for a dashed wire beside the dashed frame) over more than 3 pt (error). The renderer first moves the edge past the wire: outward if the frame then covers no foreign block, else inward if it still holds its members |
 | `width/bundle-sum` | datapath | a heterogeneous bundle (`bundle_of`, or a pin `bundle`) has neither a net label nor a port label; bundles are named by protocol or function and never get a summed width slash (error) |
+| `wire/collinear-overlap` | datapath, microarch, per variant (final SVG), every format | two different nets (datapath) or links/attachments (microarch) run parallel closer than `route.collinear_gap_pt` (skin, 1.5 pt) over more than 0.5 pt; the router first moves interior runs to `route.min_parallel_gap_pt` (`separateParallelRuns`) (error) |
+| `route/edge-hugging` (microarch) | microarch, per variant (final SVG) | two links or attachments run parallel closer than `route.min_parallel_gap_pt` (4 pt) over more than 0.5 pt without overlapping (error) |
+| `label/unlabeled-parallel-nets` | datapath, per variant | two or more nets between the same two opaque blocks (custom logic, instances, blackboxes, memories) print no name; the renderer names them from `label`, `short_label` or the readable RTL signal and, when a name finds no spot, lays out once more with room beside the source pin (`label/parallel-name-room`, info) (error in paper variants, warning in study; `evidence.paper_error`) |
+| `label/ambiguous-anchor` (trial 2) | datapath, per variant | additionally: a net label farther than `net_label.max_wire_distance_pt` (12 pt) from its own wire, or closer to a block outline it faces than to its wire (error) |
+| `route/short-return-connectors` (info) | datapath, per variant | returns between blocks fewer than `route.connector_min_layers` (2) drawn layers apart are wires; this notes the pass that drew them as connectors because the wired figure did not fit |
+| `label/name-ignored` | datapath (schema hint) | `function.name` on a vocabulary kind other than `custom` is a schema error; the hint says to use `qualifier` or `label` |
+| `label/duplicate` (per variant) | datapath, per variant | two blocks print the same text in a variant (short labels included); short labels derive from the qualifier words |
+| `latency/unverified` | datapath (netlist) | the scope holds registers but no latency pair is compared (`"state"` pairs do not count) (error with `--quality paper`, warning otherwise; info with the reason when `latency_unverified.reason` is set) |
+| `latency/holds-state` | datapath (netlist) | an element with `holds_state: true` covers no register with feedback (error) |
+| `latency/state-escape` (warning) | datapath (netlist) | an output declares `"state"` but its drawn inputs reach it with fixed latencies; the evidence carries the map to declare |
+| `preview/chrome-missing`, `preview/rasterise-failed`, `preview/scale`, `preview/svg-size` | preview, deliver `--preview` | no headless Chrome (doctor discovers it; `FIGGEN_CHROME` overrides), the rasteriser failed, a scale outside 1–8, or an SVG without a size (error) |
 | `svg/*` | all, per variant | figma-safe profile lint, §10.1 |
 
 ## 9. Layout
@@ -1322,8 +1360,13 @@ Still planned: `geometry/port-crowding`, `print/aspect` hints.
   `print/max-height`, `deliver/does-not-fit`, `print/label-fallback`,
   `print/variant-not-requested`, `variant/1col-skipped`, `print/small-font`,
   `view/detail-collapsed`, `route/crossings`; downgraded to warnings —
-  `print/min-font`, `print/min-stroke`, `label/unreadable`, `view/caption`.
+  `print/min-font`, `print/min-stroke`, `label/unreadable`, `view/caption`,
+  `route/data-jog`, `route/edge-hugging` (so study views deliver; overlapping
+  wires stay `wire/collinear-overlap` errors). Generated text is never relaxed.
   Every other check is enforced unchanged; the receipt lists what was relaxed.
+- **Preview.** `fig-gen preview <file.svg|figure.json> [--out] [--scale n]
+  [--format]` rasterises with headless Chrome; `deliver --preview [--scale n]`
+  writes `<name>.<variant>.png` and a receipt `preview` entry.
 - **Size report.** Every render returns `size_report {content_width_pt,
   content_height_pt, layers, spacing_pt, widest_layers, tallest_columns}`;
   overflow messages quote it and `--why-size` prints it.

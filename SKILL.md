@@ -261,7 +261,15 @@ study, analyse or explore RTL rather than to make a paper figure.
   state rather than a fixed path get `"latency": "state"`. Both are only for
   stateful kinds (`controller`, `fsm`, `bus_slave`, `csr_bank`, `arbiter`;
   `latency/controller-only`). Never invent a uniform number to silence the
-  check.
+  check. A non-controller block that holds registers with feedback may do the
+  same with `holds_state: true` (the draft sets it). Never set `"state"` where
+  the draft's map is available (`latency/state-escape`), and never opt out of
+  `latency/unverified` without a concrete reason in `latency_unverified.reason`.
+- **Drafting.** Read both residual lists: `residual:` for semantic checks and
+  `residual (layout):` for layout, fit and connectors; a "layout not run" note
+  means layout failures may still come at delivery. For overviews with many
+  ports try `--bundle prefix`, then `--bundle handshake`. For SoC or shell tops
+  use `draft --type microarch`, then add the documented address windows.
 - **If the figure does not fit 2col**, in this order: collapse more hardware
   into blocks that cover it; allow a taller figure up to the profile's maximum
   height; otherwise the delivery fails (`deliver/does-not-fit`): narrow the
@@ -288,6 +296,17 @@ study, analyse or explore RTL rather than to make a paper figure.
   their gates (`wire/detached`, `wire/touching`, `symbol/bubble-detached`,
   checked on the final SVG). These are renderer guarantees; if one fires,
   report it rather than editing the SVG.
+- Returns between neighbouring blocks stay wires; only blocks at least two
+  drawn layers apart get connector pairs. Different nets never share or crowd
+  a run (`wire/collinear-overlap`, every format, microarch links included).
+- Several nets between the same two blocks must be named
+  (`label/unlabeled-parallel-nets`, an error in paper variants): give them
+  labels or RTL signals; if the names still find no room, bundle them into one
+  named bus or allow more width. A net name sits within 12 pt of its own wire
+  and nearer to it than to any block. Write words, not RTL abbreviations
+  (`cmd`, `rsp`, `cfg`: `label/unreadable` suggests the expansion).
+- `fig-gen preview <svg|figure.json>` (or `deliver --preview`) writes a PNG to
+  look at before handing a figure over.
 
 ## Evidence rule (hard, no exceptions)
 

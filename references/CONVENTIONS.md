@@ -374,7 +374,12 @@ and a wire that touches another reads as a junction.
 - Checked on the final SVG, after straightening and bubble placement:
   `wire/detached` (error; reports the net, the point and the gap) and
   `wire/touching` (error). The renderer collapses sub-2 pt zig-zags and slides
-  a run that touches a foreign wire into a free channel before the check.
+  a run that touches a foreign wire into a free channel before the check; an
+  arrowhead's base counts as a vertex of its wire.
+- **Different nets never share or crowd a run.** Parallel runs keep
+  `route.min_parallel_gap_pt` (4 pt); closer than `route.collinear_gap_pt`
+  (1.5 pt) over more than 0.5 pt is `wire/collinear-overlap` (error, every
+  format, microarch links too). *Why:* two wires a stroke apart read as one.
 
 ### 1.6 Long returns, frames and edges [house]
 
@@ -422,6 +427,19 @@ and a wire that touches another reads as a junction.
 - **Every tag has a wire [house].** A connector pair is one source tag and one
   target tag, both wired; a pair whose tags would sit side by side is a wire.
   Single words ("state", "busy") are qualified with their instance.
+- **Connector or wire is decided by block separation [house].** A returning
+  net becomes a connector pair only between blocks at least
+  `route.connector_min_layers` (2) drawn layers apart; nearer blocks keep the
+  wire, routed above or below them. Tag positions never decide.
+- **Parallel nets are named [house].** Two or more nets between the same two
+  blocks each carry a name (`label/unlabeled-parallel-nets`); the renderer
+  names them from their RTL signals and makes room beside the source pin. A
+  net name sits at most 12 pt from its wire and nearer to it than to any block
+  outline it faces (`label/ambiguous-anchor`).
+- **Unused ports and constants [house].** A port nothing reads or drives sits
+  at the figure edge with a short stub and an "unused" mark. A constant is a
+  small outlined value box at its pin, printing a readable value (0, 1, all
+  ones, 0x1F), never Verilog literal syntax.
 
 ---
 

@@ -90,7 +90,7 @@ test('G1: a controller output declares latency per input (or "state"); one numbe
   const state = controllerFigure({ latency: 'state' });
   assert.deepEqual(await validateSchema('datapath', state), []);
   const s = checkLatency(state, nl);
-  assert.deepEqual(s.diagnostics, []);
+  assert.deepEqual(s.diagnostics.filter((d) => d.severity === 'error'), [], '"state" is not an error (it warns latency/state-escape where a map is measurable)');
   assert.equal(s.report.state_pairs, 2);
 
   const notController = controllerFigure({ latency: { start: 1, go: 0 } }, { kind: 'custom' });
@@ -207,7 +207,8 @@ test('(A) a constant printed as a raw literal and repeated net labels do not pas
   const doc = {
     schema_version: 1, figure_type: 'datapath', meta: { title: 'tie', print: { profile: 'ieee' } }, clock_domains: [],
     elements: [
-      { id: 'c0', kind: 'const', value: "1'b0" },
+      // an authored label in literal syntax prints as-is; a bare value prints "0" in the value box
+      { id: 'c0', kind: 'const', value: "1'b0", label: "1'b0" },
       { id: 'a', kind: 'port', dir: 'in', width: 8, label: 'requests' },
       { id: 'b', kind: 'port', dir: 'in', width: 8, label: 'more requests' },
       { id: 'blk', kind: 'comb', op: 'custom', width: 8, function: { kind: 'custom', name: 'Client' }, ports: [{ id: 'last', dir: 'in', width: 1 }, { id: 'x', dir: 'in', width: 8 }, { id: 'y', dir: 'in', width: 8 }, { id: 'o', dir: 'out', width: 8 }, { id: 'p', dir: 'out', width: 8 }] },
@@ -225,6 +226,9 @@ test('(A) a constant printed as a raw literal and repeated net labels do not pas
   assert.deepEqual(await validateSchema('datapath', doc), []);
   const diags = checkLabels(doc, 'datapath', { quality: 'paper' });
   assert.equal(codes(diags, 'label/constant-as-port-label').length, 1);
+  const bare = structuredClone(doc);
+  delete bare.elements[0].label;
+  assert.equal(codes(checkLabels(bare, 'datapath', { quality: 'paper' }), 'label/constant-as-port-label').length, 0);
   const dup = codes(diags, 'label/duplicate-net-label');
   assert.equal(dup.length, 2, 'two nets share "client command"; net no repeats its port label');
   assert.ok(dup.every((d) => d.severity === 'error'));
