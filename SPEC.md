@@ -800,6 +800,49 @@ What the draft draws:
   is `unverified`. Paper delivers 2col (required) and 1col (best effort); study
   sizes the figure to its content.
 
+### 5.2 Implemented (checkpoint 3b follow-ups)
+
+- **Long chains (serpentine).** Before ELK row wrapping, the renderer finds the
+  dominant chain (the longest simple path from reset) and lays it in rows that
+  alternate direction, shaped to the column. Arcs off the chain (back and
+  forward skips, any-state and recovery arcs) run orthogonally in dedicated
+  channels between rows and beside the rows; every arc keeps its own track.
+  - Plan order: left to right, short labels, serpentine (full, then short
+    labels), ELK wrapped rows, top to bottom.
+  - The final SVG is checked as before (`fsm/edge-detached`,
+    `fsm/edge-through-state`, `fsm/edge-unrouted`), plus `fsm/arc-overlap`
+    when two arcs share a run. A plan with any of them fails; nothing is
+    dropped.
+  - When no plan fits, `fsm/split-suggested` (info) proposes linked
+    sub-figures: groups along the chain. In the overview a state with
+    `collapsed {members, entry, exit}` stands for a group and names its figure
+    with `detail_ref`. The cross-check expands collapsed states back to their
+    members, so the overview still matches the RTL.
+- **Guard wording.** The draft prints guard identifiers without a module-local
+  prefix (`sk_`, `dec_`) when the stripped name is still unique among the
+  module's nets. A literal compared with a signal whose netlist type is an enum
+  prints the item name, read from the netlist `types[]`, and the item becomes
+  a figure `constants[]` entry. An untyped signal keeps the literal.
+- **Receipt level by cone.** An FSM figure's verification considers only the
+  regions in the machine's cone: the state register's fan-in through guards
+  and next-state logic. Blackbox stubs outside the cone are listed under
+  `verification.not_in_cone` and do not lower the level.
+- **Moore outputs.** With a netlist, every drawn Moore output value is compared
+  with the RTL value in that state:
+  - `fsm/rtl-output-mismatch`: a different value;
+  - `fsm/rtl-output-not-moore`: the output depends on more than the state;
+  - `fsm/undrawn-output` (warning; error with `--quality paper`): an output
+    the RTL asserts in a state but the figure omits there.
+
+  Mealy outputs are not yet compared.
+- **Leader labels (datapath).** A net may set `label_placement: "leader" |
+  "auto"` (and `leader_max_pt`). When its name has no room on its wire, the
+  name sits in free space, joined to its own wire by an orthogonal leader of
+  at most `net_label.leader_max_pt` (24 pt) with at most one bend. The leader
+  uses the wire stroke and no marker, and ends `net_label.leader_gap_pt`
+  (1.5 pt) short of the text. It crosses and touches no wire, block, frame
+  edge, text or foreign arrowhead. `label/leader-used` (info) records it.
+
 ## 6. `timing` IR (WaveJSON + paper layer)
 
 Timing figures are **rendered by WaveDrom** (npm `wavedrom`, pinned, called
@@ -990,6 +1033,56 @@ Rules:
   file hashes are recorded as stimulus files.
 - Generated testbenches, VCDs and build products live in the work directory,
   never in the RTL repository.
+
+### 6.7 Implemented (checkpoint 3b)
+
+- **Render.** WaveDrom 3.7.0 `renderAny` output goes through the §6.4
+  post-process into netlist-mono: 0.9 pt waves, 8/7 pt text, grayscale.
+  - Fitting: the column tries the widest `hscale` whose scale keeps lane names
+    at 8 pt, with the scale capped at 1 pt per WaveDrom unit.
+    `meta.print.max_height_in` and `fit.<variant>` apply.
+  - Bus values sit centred between the end of their opening transition and the
+    start of the next. A value wider than that prints its lossless short form:
+    `timing/value-compacted` (info), leading zeros dropped, the lane name keeps
+    the width. Still too wide is `timing/value-overflow` (error).
+  - Geometry checks exclude grid lines before searching, so a grid line never
+    hides a waveform stroke through text.
+- **Simulation.** `fig-gen simulate` builds with `verilator --binary --timing
+  --trace` in the work directory, from a user testbench (`--tb`) or a
+  generated BFM wrapper (`--bfm portmap.json --scenario scenario.json`).
+  - `simulate.json` records the simulator, top, stimulus file hashes, RTL file
+    hashes and the VCD hash.
+  - A module defined nowhere (a memory macro) stops with
+    `sim/blackbox-without-model`; the behavioural model must come from the
+    user.
+  - Other stops: `sim/simulator-missing`, `sim/compile-failed`,
+    `sim/run-failed`, `sim/scenario-failed`, `sim/timeout`, `sim/no-vcd`,
+    `sim/file-missing`.
+- **BFM.** `fig-gen bfm` generates a SystemVerilog wrapper from a port map
+  (clock, reset, tie-offs, parameters, interfaces of protocol `ahb-lite`,
+  `apb`, `axi4-lite` or `valid-ready`) and a scenario. Scenario steps:
+  `reset`, `wait_cycles`, `set`, `write`, `read` (expect, mask), `poll`,
+  `wait_until`, `send`, `expect_response`, `mark`.
+  - A failed expectation or timeout ends the run with a non-zero status.
+  - The wrapper is stimulus: the receipt's `verification.simulation.scope_note`
+    states that the evidence covers only the recorded stimulus and cycle
+    window.
+- **vcd2wave.** Selection is by path or glob, with the window from `--from`
+  or `--align-on`, pre-edge sampling, and `--radix` hex/dec/bin/label.
+  - Label radix reads enum item names from the netlist and drops the prefix
+    shared by all items, as for state labels.
+  - Lane names are readable and qualified only on collision.
+  - `provenance.generator.lanes_sha256` pins the generated lanes; `meta` and
+    `fit` edits are outside the hash.
+  - Codes: `timing/vcd-signal-missing`, `timing/vcd-window`,
+    `timing/vcd-radix-label` (warning), `timing/vcd-partial-x` (warning).
+- **Verification.** `verifyTiming` sets the one waveform region's level:
+  - `simulated`: the lanes hash matches the generator and the VCD hash
+    matches;
+  - `sim-compared`: `fig-gen sim-compare` found zero mismatches, with `x` as
+    don't-care, `.` holding and `|` skipped;
+  - otherwise `unverified`, with the reason (`timing/lanes-edited`,
+    `timing/sim-mismatch`, `timing/compare-unmapped`).
 
 ## 7. `microarch` IR (SoC / system and pipeline block figures)
 
@@ -1286,6 +1379,18 @@ render; warnings are reported and allowed only under `--quality draft`.
 | `label/bundle-name-omitted` | datapath, per variant | a named bundle (`bundle_of`, or ending at a pin with `bundle`) whose name finds no spot; the name-room retry runs first (error in paper variants, warning in study) |
 | `label/stage-naming` | datapath | blocks of one function where some use `function.stage` and others do not (same vocabulary kind, or a custom name that repeats a staged block's word and numbers a stage) (error) |
 | `print/stage-label-omitted` | datapath, per variant | a pipeline bar with a `label` that finds no spot above it (error in paper variants, warning in study) |
+| `fsm/arc-overlap` | fsm, per variant (final SVG) | two transitions share a run of track (error; the plan fails) |
+| `fsm/split-suggested` (info) | fsm, per variant | no plan fits; lists linked sub-figure groups along the dominant chain (`collapsed` + `detail_ref`) |
+| `fsm/rtl-output-mismatch`, `fsm/rtl-output-not-moore` | fsm, netlist | a drawn Moore output value differs from the RTL in that state, or the output depends on more than the state (error) |
+| `fsm/undrawn-output` | fsm, netlist | an output the RTL asserts in a state is not drawn there (warning; error with `--quality paper`) |
+| `label/leader-used` (info) | datapath, per variant | a net name is placed with a leader (length recorded) |
+| `timing/value-compacted` (info) | timing, per variant | a bus value prints its lossless short form to fit its segment |
+| `timing/value-overflow` | timing, per variant | a bus value is wider than its segment even in short form (error) |
+| `timing/vcd-signal-missing`, `timing/vcd-window` | vcd2wave | a signal or clock not (uniquely) in the VCD; a window past the dumped edges (error) |
+| `timing/vcd-radix-label`, `timing/vcd-partial-x` (warning) | vcd2wave | label radix without netlist names (hex used); partly unknown bits drawn as x |
+| `timing/lanes-edited` | timing, deliver | lanes differ from the generator output, so `simulated` does not apply (the level falls to `sim-compared` or `unverified`) |
+| `sim/blackbox-without-model` | simulate | a module is defined nowhere; simulation needs the user's behavioural model (error) |
+| `sim/simulator-missing`, `sim/compile-failed`, `sim/run-failed`, `sim/scenario-failed`, `sim/timeout`, `sim/no-vcd`, `sim/file-missing`, `sim/usage` | simulate | the run could not produce evidence (error) |
 | `svg/*` | all, per variant | figma-safe profile lint, §10.1 |
 
 ## 9. Layout

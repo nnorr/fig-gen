@@ -1,0 +1,9 @@
+{
+  "top": "vr_pipe",
+  "clock": { "port": "clk", "period_ps": 10000 },
+  "reset": { "port": "rst_n", "active": "low", "cycles": 2 },
+  "interfaces": [
+    { "name": "req", "protocol": "valid-ready", "direction": "source", "signals": { "valid": "in_valid", "ready": "in_ready", "data": { "value": "in_data" } } },
+    { "name": "rsp", "protocol": "valid-ready", "direction": "sink", "signals": { "valid": "out_valid", "ready": "out_ready", "data": { "value": "out_data" } } }
+  ]
+}

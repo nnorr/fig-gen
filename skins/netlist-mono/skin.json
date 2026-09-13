@@ -78,7 +78,9 @@
     },
     "net_label": {
       "max_wire_distance_pt": 12,
-      "description": "A net name sits at most max_wire_distance_pt from its own wire, nearer to it than to any other net's wire and nearer to it than to any block outline it faces (label/ambiguous-anchor); the placer offers only such spots."
+      "leader_max_pt": 24,
+      "leader_gap_pt": 1.5,
+      "description": "A net name sits at most max_wire_distance_pt from its own wire, nearer to it than to any other net's wire and nearer to it than to any block outline it faces (label/ambiguous-anchor); the placer offers only such spots. A net with label_placement leader/auto whose name has no spot on its wire gets a leader label: an orthogonal leader of at most leader_max_pt (one bend at most, the wire stroke, no marker) from its own wire to the text, ending leader_gap_pt short of it."
     },
     "junction_diam_factor": 3,
     "junction_min_diam": 2.4,

@@ -1,0 +1,9 @@
+{
+  "name": "one transfer with backpressure",
+  "max_cycles": 100,
+  "steps": [
+    { "op": "reset" },
+    { "op": "send", "if": "req", "fields": { "value": "0x41" } },
+    { "op": "expect_response", "if": "rsp", "stall": 2, "max": 20, "fields": { "value": "0x42" } }
+  ]
+}

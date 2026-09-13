@@ -26,6 +26,42 @@
     "params": {
       "$ref": "common.schema.json#/$defs/params"
     },
+    "constants": {
+      "description": "Named constants guards compare against (enum items or localparams recovered from the netlist), each equal to its value; label is the printed name.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "value"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "$ref": "common.schema.json#/$defs/sv_literal"
+              }
+            ]
+          },
+          "type": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 40
+          }
+        }
+      }
+    },
     "machine": {
       "type": "object",
       "additionalProperties": false,
@@ -190,6 +226,45 @@
           },
           "terminal": {
             "type": "boolean"
+          },
+          "detail_ref": {
+            "description": "A linked sub-figure that draws this state's contents.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "figure"
+            ],
+            "properties": {
+              "figure": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              }
+            }
+          },
+          "collapsed": {
+            "description": "This state stands for a group of RTL states drawn in a linked sub-figure (detail_ref). Arcs into it enter `entry` (default: the first member); arcs out of it leave `exit` (default: the last member).",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "members"
+            ],
+            "properties": {
+              "members": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "common.schema.json#/$defs/id"
+                }
+              },
+              "entry": {
+                "$ref": "common.schema.json#/$defs/id"
+              },
+              "exit": {
+                "$ref": "common.schema.json#/$defs/id"
+              }
+            }
           },
           "source": {
             "$ref": "common.schema.json#/$defs/source_pin"

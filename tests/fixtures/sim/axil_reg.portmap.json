@@ -1,0 +1,16 @@
+{
+  "top": "axil_reg",
+  "clock": { "port": "aclk", "period_ps": 10000 },
+  "reset": { "port": "aresetn", "active": "low", "cycles": 2 },
+  "interfaces": [
+    {
+      "name": "ctl",
+      "protocol": "axi4-lite",
+      "signals": {
+        "awvalid": "awvalid", "awready": "awready", "awaddr": "awaddr", "wvalid": "wvalid", "wready": "wready", "wdata": "wdata",
+        "bvalid": "bvalid", "bready": "bready", "bresp": "bresp", "arvalid": "arvalid", "arready": "arready", "araddr": "araddr",
+        "rvalid": "rvalid", "rready": "rready", "rdata": "rdata", "rresp": "rresp"
+      }
+    }
+  ]
+}

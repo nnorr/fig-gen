@@ -61,16 +61,17 @@ test('timing input is WaveJSON; unknown WaveDrom keys and bad wave characters ar
   assert.equal((await validateFigure('timing', wave)).ok, false);
 
   const minimal = { schema_version: 1, figure_type: 'timing', meta: { title: 't', print: { profile: 'acm' } },
-    wavejson: { signal: [{ name: 'clk', wave: 'p...' }, {}, ['grp', { name: 'x', wave: '01.0' }]] } };
+    wavejson: { signal: [{ name: 'clk', wave: 'p...' }, {}, ['grp', { name: 'valid', wave: '01.0' }]] } };
   assert.deepEqual((await validateFigure('timing', minimal)).diagnostics, []);
 });
 
-test('validate reports semantic checks as not implemented (truthful coverage)', async () => {
+test('validate reports the semantic checks it ran (truthful coverage)', async () => {
+  // Timing semantic checks run (SPEC §6.2): the result names the codes it ran.
   const timing = { schema_version: 1, figure_type: 'timing', meta: { title: 't', print: { profile: 'acm' } },
     wavejson: { signal: [{ name: 'clk', wave: 'p...' }] } };
   const result = await validateFigure('timing', timing);
-  assert.equal(result.checks.semantic.status, 'not-implemented');
-  assert.ok(result.checks.semantic.planned.includes('timing/wave-length'));
+  assert.equal(result.checks.semantic.status, 'pass');
+  assert.ok(result.checks.semantic.codes.includes('timing/wave-length'));
   // FSM semantic checks run (SPEC §5): the result names the codes it ran.
   const fsm = await validateFigure('fsm', load('fsm-run-flush.json'));
   assert.notEqual(fsm.checks.semantic.status, 'not-implemented');

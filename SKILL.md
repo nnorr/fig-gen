@@ -8,10 +8,10 @@ metadata:
 
 # fig-gen
 
-Phase 2. `datapath` and `microarch` figures validate, render and deliver
-(SVG + outlined PDF + receipt), with RTL cross-checks and gate-level
-equivalence. `fsm` and `timing` validate only; say so plainly if asked for
-those figure files.
+Phase 3. `datapath`, `microarch`, `fsm` and `timing` figures validate, render
+and deliver (SVG + outlined PDF + receipt). Structural figures are
+cross-checked against RTL (gate-level equivalence for datapath regions);
+timing figures are grounded in Verilator simulation.
 
 A figure is a small JSON document of one type. The pipeline validates the
 hardware semantics before any layout, lays out each column variant separately,
@@ -317,9 +317,33 @@ study, analyse or explore RTL rather than to make a paper figure.
   - Keep the recovery arc when unused encodings recover to a safe state; it is
     part of the design's safety story.
   - With `--netlist`, a delivered machine is `structural-only`; it is never
-    labelled simulated.
-  - If an 11-state chain does not fit 2col, deliver it in the study format or
-    split it; do not drop states or arcs.
+    labelled simulated. Blackboxes outside the machine's cone do not lower it
+    (`verification.not_in_cone`).
+  - Long chains snake in rows automatically. If nothing fits 2col,
+    `fsm/split-suggested` lists groups: draw each as its own figure and
+    collapse it in the overview (`collapsed` with `detail_ref`). Never drop
+    states or arcs.
+  - Guards print enum names only when the netlist types the signal; a bare
+    number means the RTL gives no name. Do not invent one.
+- **Net names without room** may use `label_placement: "leader"` on that net
+  (a short leader to free space). If `label/bundle-name-omitted` persists, change
+  the layout (spacing, lane order) or report it; never drop the name.
+- **Timing figures.** Ground them in simulation:
+  1. `fig-gen simulate` with the user's testbench, or with `--bfm portmap.json
+     --scenario scenario.json` for AHB-Lite, APB, AXI4-Lite or valid/ready
+     ports. Missing memory models stop the run
+     (`sim/blackbox-without-model`): ask the user for their model, and never
+     write one.
+  2. `fig-gen vcd2wave --vcd <work>/wave.vcd --clock <path> --signals …
+     [--radix <path>=label --netlist n.json] --sim-evidence
+     <work>/simulate.json --out fig.timing.json`.
+  3. Edit only `meta` and `fit`; editing lanes drops `simulated`. For
+     hand-drawn waves, run `fig-gen sim-compare` against a VCD instead.
+  4. Deliver.
+
+  A caption says the waveform shows the given stimulus only. Choose lanes and
+  a window so values fit their cycles (`timing/value-overflow`). Otherwise
+  raise `meta.print.max_height_in`, show fewer cycles or use the study format.
 
 ## Evidence rule (hard, no exceptions)
 

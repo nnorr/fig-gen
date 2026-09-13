@@ -1208,11 +1208,19 @@ the scope covers.
   exclusive and complete. Use `else` / `otherwise` for the fall-through. The renderer
   SHOULD check this when conditions are given in its boolean expression subset.
 - **Layout [house]:** place the main flow left → right from the reset state. A
-  machine too wide for the column is laid out in rows shaped like the column,
-  then top to bottom. A layout that loses or misroutes a transition is rejected
-  (`fsm/edge-unrouted`, `fsm/edge-detached`); a transition is never dropped. A
+  machine too wide for the column snakes: its dominant chain (the longest path
+  from reset) is laid in rows that alternate direction, and arcs that skip
+  along the chain run orthogonally in their own channels between the rows.
+  Then ELK row wrapping, then top to bottom. A layout that loses or misroutes a
+  transition, or runs two arcs on one track, is rejected (`fsm/edge-unrouted`,
+  `fsm/edge-detached`, `fsm/arc-overlap`); a transition is never dropped. A
   long machine that fits no plan is delivered in the study format or split into
-  sub-figures, not squeezed.
+  linked sub-figures (`fsm/split-suggested`: a `collapsed` state stands for a
+  run of states and names its detail figure with `detail_ref`), not squeezed.
+- **Guard names [house]:** a module-local prefix shared by the signals
+  (`sk_`, `dec_`) is dropped when the rest stays unambiguous in the module. A
+  literal compared against a signal of a declared enum type prints the item's
+  name ("state = Absorb"), never a number; an untyped signal keeps the number.
 - **Controller + datapath figures:** draw the FSM as one rectangle `Control FSM` above
   the datapath, with outputs as control nets (§1) going down. Draw the state diagram
   as a separate subfigure (a)/(b), not inline.
@@ -1246,7 +1254,11 @@ WaveJSON input [ext: WaveDrom tutorial].
   - `x`: hatched fill (45°, 1.5 pt pitch, gray). Never solid black.
   - `z`: line at mid level.
   - `=` / `2`–`9`: bus value box (hexagonal ends at transitions). Value text centered
-    at 7 pt, clipped with `…` if too long. Use light fills from `fill-1`/tints to tell
+    at 7 pt between the end of its opening transition and the start of the next.
+    A value wider than that prints its lossless short form (leading zeros dropped:
+    `0x0000` → `0x0`; the lane name keeps the width). A value still too wide is an
+    error (`timing/value-overflow`), never clipped or overprinted: widen the cycles,
+    show fewer, or use the study format. Use light fills from `fill-1`/tints to tell
     distinct values apart only if the values are named in the caption.
   - `.`: extend. `|`: gap (drawn as a pair of slanted breaks across all lanes).
   - `p`/`n`: clock with rising/falling active edge. `P`/`N`: same with arrow markers.

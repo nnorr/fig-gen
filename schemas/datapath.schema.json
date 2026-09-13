@@ -1199,6 +1199,16 @@
             }
           }
         },
+        "label_placement": {
+          "description": "Where the net's name may print. inline (default): on its own wire only. leader: on its wire when a spot exists, otherwise in free space joined to the wire by a short orthogonal leader (net_label.leader_max_pt, label/leader-used). auto: the same as leader; the name is inline whenever it fits.",
+          "enum": ["inline", "leader", "auto"]
+        },
+        "leader_max_pt": {
+          "description": "Longest leader this net's name may use, overriding the skin's net_label.leader_max_pt (for a name whose nearest free space is further away).",
+          "type": "number",
+          "minimum": 6,
+          "maximum": 60
+        },
         "width_label": {
           "description": "A bundle (bundle_of, or a pin bundle) that forms one data word (e.g. data and ECC bytes read as one codeword) is labeled with its width like any multi-bit data net; width/missing then applies. Protocol bundles (AHB, valid/ready groups) leave it off and are drawn without a summed width.",
           "type": "boolean"

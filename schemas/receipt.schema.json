@@ -1258,7 +1258,8 @@
             "region",
             "stub",
             "gate-region",
-            "fsm"
+            "fsm",
+            "timing"
           ]
         },
         "label": {
@@ -1418,6 +1419,28 @@
         },
         "failed": {
           "type": "object"
+        },
+        "not_in_cone": {
+          "description": "Informative: stubs and regions outside what the figure depends on (for a state machine, the fan-in cone of its next-state logic); they do not affect the level.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "reason"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          }
         }
       },
       "allOf": [

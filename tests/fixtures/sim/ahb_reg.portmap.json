@@ -1,0 +1,13 @@
+{
+  "top": "ahb_reg",
+  "instance": "dut",
+  "clock": { "port": "hclk", "period_ps": 10000 },
+  "reset": { "port": "hresetn", "active": "low", "cycles": 3 },
+  "interfaces": [
+    {
+      "name": "bus",
+      "protocol": "ahb-lite",
+      "signals": { "hsel": "hsel", "htrans": "htrans", "hwrite": "hwrite", "haddr": "haddr", "hwdata": "hwdata", "hrdata": "hrdata", "hready": "hready", "hreadyout": "hreadyout", "hresp": "hresp" }
+    }
+  ]
+}

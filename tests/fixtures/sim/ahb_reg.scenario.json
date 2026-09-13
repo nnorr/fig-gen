@@ -1,0 +1,12 @@
+{
+  "name": "write then read back",
+  "max_cycles": 200,
+  "steps": [
+    { "op": "reset" },
+    { "op": "write", "if": "bus", "addr": "0x0", "data": "0x12345678" },
+    { "op": "write", "if": "bus", "addr": "0x4", "data": "0xCAFE" },
+    { "op": "read", "if": "bus", "addr": "0x0", "expect": "0x12345678" },
+    { "op": "read", "if": "bus", "addr": "0xC", "expect": "0x12345679" },
+    { "op": "mark", "label": "done" }
+  ]
+}

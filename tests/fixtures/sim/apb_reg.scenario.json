@@ -1,0 +1,9 @@
+{
+  "name": "apb write and read",
+  "max_cycles": 100,
+  "steps": [
+    { "op": "reset" },
+    { "op": "write", "if": "cfg", "addr": "0x4", "data": "0xA5A5" },
+    { "op": "read", "if": "cfg", "addr": "0x4", "expect": "0xA5A5" }
+  ]
+}

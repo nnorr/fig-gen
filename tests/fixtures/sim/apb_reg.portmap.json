@@ -1,0 +1,8 @@
+{
+  "top": "apb_reg",
+  "clock": { "port": "pclk", "period_ps": 10000 },
+  "reset": { "port": "presetn", "active": "low", "cycles": 2 },
+  "interfaces": [
+    { "name": "cfg", "protocol": "apb", "signals": { "psel": "psel", "penable": "penable", "pwrite": "pwrite", "paddr": "paddr", "pwdata": "pwdata", "prdata": "prdata", "pready": "pready" } }
+  ]
+}

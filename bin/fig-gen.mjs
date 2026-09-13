@@ -33,8 +33,8 @@ const EXIT = { ok: 0, fail: 1, usage: 2, notImplemented: 3 };
 
 const USAGE = `usage:
   fig-gen validate <datapath|fsm|timing|microarch> <figure.json> [--netlist netlist.json] [--format paper|study] [--json]
-  fig-gen render   <datapath|microarch|fsm> <figure.json> <out-dir> [--netlist n.json] [--variants 2col,1col] [--profiles p.json] [--quality paper] [--format paper|study] [--no-pdf] [--why-size]
-  fig-gen deliver  <datapath|microarch|fsm> <figure.json> <out-dir> [--netlist n.json] [--variants 2col,1col] [--profiles p.json] [--quality paper] [--format paper|study] [--no-pdf] [--why-size] [--preview [--scale n]]
+  fig-gen render   <datapath|microarch|fsm|timing> <figure.json> <out-dir> [--netlist n.json] [--variants 2col,1col] [--profiles p.json] [--quality paper] [--format paper|study] [--no-pdf] [--why-size]
+  fig-gen deliver  <datapath|microarch|fsm|timing> <figure.json> <out-dir> [--netlist n.json] [--variants 2col,1col] [--profiles p.json] [--quality paper] [--format paper|study] [--no-pdf] [--why-size] [--preview [--scale n]]
                    (default: paper, 2col required, 1col best effort; --variants makes the listed variants mandatory)
                    (--format study: one figure sized to content for RTL analysis; print-only checks relaxed, correctness kept;
                     --no-pdf skips the PDF in study; --preview also writes <name>.<variant>.png (headless Chrome);
@@ -65,13 +65,25 @@ const USAGE = `usage:
                     [--out netlist.json] [--work-dir <dir>] [--source-root <dir>]
                     [--adapter <id>] [--stub <file.v>...] [--blackbox-json <file>...]
                     [--include <dir>...] [--define K=V...] [--param K=V...]
+  fig-gen simulate --files <rtl...> (--tb <files...> | --bfm portmap.json --scenario scenario.json) --top <top> --work-dir <dir>
+                   [--define K=V...] [--param K=V...] [--include <dir>...] [--timeout-seconds s] [--json]
+                   (verilator --binary --timing --trace; the testbench must $dumpfile("wave.vcd"); a module defined nowhere
+                    stops with sim/blackbox-without-model: its behavioral model must come from the user)
+  fig-gen vcd2wave --vcd f.vcd --clock <path> --signals <paths or globs...> [--from n | --align-on <path>:rise|fall|change[:occurrence]]
+                   [--cycles n] [--edge pos|neg] [--radix <path>=hex|dec|bin|label...] [--alias <path>=<lane name>...]
+                   [--netlist n.json] [--sim-evidence simulate.json] [--out timing.json]
+                   (cycle k shows the value held just before active edge k+1; the lanes carry a generator hash)
+  fig-gen bfm --portmap p.json --scenario s.json --out-dir <dir> [--netlist n.json] [--dump-scope <scope>]
+              (a SystemVerilog stimulus wrapper for ahb-lite / apb / axi4-lite / valid-ready; stimulus, never evidence)
+  fig-gen sim-compare <timing.json> [--vcd f.vcd] [--json]
+                   (cycle-by-cycle diff of drawn lanes against the simulation; x is don't-care, . holds, | skips)
   fig-gen adapters [--config <cfg>]
   fig-gen doctor`;
 
 function parseArgs(argv) {
   const positional = [];
   const flags = {};
-  const multi = new Set(['files', 'stub', 'blackbox-json', 'include', 'define', 'param', 'gate-region', 'blackbox', 'search-path', 'exclude', 'prefer']);
+  const multi = new Set(['files', 'stub', 'blackbox-json', 'include', 'define', 'param', 'gate-region', 'blackbox', 'search-path', 'exclude', 'prefer', 'tb', 'signals', 'alias', 'radix']);
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
     if (!a.startsWith('--')) { positional.push(a); continue; }
@@ -111,7 +123,7 @@ async function cmdValidate({ positional, flags }) {
       const { netlist, guard } = loadNetlistWithGuard(flags.netlist);
       result.diagnostics.push(...guard.diagnostics);
       if (!guard.diagnostics.some((d) => d.severity === 'error')) {
-        const cc = type === 'datapath' ? crosscheckDatapath(doc, netlist) : type === 'microarch' ? crosscheckSoc(doc, netlist) : type === 'fsm' ? (await import('../lib/checks/fsm-crosscheck.mjs')).crosscheckFsm(doc, netlist) : null;
+        const cc = type === 'datapath' ? crosscheckDatapath(doc, netlist) : type === 'microarch' ? crosscheckSoc(doc, netlist) : type === 'fsm' ? (await import('../lib/checks/fsm-crosscheck.mjs')).crosscheckFsm(doc, netlist, { quality: flags.quality }) : null;
         if (cc) { result.diagnostics.push(...cc.diagnostics); result.checks.rtl = cc.stats; }
         if (type === 'datapath') {
           const cov = checkCoverage(doc, netlist);
@@ -233,7 +245,7 @@ async function cmdCrosscheck({ positional, flags }) {
   const doc = JSON.parse(fs.readFileSync(file, 'utf8'));
   const { netlist, guard } = loadNetlistWithGuard(flags.netlist);
   const guarded = guard.diagnostics.some((d) => d.severity === 'error');
-  const cc = guarded ? { diagnostics: [], stats: {} } : (type === 'datapath' ? crosscheckDatapath(doc, netlist) : type === 'fsm' ? (await import('../lib/checks/fsm-crosscheck.mjs')).crosscheckFsm(doc, netlist) : crosscheckSoc(doc, netlist));
+  const cc = guarded ? { diagnostics: [], stats: {} } : (type === 'datapath' ? crosscheckDatapath(doc, netlist) : type === 'fsm' ? (await import('../lib/checks/fsm-crosscheck.mjs')).crosscheckFsm(doc, netlist, { quality: flags.quality }) : crosscheckSoc(doc, netlist));
   const extra = !guarded && type === 'datapath' ? { coverage: checkCoverage(doc, netlist), latency: checkLatency(doc, netlist) } : {};
   if (extra.coverage) cc.stats = { ...cc.stats, coverage: extra.coverage.report?.totals, latency: { ...extra.latency.report, paths: undefined } };
   const diagnostics = [...guard.diagnostics, ...cc.diagnostics, ...(extra.coverage?.diagnostics || []), ...(extra.latency?.diagnostics || [])];
@@ -532,6 +544,86 @@ async function cmdDoctor() {
   return checks.node.ok && depsOk ? EXIT.ok : EXIT.fail;
 }
 
+async function cmdSimulate({ flags }) {
+  if (!flags.top || !flags['work-dir'] || !(flags.tb || flags.bfm)) return usage();
+  const { simulate } = await import('../lib/sim/verilator-sim.mjs');
+  const workDir = path.resolve(flags['work-dir']);
+  let stimulusFiles = flags.tb || [];
+  let stimulusKind = 'sv-testbench';
+  let top = flags.top;
+  if (flags.bfm) {
+    if (!flags.scenario) return usage();
+    const { writeBfm } = await import('../lib/bfm/generate.mjs');
+    const netlist = flags.netlist ? JSON.parse(fs.readFileSync(flags.netlist, 'utf8')) : undefined;
+    const portmap = JSON.parse(fs.readFileSync(flags.bfm, 'utf8'));
+    const scenario = JSON.parse(fs.readFileSync(flags.scenario, 'utf8'));
+    // --top names the DUT for a BFM run; the generated wrapper is the simulation top.
+    if (portmap.top !== top) portmap.top = top;
+    const gen = writeBfm(portmap, scenario, path.join(workDir, 'bfm'), { netlist, dumpScope: flags['dump-scope'] });
+    stimulusFiles = [gen.file, flags.bfm, flags.scenario];
+    stimulusKind = 'bfm-script';
+    top = gen.top;
+  }
+  const r = simulate({
+    rtlFiles: flags.files || [], stimulusFiles: stimulusFiles.filter((f) => /\.(s?v|svh|vh)$/i.test(f)), stimulusKind, top, workDir,
+    defines: kv(flags.define), params: kv(flags.param), includes: flags.include || [], timeoutSeconds: flags['timeout-seconds'] ? Number(flags['timeout-seconds']) : undefined,
+  });
+  // Scenario and port map files are stimulus too: hash them with the generated wrapper.
+  if (r.evidence && flags.bfm) {
+    const { createHash } = await import('node:crypto');
+    for (const f of [flags.bfm, flags.scenario]) r.evidence.stimulus.files.push({ path: path.resolve(f), sha256: createHash('sha256').update(fs.readFileSync(f)).digest('hex') });
+  }
+  const out = { ok: r.ok, vcd: r.vcd ?? null, top, evidence: r.evidence, timing: r.timing ?? null, diagnostics: r.diagnostics.map(line) };
+  if (r.evidence) fs.writeFileSync(path.join(workDir, 'simulate.json'), `${JSON.stringify(out, null, 2)}\n`);
+  if (flags.json) print({ ...out, diagnostics: r.diagnostics });
+  else print(out);
+  return r.ok ? EXIT.ok : EXIT.fail;
+}
+
+async function cmdVcd2wave({ flags }) {
+  if (!flags.vcd || !flags.clock || !flags.signals?.length) return usage();
+  const { vcdToTiming } = await import('../lib/timing/vcd2wave.mjs');
+  const pairs = (list = []) => Object.fromEntries(list.map((s) => { const i = s.lastIndexOf('='); return [s.slice(0, i), s.slice(i + 1)]; }));
+  let alignOn;
+  if (flags['align-on']) {
+    const [p, event = 'rise', occurrence = '1'] = String(flags['align-on']).split(':');
+    alignOn = { path: p, event, occurrence: Number(occurrence) };
+  }
+  const simEvidence = flags['sim-evidence'] ? JSON.parse(fs.readFileSync(flags['sim-evidence'], 'utf8')).evidence : null;
+  const { doc, diagnostics } = vcdToTiming(path.resolve(flags.vcd), {
+    clock: flags.clock, edge: flags.edge ?? 'pos', signals: flags.signals, from: flags.from ? Number(flags.from) : 0, alignOn,
+    cycles: flags.cycles ? Number(flags.cycles) : undefined, radix: pairs(flags.radix), aliases: pairs(flags.alias),
+    netlist: flags.netlist ? JSON.parse(fs.readFileSync(flags.netlist, 'utf8')) : undefined, title: flags.title,
+    ...(simEvidence ? { simulation: { simulator: simEvidence.simulator, top: simEvidence.top, stimulus: simEvidence.stimulus, rtl_files: simEvidence.rtl_files, ...(simEvidence.defines ? { defines: simEvidence.defines } : {}), ...(simEvidence.params ? { params: simEvidence.params } : {}) } } : {}),
+  });
+  if (doc && flags.out) fs.writeFileSync(flags.out, `${JSON.stringify(doc, null, 2)}\n`);
+  print({ ok: Boolean(doc) && !diagnostics.some((d) => d.severity === 'error'), written: doc && flags.out ? [flags.out] : [], ...(flags.out ? {} : { timing: doc }), diagnostics: diagnostics.map(line) });
+  return doc ? EXIT.ok : EXIT.fail;
+}
+
+async function cmdBfm({ flags }) {
+  if (!flags.portmap || !flags.scenario || !flags['out-dir']) return usage();
+  const { writeBfm } = await import('../lib/bfm/generate.mjs');
+  const netlist = flags.netlist ? JSON.parse(fs.readFileSync(flags.netlist, 'utf8')) : undefined;
+  const r = writeBfm(JSON.parse(fs.readFileSync(flags.portmap, 'utf8')), JSON.parse(fs.readFileSync(flags.scenario, 'utf8')), path.resolve(flags['out-dir']), { netlist, dumpScope: flags['dump-scope'] });
+  print({ ok: true, top: r.top, written: [r.file], note: 'generated stimulus: never evidence of DUT behaviour beyond this scenario' });
+  return EXIT.ok;
+}
+
+async function cmdSimCompare({ positional, flags }) {
+  const [file] = positional;
+  if (!file) return usage();
+  const doc = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const vcd = flags.vcd ?? doc.provenance?.compare_vcd ?? doc.provenance?.vcd;
+  if (!vcd) return usage();
+  const { compareTiming } = await import('../lib/timing/compare.mjs');
+  const resolved = path.isAbsolute(vcd) || flags.vcd ? path.resolve(vcd) : path.resolve(path.dirname(path.resolve(file)), vcd);
+  const { report, diagnostics } = compareTiming(doc, resolved);
+  const ok = !diagnostics.some((d) => d.severity === 'error');
+  print({ ok, report, diagnostics: flags.json ? diagnostics : diagnostics.map(line) });
+  return ok ? EXIT.ok : EXIT.fail;
+}
+
 function usage() {
   console.error(USAGE);
   return EXIT.usage;
@@ -549,6 +641,10 @@ const commands = {
   'check-rtl': cmdCheckRtl,
   adapters: cmdAdapters,
   doctor: cmdDoctor,
+  simulate: cmdSimulate,
+  vcd2wave: cmdVcd2wave,
+  bfm: cmdBfm,
+  'sim-compare': cmdSimCompare,
 };
 
 // exitCode (not process.exit) so large piped stdout is flushed before exit.

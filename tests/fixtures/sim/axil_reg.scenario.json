@@ -1,0 +1,9 @@
+{
+  "name": "axi4-lite write and read",
+  "max_cycles": 100,
+  "steps": [
+    { "op": "reset" },
+    { "op": "write", "if": "ctl", "addr": "0x0", "data": "0xBEEF" },
+    { "op": "read", "if": "ctl", "addr": "0x0", "expect": "0xBEEF" }
+  ]
+}
