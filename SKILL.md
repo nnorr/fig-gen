@@ -269,6 +269,12 @@ study, analyse or explore RTL rather than to make a paper figure.
   its detail figure with `detail_ref`. Never drop hardware to fit. The
   overflow message names what sets the size (widest layers, tallest
   columns); `render --why-size` prints the full size report.
+- Connector tags carry one unique name per net (qualified by source instance
+  when names collide; `connector/ambiguous-name`), and never sit right before a
+  figure output (`connector/redundant-port`): a net into an output keeps its
+  wire. Every tag and port has a wire (`connector/orphan-tag`); declare
+  `off_page: true` on a port only for a deliberate single-ended reference. Do
+  not hand-name tags to work around these checks.
 - Long returns and wrap-arounds are measured by routed length and drawn as
   named connectors (`route/long-feedback`, `route/long-loop`). Net labels sit
   nearer their own wire than any other (`label/ambiguous-anchor`), and nets

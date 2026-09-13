@@ -632,6 +632,26 @@ What the draft draws:
     forcing them added crossings); they find nets that skip a flow layer.
   - A net between frames that crosses or passes a third frame, or skips a flow
     layer, becomes a named connector pair.
+- **Review round 3.**
+  - Connector names are unique per figure (see `connector/ambiguous-name`);
+    a net that drives a figure output is never cut (`connector/redundant-port`).
+  - Round 3b: one target tag feeds every cut sink of a net; a pair whose tags
+    end up within 60 pt, or with at most one drawn block column between them,
+    is drawn as a wire (the figure is laid out again without that connector);
+    a single-word name or a name equal to a port label is qualified with the
+    source instance; every tag and port glyph has a wire on the final SVG
+    (`connector/orphan-tag`, `connector/duplicate-name`).
+  - Dead logic (local signals no output, register or live reader depends
+    on) is not drawn in any block; the draft notes it and coverage lists it in
+    `excluded.dead_logic`.
+  - The study output latency table has one line per block, outputs grouped
+    by latency, long lines continued and wrapped into columns of 16.
+  - A study figure that warns `route/readability` tries two layout
+    alternatives ("frame-flow": nets between blocks of one frame get high
+    shortness and straightness priority, pulling the frame's blocks into
+    adjacent layers; "thorough": a deeper crossing-minimization search) and keeps
+    one only if it lowers crossings per net without adding errors; the tries are
+    in `route.layout_alternatives`.
 - **Connectors on final routes.** Connectors are chosen on a probe layout; a
   branch that is still long on the final routes gets connectors in one more
   pass, kept when it has fewer errors.
@@ -1137,6 +1157,11 @@ render; warnings are reported and allowed only under `--quality draft`.
 | `label/stage-note-clutter` | datapath, per variant | a block prints more than 2 note lines inside its box (function detail plus stage notes); the renderer groups output latencies ("2 stages: ready, done") or gives the range ("outputs: 1–4 stages") and lists every output in `route.stage_notes` and, in a study figure, in an output latency table below the drawing (error) |
 | `label/function-justification` (whole block) | datapath, netlist | a vocabulary name whose required structure is in the RTL cone of only some of the block's outputs (a hub where one output compares against zero is not a zero detector) (warning, error with `--quality paper`) |
 | `route/readability` (warning) | datapath, study format | the final SVG has more crossings per drawn net than skin `route.readability.max_crossings_per_net` (1) or routed wire length above `max_wire_length_ratio` (1.6) × the direct distance; both numbers are in every receipt as `route.readability` |
+| `connector/ambiguous-name` | datapath, per variant, every format | two different nets carry connector tags with the same name; the renderer names connectors uniquely (net label or readable RTL signal, qualified with the readable source instance when names collide, "Nonce client: start ready", numbered only as a last resort) (error) |
+| `connector/redundant-port` | datapath, per variant, every format | a connector target tag feeds a figure output port directly (one signal, two names); the renderer never cuts a net that drives a figure output (error) |
+| `connector/orphan-tag` | datapath, per variant (final SVG), every format | a connector tag or port glyph has no wire end within its box (grown by an arrowhead's length); exempt: a port declared `off_page: true` in the IR (error) |
+| `port/no-sink` (warning) | datapath, per variant (final SVG) | a figure input drives nothing in the figure |
+| `connector/duplicate-name` | datapath, per variant, every format | a name is on more than two connector tags (one net gets one source and one target tag, which feeds every cut sink), or names both a connector tag and a figure port (error) |
 | `route/straighten-budget` (info) | datapath, per variant | the straightening search scored `route.straighten_max_evaluations` (skin, default 50 000) candidate layouts and stopped; the best route found is kept and every route check still runs; the counts are in `route.layout_plans[].evaluations` |
 | `draft/budget-exceeded` | draft | the draft did not finish within its time budget (`--budget-seconds`, default 120 s) or its scope holds more signals than the size budget (50 000); names the phase it stopped in, the expanded instances and the largest children, and suggests a narrower `--scope`, a lower `--depth` or a `--blackbox` (error, exit 1, no draft written) |
 | `region/wire-hugs-frame` | datapath, per variant | a wire runs parallel to a region frame edge closer than `route.frame_gap_pt` (default 6 pt; 1.5 × for a dashed wire beside the dashed frame) over more than 3 pt (error). The renderer first moves the edge past the wire: outward if the frame then covers no foreign block, else inward if it still holds its members |

@@ -412,6 +412,16 @@ and a wire that touches another reads as a junction.
   or the start of its run.
 - **A net that ends at a connector tag** prints no separate net label; the tag
   names it.
+- **One name per connector [house].** Two tag pairs never share a name: when
+  two nets read the same ("start ready" of three clients), each tag names its
+  source ("Nonce client: start ready"). *Why:* a reader pairs tags by name; a
+  repeated name pairs the wrong ends.
+- **No tag right before a figure output [house].** A net into an output port is
+  drawn as a wire; a tag followed by a port would print two names for one
+  signal, and a port standing alone as a far tag looks unconnected.
+- **Every tag has a wire [house].** A connector pair is one source tag and one
+  target tag, both wired; a pair whose tags would sit side by side is a wire.
+  Single words ("state", "busy") are qualified with their instance.
 
 ---
 

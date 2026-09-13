@@ -75,7 +75,7 @@ test('stage notes stay within two lines: grouped by latency when short, else the
   const study = await renderDatapath(statusFigure({ outs: long }), { variant: 'study', name: 'study' });
   const t = texts(study.svg);
   assert.ok(t.includes('outputs: 1–4 stages'));
-  assert.ok(t.includes('Output latency') && t.includes('Status logic — absorb done ready: 3 stages'), 'the full list is a table below the drawing');
+  assert.ok(t.includes('Output latency') && t.includes('Status logic: 1 stage: start ready; 2 stages: absorb ready; 3 stages: absorb done ready;') && t.includes('    4 stages: squeeze valid'), 'the full list is a table below the drawing, one line per block, a long line continued');
   assert.deepEqual(study.diagnostics.filter((d) => d.code === 'label/stage-note-clutter'), []);
   // A state output has no stage count: no "16 stages" from its internal bound.
   const withState = statusFigure();
