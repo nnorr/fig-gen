@@ -44,7 +44,7 @@ function statusFigure({ outs, detail } = {}) {
 }
 
 test('generated text names outputs readably: stage notes use the RTL signal as words, never a pin or net id', async () => {
-  assert.equal(readableIdentifier('o_u_h2p_client_start_ready_o'), 'h2p client start ready');
+  assert.equal(readableIdentifier('o_u_h2p_client_start_ready_o'), 'H2P client start ready');
   assert.equal(readableIdentifier('start_ready_o'), 'start ready');
   assert.equal(readableIdentifier('c_outstanding'), 'outstanding');
   const r = await renderDatapath(statusFigure(), { variant: '2col', widthPt: 515.5, name: 'notes' });
@@ -91,7 +91,7 @@ test('stage notes stay within two lines: grouped by latency when short, else the
 });
 
 test('distinct instance names: the last segment, widened only where it repeats', () => {
-  assert.deepEqual(distinctInstanceNames(['u_nonce_client/u_stream_client', 'u_sampler_client/u_stream_client', 'u_single_engine/u_owner', 'u_single_engine/u_engine_adapter', 'u_h2p_client']), ['nonce client', 'sampler client', 'owner', 'engine adapter', 'h2p client']);
+  assert.deepEqual(distinctInstanceNames(['u_nonce_client/u_stream_client', 'u_sampler_client/u_stream_client', 'u_single_engine/u_owner', 'u_single_engine/u_engine_adapter', 'u_h2p_client']), ['nonce client', 'sampler client', 'owner', 'engine adapter', 'H2P client']);
 });
 
 const port = (name, dir, width = 1) => ({ name, dir, width });

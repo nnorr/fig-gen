@@ -102,6 +102,30 @@ test('parallel nets whose names find no spot get room beside the source pin on a
   for (let i = 0; i < names.length; i += 1) assert.match(r.svg, new RegExp(`id="net-n_${i}-name"`));
 });
 
+test('returns into a neighbouring block try its east and top edges and keep one only when crossings drop', async () => {
+  // Fig 2 shape: many figure inputs into a logic block, requests to a service,
+  // and three service results returning into the logic block.
+  const ins = ['a', 'b', 'c', 'd'];
+  const doc = figure([
+    ...ins.map((p) => ({ id: `p_${p}`, kind: 'port', dir: 'in', width: 1, label: `input ${p}` })),
+    block('logic', 'Front logic', [...ins.map((p) => `i_${p}`), 'r0', 'r1', 'r2'], ['q0', 'q1', 'o']),
+    block('svc', 'Service', ['q0', 'q1'], ['r0', 'r1', 'r2']),
+    { id: 'p_out', kind: 'port', dir: 'out', width: 1, label: 'result' },
+  ], [
+    ...ins.map((p) => ({ id: `n_${p}`, width: 1, driver: `p_${p}`, sinks: [`logic.i_${p}`] })),
+    ...[0, 1].map((i) => ({ id: `n_q${i}`, width: 1, driver: `logic.q${i}`, sinks: [`svc.q${i}`], label: `request ${['valid', 'word'][i]}` })),
+    ...[0, 1, 2].map((i) => ({ id: `n_r${i}`, width: 1, driver: `svc.r${i}`, sinks: [`logic.r${i}`], label: `response ${['valid', 'status', 'word'][i]}` })),
+    { id: 'n_out', width: 1, driver: 'logic.o', sinks: ['p_out'] },
+  ]);
+  const base = await renderDatapath(doc, { variant: '2col', widthPt: 515.5, name: 'ret', returnSide: 'west' });
+  const r = await renderDatapath(doc, { variant: '2col', widthPt: 515.5, name: 'ret' });
+  const cpn = (x) => x.route.readability.crossings_per_net;
+  assert.ok(cpn(r) <= cpn(base), `crossings ${cpn(r)} vs default ${cpn(base)}`);
+  const info = r.diagnostics.find((d) => d.code === 'route/return-pins');
+  if (info) assert.ok(cpn(r) < cpn(base));
+  assert.ok(r.diagnostics.filter((d) => d.severity === 'error').length <= base.diagnostics.filter((d) => d.severity === 'error').length);
+});
+
 test('blockLayers: blocks whose horizontal extents overlap share a drawn layer', () => {
   const layers = blockLayers([{ id: 'a', x: 0, w: 40 }, { id: 'b', x: 20, w: 40 }, { id: 'c', x: 100, w: 10 }, { id: 'd', x: 200, w: 10 }]);
   assert.deepEqual([...layers], [['a', 0], ['b', 0], ['c', 1], ['d', 2]]);

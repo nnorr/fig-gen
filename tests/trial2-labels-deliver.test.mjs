@@ -141,7 +141,7 @@ test('N9: RTL abbreviations inside multi-word labels are flagged with the word t
   assert.match(unreadableReason('nonce_cmd_o'), /raw RTL port/, 'snake_case keeps its own reason');
   assert.equal(readableInstanceSegment('u_ctrl'), 'control', 'names generated from RTL identifiers are written out');
   assert.equal(readableIdentifier('rd_ptr_q'), 'read pointer');
-  assert.equal(readableIdentifier('axi_awaddr'), 'axi awaddr', 'only whole words are expanded');
+  assert.equal(readableIdentifier('axi_awaddr'), 'AXI awaddr', 'only whole words are expanded; known acronyms keep their case');
   const doc = { elements: [{ id: 'p', kind: 'port', dir: 'in', width: 8, label: 'Nonce cmd' }], nets: [] };
   const [d] = checkLabels(doc, 'datapath');
   assert.equal(d.code, 'label/unreadable');
@@ -170,11 +170,25 @@ test('O5: a subordinate block prints its address window base–end in every labe
     for (const a of windows) {
       const line = (suffix) => new RegExp(`id="block-${a.block}-${suffix}"[^>]*>([^<]*)<`).exec(r.svg)?.[1] ?? '';
       const printed = line('addr') + line('addr-end');
-      const short = r.layout?.labels === 'short';
-      assert.match(printed, short ? /^0x[0-9A-F]{4}_[0-9A-F]{4}–[0-9A-F]{4}_[0-9A-F]{4}$/ : /^0x[0-9A-F]{4}_[0-9A-F]{4}–0x[0-9A-F]{4}_[0-9A-F]{4}$/, `${widthPt} (${r.layout?.labels}): ${a.block} prints "${printed}"`);
-      if (short) assert.ok(line('addr-end').startsWith('–'), 'short labels put the end on its own line');
+      // One line when it fits, else two lines; both addresses keep their 0x prefix.
+      assert.match(printed, /^0x[0-9A-F]{4}_[0-9A-F]{4}–0x[0-9A-F]{4}_[0-9A-F]{4}$/, `${widthPt} (${r.layout?.labels}): ${a.block} prints "${printed}"`);
+      if (line('addr-end')) assert.match(line('addr'), /–$/, 'a two-line window breaks after the dash');
     }
   }
+});
+
+test('follow-up: generated names expand short tokens and keep acronyms uppercase', async () => {
+  const { acronymCase, readableName } = await import('../lib/checks/labels.mjs');
+  assert.equal(readableIdentifier('o0_re'), 'o0 real part', 'a single letter with an index is not an acronym');
+  assert.equal(acronymCase('s1 h2 sha3'), 's1 h2 SHA3');
+  assert.equal(readableIdentifier('y_im'), 'y imaginary part');
+  assert.equal(readableName('client_cmd'), 'Client command');
+  assert.equal(readableName('fp64_service'), 'FP64 service');
+  assert.equal(readableInstanceSegment('u_h2p_client'), 'H2P client');
+  assert.equal(acronymCase('pcie fifo sram axi'), 'PCIe FIFO SRAM AXI');
+  assert.equal(acronymCase('8b 2x data'), '8b 2x data', 'unit-like tokens keep their case');
+  assert.equal(readableName('re-encode_block'), 'Re-encode block', 'hyphen-joined words are not abbreviations');
+  assert.match(unreadableReason('o0 re'), /real part/);
 });
 
 test('preview: the command reports a clear error when Chrome is unavailable', async () => {

@@ -21,7 +21,7 @@ test('connector names are unique per figure: colliding names are qualified with 
     net('n6', 'state', 'u_x'),
   ] };
   const names = connectorNames(doc, ['n1', 'n2', 'n3', 'n4', 'n5', 'n6']);
-  assert.deepEqual([...names.values()], ['Nonce client: start ready', 'Sampler client: start ready', 'H2p client: start ready', 'Engine: busy', 'X: state 1', 'X: state 2']);
+  assert.deepEqual([...names.values()], ['Nonce client: start ready', 'Sampler client: start ready', 'H2P client: start ready', 'Engine: busy', 'X: state 1', 'X: state 2']);
 });
 
 test('connector/ambiguous-name and connector/redundant-port are errors on the drawn figure', async () => {
