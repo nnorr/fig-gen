@@ -1,198 +1,838 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://rtl-figures.local/schemas/datapath.schema.json",
-  "title": "rtl-figures datapath IR (schema_version 1, skeleton)",
+  "$id": "https://fig-gen.local/schemas/datapath.schema.json",
+  "title": "fig-gen datapath IR (schema_version 1, skeleton)",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "figure_type", "meta", "clock_domains", "elements", "nets"],
+  "required": [
+    "schema_version",
+    "figure_type",
+    "meta",
+    "clock_domains",
+    "elements",
+    "nets"
+  ],
   "properties": {
-    "schema_version": { "const": 1 },
-    "figure_type": { "const": "datapath" },
-    "meta": { "$ref": "common.schema.json#/$defs/meta" },
-    "params": { "$ref": "common.schema.json#/$defs/params" },
-    "clock_domains": { "type": "array", "items": { "$ref": "#/$defs/clock_domain" } },
+    "schema_version": {
+      "const": 1
+    },
+    "figure_type": {
+      "const": "datapath"
+    },
+    "meta": {
+      "$ref": "common.schema.json#/$defs/meta"
+    },
+    "params": {
+      "$ref": "common.schema.json#/$defs/params"
+    },
+    "clock_domains": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/clock_domain"
+      }
+    },
     "modules": {
       "type": "object",
-      "propertyNames": { "$ref": "common.schema.json#/$defs/id" },
-      "additionalProperties": { "$ref": "#/$defs/module" }
+      "propertyNames": {
+        "$ref": "common.schema.json#/$defs/id"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/module"
+      }
     },
-    "elements": { "type": "array", "items": { "$ref": "#/$defs/element" } },
-    "nets": { "type": "array", "items": { "$ref": "#/$defs/net" } },
-    "annotations": { "type": "array", "items": { "$ref": "#/$defs/annotation" } }
+    "elements": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/element"
+      }
+    },
+    "nets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/net"
+      }
+    },
+    "annotations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/annotation"
+      }
+    },
+    "regions": {
+      "description": "Abstraction regions (SPEC §4.6): named groups of elements drawn at one level; gate regions are equivalence-checked against the RTL.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "level",
+          "members"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/id"
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 60
+          },
+          "short_label": {
+            "$ref": "common.schema.json#/$defs/short_label"
+          },
+          "level": {
+            "enum": [
+              "blackbox",
+              "block",
+              "rtl",
+              "gate"
+            ]
+          },
+          "members": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "common.schema.json#/$defs/id"
+            }
+          },
+          "parent": {
+            "$ref": "common.schema.json#/$defs/id"
+          },
+          "frame": {
+            "type": "boolean"
+          },
+          "max_gates": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 400
+          },
+          "rtl": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "instance": {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_\\[\\]]*(/[A-Za-z_][A-Za-z0-9_\\[\\]]*)*$"
+              },
+              "stop_at": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "equivalence": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "vectors": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000000
+              },
+              "seed": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    }
   },
   "$defs": {
     "clock_domain": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "clock"],
+      "required": [
+        "id",
+        "clock"
+      ],
       "properties": {
-        "id": { "$ref": "common.schema.json#/$defs/id" },
-        "clock": { "type": "string" },
-        "label": { "type": "string" },
-        "period_ns": { "type": "number", "exclusiveMinimum": 0 },
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "clock": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "period_ns": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
         "reset": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["net", "active"],
+          "required": [
+            "net",
+            "active"
+          ],
           "properties": {
-            "net": { "type": "string" },
-            "active": { "enum": ["low", "high"] },
-            "async": { "type": "boolean" }
+            "net": {
+              "type": "string"
+            },
+            "active": {
+              "enum": [
+                "low",
+                "high"
+              ]
+            },
+            "async": {
+              "type": "boolean"
+            }
           }
         }
+      }
+    },
+    "function": {
+      "description": "Functional name of a block (CONVENTIONS §4.3). kind comes from schemas/function-vocabulary.json; the printed name defaults to its display name, optionally qualified (e.g. GF(2^8)). detail is an optional small secondary line for algorithm detail (Horner, S2/S1), never the primary name.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "gf_add",
+            "gf_mul",
+            "gf_const_mul",
+            "gf_inv",
+            "gf_div",
+            "gf_poly_eval",
+            "gf_pow_lut",
+            "gf_log_lut",
+            "gf_antilog_lut",
+            "adder",
+            "subtractor",
+            "multiplier",
+            "divider",
+            "comparator",
+            "zero_detect",
+            "shifter",
+            "lut",
+            "rom",
+            "encoder",
+            "decoder",
+            "syndrome",
+            "error_locator",
+            "chien_search",
+            "position_match",
+            "error_evaluator",
+            "corrector",
+            "classifier",
+            "correction_enable",
+            "controller",
+            "fsm",
+            "csr_bank",
+            "bus_slave",
+            "memory",
+            "error_injector",
+            "custom"
+          ]
+        },
+        "qualifier": {
+          "type": "string",
+          "maxLength": 24
+        },
+        "detail": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "short_name": {
+          "type": "string",
+          "maxLength": 16
+        },
+        "stage": {
+          "description": "Declares the block as stage k of n of one function (\"1/2\"); the printed name gets \" (stage k/n)\" and label/duplicate accepts the shared name.",
+          "type": "string",
+          "pattern": "^[1-9][0-9]*/[1-9][0-9]*$"
+        },
+        "basis": {
+          "description": "The RTL structure that justifies the vocabulary name (label/function-justification): a source pin and a short description of the structure it shows.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source"
+          ],
+          "properties": {
+            "source": {
+              "$ref": "common.schema.json#/$defs/source_pin"
+            },
+            "structure": {
+              "type": "string",
+              "maxLength": 120
+            }
+          }
+        }
+      },
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "custom"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "name"
+        ]
       }
     },
     "port_def": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "dir", "width"],
+      "required": [
+        "id",
+        "dir",
+        "width"
+      ],
       "properties": {
-        "id": { "$ref": "common.schema.json#/$defs/id" },
-        "dir": { "enum": ["in", "out", "inout"] },
-        "width": { "$ref": "common.schema.json#/$defs/width" },
-        "class": { "$ref": "common.schema.json#/$defs/net_class" },
-        "side": { "enum": ["west", "east", "north", "south"] },
-        "domain": { "$ref": "common.schema.json#/$defs/id" },
-        "registered": { "type": "boolean" },
-        "label": { "type": "string" },
-        "short_label": { "$ref": "common.schema.json#/$defs/short_label" }
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "dir": {
+          "enum": [
+            "in",
+            "out",
+            "inout"
+          ]
+        },
+        "width": {
+          "$ref": "common.schema.json#/$defs/width"
+        },
+        "class": {
+          "$ref": "common.schema.json#/$defs/net_class"
+        },
+        "side": {
+          "enum": [
+            "west",
+            "east",
+            "north",
+            "south"
+          ]
+        },
+        "domain": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "registered": {
+          "type": "boolean"
+        },
+        "label": {
+          "type": "string"
+        },
+        "short_label": {
+          "$ref": "common.schema.json#/$defs/short_label"
+        },
+        "bundle": {
+          "description": "Drawn pin that bundles several RTL ports (e.g. one memory-control bus); the boundary check expands it and requires the widths to add up.",
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "string"
+          }
+        },
+        "role": {
+          "description": "How the consumer uses this input (CONVENTIONS §1): select, enable (incl. write/chip enable), handshake (valid/ready) make a net control (dashed); value (default) makes it data (solid).",
+          "enum": [
+            "value",
+            "select",
+            "enable",
+            "handshake"
+          ]
+        }
       }
     },
     "module": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["ports"],
+      "required": [
+        "ports"
+      ],
       "properties": {
-        "ports": { "type": "array", "items": { "$ref": "#/$defs/port_def" } },
-        "elements": { "type": "array", "items": { "$ref": "#/$defs/element" } },
-        "nets": { "type": "array", "items": { "$ref": "#/$defs/net" } },
-        "blackbox": { "type": "boolean" },
-        "source": { "$ref": "common.schema.json#/$defs/source_pin" }
+        "ports": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/port_def"
+          }
+        },
+        "elements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/element"
+          }
+        },
+        "nets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/net"
+          }
+        },
+        "blackbox": {
+          "type": "boolean"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/source_pin"
+        }
       }
     },
     "layout_hint": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "layer": { "type": "integer", "minimum": 0 },
-        "order": { "type": "integer", "minimum": 0 },
-        "align_with": { "$ref": "common.schema.json#/$defs/id" }
+        "layer": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "align_with": {
+          "$ref": "common.schema.json#/$defs/id"
+        }
       }
     },
     "element_common": {
       "type": "object",
       "properties": {
-        "id": { "$ref": "common.schema.json#/$defs/id" },
-        "label": { "type": "string", "maxLength": 80 },
-        "short_label": { "$ref": "common.schema.json#/$defs/short_label" },
-        "labels": { "$ref": "common.schema.json#/$defs/label_by_variant" },
-        "source": { "$ref": "common.schema.json#/$defs/source_pin" },
-        "rtl": { "$ref": "common.schema.json#/$defs/rtl_ref" },
-        "layout": { "$ref": "#/$defs/layout_hint" }
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "short_label": {
+          "$ref": "common.schema.json#/$defs/short_label"
+        },
+        "labels": {
+          "$ref": "common.schema.json#/$defs/label_by_variant"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/source_pin"
+        },
+        "rtl": {
+          "$ref": "common.schema.json#/$defs/rtl_ref"
+        },
+        "layout": {
+          "$ref": "#/$defs/layout_hint"
+        }
       }
     },
     "element": {
       "type": "object",
-      "required": ["id", "kind"],
+      "required": [
+        "id",
+        "kind"
+      ],
       "properties": {
-        "kind": { "enum": ["port", "const", "mux", "comb", "register", "pipeline_register", "memory", "synchronizer", "instance"] }
+        "kind": {
+          "enum": [
+            "port",
+            "const",
+            "mux",
+            "comb",
+            "register",
+            "pipeline_register",
+            "memory",
+            "synchronizer",
+            "instance"
+          ]
+        }
       },
       "allOf": [
-        { "$ref": "#/$defs/element_common" },
         {
-          "if": { "properties": { "kind": { "const": "port" } } },
-          "then": {
-            "required": ["dir", "width"],
+          "$ref": "#/$defs/element_common"
+        },
+        {
+          "if": {
             "properties": {
-              "dir": { "enum": ["in", "out", "inout"] },
-              "width": { "$ref": "common.schema.json#/$defs/width" },
-              "class": { "$ref": "common.schema.json#/$defs/net_class" },
-              "domain": { "type": "string" }
+              "kind": {
+                "const": "port"
+              }
             }
-          }
-        },
-        {
-          "if": { "properties": { "kind": { "const": "const" } } },
-          "then": { "required": ["value"], "properties": { "value": { "$ref": "common.schema.json#/$defs/sv_literal" } } }
-        },
-        {
-          "if": { "properties": { "kind": { "const": "mux" } } },
+          },
           "then": {
-            "required": ["inputs", "width"],
+            "required": [
+              "dir",
+              "width"
+            ],
             "properties": {
-              "inputs": { "type": "integer", "minimum": 2, "maximum": 64 },
-              "width": { "$ref": "common.schema.json#/$defs/width" },
-              "encoding": { "enum": ["binary", "onehot"] },
-              "priority": { "type": "boolean" },
-              "style": { "enum": ["bar", "trapezoid"] },
-              "indices": { "type": "boolean" },
-              "lanes": { "type": "integer", "minimum": 1, "maximum": 64 },
-              "input_labels": {
-                "type": "object",
-                "propertyNames": { "pattern": "^[0-9]+$" },
-                "additionalProperties": { "type": "string", "maxLength": 24 }
+              "dir": {
+                "enum": [
+                  "in",
+                  "out",
+                  "inout"
+                ]
+              },
+              "width": {
+                "$ref": "common.schema.json#/$defs/width"
+              },
+              "class": {
+                "$ref": "common.schema.json#/$defs/net_class"
+              },
+              "domain": {
+                "type": "string"
+              },
+              "role": {
+                "description": "How the consumer uses this input (CONVENTIONS §1): select, enable (incl. write/chip enable), handshake (valid/ready) make a net control (dashed); value (default) makes it data (solid).",
+                "enum": [
+                  "value",
+                  "select",
+                  "enable",
+                  "handshake"
+                ]
               }
             }
           }
         },
         {
-          "if": { "properties": { "kind": { "const": "comb" } } },
-          "then": {
-            "required": ["op", "width"],
+          "if": {
             "properties": {
-              "op": { "enum": ["and", "or", "xor", "nand", "nor", "xnor", "not", "buf", "add", "sub", "mul", "cmp", "shift", "reduce", "concat", "split", "lut", "rom", "custom"] },
-              "width": { "$ref": "common.schema.json#/$defs/width" },
-              "inputs": { "type": "integer", "minimum": 1, "maximum": 64 },
-              "out_width": { "$ref": "common.schema.json#/$defs/width" },
-              "cmp": { "enum": ["eq", "ne", "lt", "le", "gt", "ge"] },
-              "signed": { "type": "boolean" },
-              "dir": { "enum": ["left", "right", "arith"] },
-              "reduce": { "enum": ["and", "or", "xor"] },
-              "carry_in": { "type": "boolean" },
-              "carry_out": { "type": "boolean" },
-              "in_widths": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/width" } },
-              "slices": { "type": "array", "items": { "type": "string", "pattern": "^[0-9]+(:[0-9]+)?$" } },
-              "depth": { "$ref": "common.schema.json#/$defs/width" },
-              "contents": { "type": "string" },
-              "ports": { "type": "array", "items": { "$ref": "#/$defs/port_def" } }
+              "kind": {
+                "const": "const"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "value"
+            ],
+            "properties": {
+              "value": {
+                "$ref": "common.schema.json#/$defs/sv_literal"
+              }
             }
           }
         },
         {
-          "if": { "properties": { "kind": { "const": "register" } } },
-          "then": {
-            "required": ["width", "domain"],
+          "if": {
             "properties": {
-              "width": { "$ref": "common.schema.json#/$defs/width" },
-              "domain": { "$ref": "common.schema.json#/$defs/id" },
-              "enable": { "type": "boolean" },
-              "reset": { "enum": ["none", "async", "sync"] },
-              "init": { "$ref": "common.schema.json#/$defs/sv_literal" },
-              "style": { "enum": ["box", "bar"] }
+              "kind": {
+                "const": "mux"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "inputs",
+              "width"
+            ],
+            "properties": {
+              "inputs": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 64
+              },
+              "width": {
+                "$ref": "common.schema.json#/$defs/width"
+              },
+              "encoding": {
+                "enum": [
+                  "binary",
+                  "onehot"
+                ]
+              },
+              "priority": {
+                "type": "boolean"
+              },
+              "style": {
+                "enum": [
+                  "bar",
+                  "trapezoid"
+                ]
+              },
+              "indices": {
+                "type": "boolean"
+              },
+              "lanes": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 64
+              },
+              "input_labels": {
+                "type": "object",
+                "propertyNames": {
+                  "pattern": "^[0-9]+$"
+                },
+                "additionalProperties": {
+                  "type": "string",
+                  "maxLength": 24
+                }
+              }
             }
           }
         },
         {
-          "if": { "properties": { "kind": { "const": "pipeline_register" } } },
-          "then": {
-            "required": ["lanes", "domain"],
+          "if": {
             "properties": {
-              "domain": { "$ref": "common.schema.json#/$defs/id" },
-              "stage": { "type": "integer", "minimum": 0 },
-              "enable": { "type": "boolean" },
-              "reset": { "enum": ["none", "async", "sync"] },
+              "kind": {
+                "const": "comb"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "op",
+              "width"
+            ],
+            "properties": {
+              "op": {
+                "enum": [
+                  "and",
+                  "or",
+                  "xor",
+                  "nand",
+                  "nor",
+                  "xnor",
+                  "not",
+                  "buf",
+                  "add",
+                  "sub",
+                  "mul",
+                  "cmp",
+                  "shift",
+                  "reduce",
+                  "concat",
+                  "split",
+                  "extend",
+                  "replicate",
+                  "lut",
+                  "rom",
+                  "custom"
+                ]
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 2
+              },
+              "width": {
+                "$ref": "common.schema.json#/$defs/width"
+              },
+              "inputs": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 64
+              },
+              "out_width": {
+                "$ref": "common.schema.json#/$defs/width"
+              },
+              "cmp": {
+                "enum": [
+                  "eq",
+                  "ne",
+                  "lt",
+                  "le",
+                  "gt",
+                  "ge"
+                ]
+              },
+              "signed": {
+                "type": "boolean"
+              },
+              "dir": {
+                "enum": [
+                  "left",
+                  "right",
+                  "arith"
+                ]
+              },
+              "reduce": {
+                "enum": [
+                  "and",
+                  "or",
+                  "xor"
+                ]
+              },
+              "carry_in": {
+                "type": "boolean"
+              },
+              "carry_out": {
+                "type": "boolean"
+              },
+              "in_widths": {
+                "type": "array",
+                "items": {
+                  "$ref": "common.schema.json#/$defs/width"
+                }
+              },
+              "slices": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[0-9]+(:[0-9]+)?$"
+                }
+              },
+              "depth": {
+                "$ref": "common.schema.json#/$defs/width"
+              },
+              "contents": {
+                "type": "string"
+              },
+              "pin_labels": {
+                "type": "boolean"
+              },
+              "invert_inputs": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "uniqueItems": true
+              },
+              "invert_output": {
+                "type": "boolean"
+              },
+              "extend": {
+                "enum": [
+                  "zero",
+                  "sign"
+                ]
+              },
+              "function": {
+                "$ref": "#/$defs/function"
+              },
+              "ports": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/port_def"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "comb"
+              },
+              "op": {
+                "const": "custom"
+              }
+            },
+            "required": [
+              "op"
+            ]
+          },
+          "then": {
+            "required": [
+              "function"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "register"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "width",
+              "domain"
+            ],
+            "properties": {
+              "width": {
+                "$ref": "common.schema.json#/$defs/width"
+              },
+              "domain": {
+                "$ref": "common.schema.json#/$defs/id"
+              },
+              "enable": {
+                "type": "boolean"
+              },
+              "reset": {
+                "enum": [
+                  "none",
+                  "async",
+                  "sync"
+                ]
+              },
+              "init": {
+                "$ref": "common.schema.json#/$defs/sv_literal"
+              },
+              "style": {
+                "enum": [
+                  "box",
+                  "bar"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "pipeline_register"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "lanes",
+              "domain"
+            ],
+            "properties": {
+              "domain": {
+                "$ref": "common.schema.json#/$defs/id"
+              },
+              "stage": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "enable": {
+                "type": "boolean"
+              },
+              "reset": {
+                "enum": [
+                  "none",
+                  "async",
+                  "sync"
+                ]
+              },
               "lanes": {
                 "type": "array",
                 "minItems": 1,
                 "items": {
                   "type": "object",
                   "additionalProperties": false,
-                  "required": ["id", "width"],
+                  "required": [
+                    "id",
+                    "width"
+                  ],
                   "properties": {
-                    "id": { "$ref": "common.schema.json#/$defs/id" },
-                    "width": { "$ref": "common.schema.json#/$defs/width" },
-                    "class": { "$ref": "common.schema.json#/$defs/net_class" },
-                    "label": { "type": "string" }
+                    "id": {
+                      "$ref": "common.schema.json#/$defs/id"
+                    },
+                    "width": {
+                      "$ref": "common.schema.json#/$defs/width"
+                    },
+                    "class": {
+                      "$ref": "common.schema.json#/$defs/net_class"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "role": {
+                      "description": "How the consumer uses this input (CONVENTIONS §1): select, enable (incl. write/chip enable), handshake (valid/ready) make a net control (dashed); value (default) makes it data (solid).",
+                      "enum": [
+                        "value",
+                        "select",
+                        "enable",
+                        "handshake"
+                      ]
+                    }
                   }
                 }
               }
@@ -200,29 +840,80 @@
           }
         },
         {
-          "if": { "properties": { "kind": { "const": "memory" } } },
-          "then": {
-            "required": ["depth", "width", "domain", "ports"],
+          "if": {
             "properties": {
-              "depth": { "$ref": "common.schema.json#/$defs/width" },
-              "width": { "$ref": "common.schema.json#/$defs/width" },
-              "domain": { "$ref": "common.schema.json#/$defs/id" },
-              "impl": { "enum": ["ff", "inferred", "blackbox", "unknown"] },
+              "kind": {
+                "const": "memory"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "depth",
+              "width",
+              "domain",
+              "ports"
+            ],
+            "properties": {
+              "depth": {
+                "$ref": "common.schema.json#/$defs/width"
+              },
+              "width": {
+                "$ref": "common.schema.json#/$defs/width"
+              },
+              "domain": {
+                "$ref": "common.schema.json#/$defs/id"
+              },
+              "impl": {
+                "enum": [
+                  "ff",
+                  "inferred",
+                  "blackbox",
+                  "unknown"
+                ]
+              },
               "ports": {
                 "type": "array",
                 "minItems": 1,
                 "items": {
                   "type": "object",
                   "additionalProperties": false,
-                  "required": ["id", "type"],
+                  "required": [
+                    "id",
+                    "type"
+                  ],
                   "properties": {
-                    "id": { "$ref": "common.schema.json#/$defs/id" },
-                    "type": { "enum": ["read", "write", "rw"] },
-                    "read_latency": { "type": "integer", "minimum": 0, "maximum": 8 },
-                    "read_during_write": { "enum": ["write_first", "read_first", "undefined"] },
-                    "we": { "type": "boolean" },
-                    "re": { "type": "boolean" },
-                    "domain": { "$ref": "common.schema.json#/$defs/id" }
+                    "id": {
+                      "$ref": "common.schema.json#/$defs/id"
+                    },
+                    "type": {
+                      "enum": [
+                        "read",
+                        "write",
+                        "rw"
+                      ]
+                    },
+                    "read_latency": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 8
+                    },
+                    "read_during_write": {
+                      "enum": [
+                        "write_first",
+                        "read_first",
+                        "undefined"
+                      ]
+                    },
+                    "we": {
+                      "type": "boolean"
+                    },
+                    "re": {
+                      "type": "boolean"
+                    },
+                    "domain": {
+                      "$ref": "common.schema.json#/$defs/id"
+                    }
                   }
                 }
               }
@@ -230,26 +921,94 @@
           }
         },
         {
-          "if": { "properties": { "kind": { "const": "synchronizer" } } },
-          "then": {
-            "required": ["from", "to", "style", "width"],
+          "if": {
             "properties": {
-              "from": { "$ref": "common.schema.json#/$defs/id" },
-              "to": { "$ref": "common.schema.json#/$defs/id" },
-              "style": { "enum": ["ff2", "ff3", "pulse", "handshake", "gray", "async_fifo"] },
-              "width": { "$ref": "common.schema.json#/$defs/width" }
+              "kind": {
+                "const": "synchronizer"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "from",
+              "to",
+              "style",
+              "width"
+            ],
+            "properties": {
+              "from": {
+                "$ref": "common.schema.json#/$defs/id"
+              },
+              "to": {
+                "$ref": "common.schema.json#/$defs/id"
+              },
+              "style": {
+                "enum": [
+                  "ff2",
+                  "ff3",
+                  "pulse",
+                  "handshake",
+                  "gray",
+                  "async_fifo"
+                ]
+              },
+              "width": {
+                "$ref": "common.schema.json#/$defs/width"
+              }
             }
           }
         },
         {
-          "if": { "properties": { "kind": { "const": "instance" } } },
-          "then": {
-            "required": ["module"],
+          "if": {
             "properties": {
-              "module": { "$ref": "common.schema.json#/$defs/id" },
-              "params": { "$ref": "common.schema.json#/$defs/params" },
-              "view": { "enum": ["collapsed", "expanded"] },
-              "ports": { "type": "array", "items": { "$ref": "#/$defs/port_def" } }
+              "kind": {
+                "const": "instance"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "module",
+              "function"
+            ],
+            "properties": {
+              "module": {
+                "$ref": "common.schema.json#/$defs/id"
+              },
+              "function": {
+                "$ref": "#/$defs/function"
+              },
+              "params": {
+                "$ref": "common.schema.json#/$defs/params"
+              },
+              "view": {
+                "enum": [
+                  "collapsed",
+                  "expanded"
+                ]
+              },
+              "level": {
+                "enum": [
+                  "blackbox",
+                  "block"
+                ]
+              },
+              "internals": {
+                "enum": [
+                  "unknown",
+                  "stub",
+                  "known"
+                ]
+              },
+              "pin_labels": {
+                "type": "boolean"
+              },
+              "ports": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/port_def"
+                }
+              }
             }
           }
         }
@@ -259,36 +1018,106 @@
     "net": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "width", "driver", "sinks"],
+      "required": [
+        "id",
+        "width",
+        "driver",
+        "sinks"
+      ],
       "properties": {
-        "id": { "$ref": "common.schema.json#/$defs/id" },
-        "width": { "$ref": "common.schema.json#/$defs/width" },
-        "class": { "$ref": "common.schema.json#/$defs/net_class" },
-        "domain": { "$ref": "common.schema.json#/$defs/id" },
-        "driver": { "$ref": "common.schema.json#/$defs/endpoint" },
-        "sinks": { "type": "array", "minItems": 1, "items": { "$ref": "common.schema.json#/$defs/endpoint" } },
-        "label": { "type": "string", "maxLength": 40 },
-        "short_label": { "$ref": "common.schema.json#/$defs/short_label" },
-        "labels": { "$ref": "common.schema.json#/$defs/label_by_variant" },
-        "bundle": { "$ref": "common.schema.json#/$defs/id" },
-        "source": { "$ref": "common.schema.json#/$defs/source_pin" },
-        "rtl": { "$ref": "common.schema.json#/$defs/rtl_ref" }
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "width": {
+          "$ref": "common.schema.json#/$defs/width"
+        },
+        "class": {
+          "$ref": "common.schema.json#/$defs/net_class"
+        },
+        "domain": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "driver": {
+          "$ref": "common.schema.json#/$defs/endpoint"
+        },
+        "sinks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "common.schema.json#/$defs/endpoint"
+          }
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "short_label": {
+          "$ref": "common.schema.json#/$defs/short_label"
+        },
+        "labels": {
+          "$ref": "common.schema.json#/$defs/label_by_variant"
+        },
+        "bundle": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/source_pin"
+        },
+        "rtl": {
+          "$ref": "common.schema.json#/$defs/rtl_ref"
+        },
+        "class_reason": {
+          "description": "Required when class differs from the class derived from the sinks (net/class-style).",
+          "type": "string",
+          "maxLength": 160
+        }
       }
     },
     "annotation": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind"],
+      "required": [
+        "kind"
+      ],
       "properties": {
-        "id": { "$ref": "common.schema.json#/$defs/id" },
-        "kind": { "enum": ["label", "stage_band", "critical_path", "latency", "legend"] },
-        "text": { "type": "string", "maxLength": 120 },
-        "short_text": { "$ref": "common.schema.json#/$defs/short_label" },
-        "anchor": { "type": "string" },
-        "path": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/endpoint" } },
-        "from": { "$ref": "common.schema.json#/$defs/endpoint" },
-        "to": { "$ref": "common.schema.json#/$defs/endpoint" },
-        "cycles": { "type": "integer", "minimum": 0 }
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "kind": {
+          "enum": [
+            "label",
+            "stage_band",
+            "critical_path",
+            "latency",
+            "legend"
+          ]
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "short_text": {
+          "$ref": "common.schema.json#/$defs/short_label"
+        },
+        "anchor": {
+          "type": "string"
+        },
+        "path": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/endpoint"
+          }
+        },
+        "from": {
+          "$ref": "common.schema.json#/$defs/endpoint"
+        },
+        "to": {
+          "$ref": "common.schema.json#/$defs/endpoint"
+        },
+        "cycles": {
+          "type": "integer",
+          "minimum": 0
+        }
       }
     }
   }

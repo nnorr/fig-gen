@@ -1,5 +1,5 @@
 [
-  { "query": "can you draw the datapath of my rs_decode.sv for the DAC submission? two-column figure, needs to look like a real paper figure", "should_trigger": true },
+  { "query": "can you draw the datapath of my decoder.sv for the DAC submission? two-column figure, needs to look like a real paper figure", "should_trigger": true },
   { "query": "need a state diagram for the controller FSM in rtl/ctrl_fsm.sv — states are IDLE LOAD SHIFT DONE, want it for my thesis chapter 4", "should_trigger": true },
   { "query": "turn this wavedrom into something I can put in an IEEE paper, the default wavedrom look is too webby", "should_trigger": true },
   { "query": "show the 5-stage pipeline of our riscv core with the forwarding muxes and pipeline registers, for slides and the tech report", "should_trigger": true },
@@ -8,7 +8,7 @@
   { "query": "schematic of the async fifo with gray-code pointers and the two synchronizers, grayscale for print", "should_trigger": true },
   { "query": "fig 3 in my paper is hand-drawn in powerpoint and the bus widths are wrong, can you regenerate it from the verilog", "should_trigger": true },
   { "query": "plot the latency vs throughput results from results.csv for the paper, matplotlib is fine", "should_trigger": false },
-  { "query": "write a SystemVerilog testbench for blk_acc_rs_engine that runs ROUND_TRIP with 16 words", "should_trigger": false },
+  { "query": "write a SystemVerilog testbench for acc_top that runs ROUND_TRIP with 16 words", "should_trigger": false },
   { "query": "draw the microservice architecture of our backend (api gateway, auth, postgres, kafka) as an interactive html diagram", "should_trigger": false },
   { "query": "why does verilator give MODMISSING for my sram macro and how do I fix the filelist", "should_trigger": false },
   { "query": "generate the gate-level schematic of the synthesized netlist from yosys json, every cell", "should_trigger": false },

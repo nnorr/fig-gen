@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "figure_type": "microarch",
+  "meta": {
+    "title": "Unit-test fixture: minimal SoC (never evidence for real figures)",
+    "print": { "profile": "ieee", "variants": ["1col", "2col"] },
+    "style": { "grayscale": true, "font_family": "Arial", "svg_profile": "figma-safe" }
+  },
+  "blocks": [
+    { "id": "cpu", "kind": "core", "label": "CPU", "rtl": { "instance": "u_cpu", "module": "cpu_core" } },
+    { "id": "sram", "kind": "memory", "label": "SRAM", "sublabel": "64 KiB", "rtl": { "instance": "u_sram", "module": "ahb_sram" } },
+    { "id": "acc", "kind": "accelerator", "label": "Accelerator slot", "short_label": "Accel", "emphasis": true, "rtl": { "instance": "u_acc", "module": "acc_slot" } },
+    { "id": "br", "kind": "bridge", "label": "AHB-to-APB bridge", "short_label": "AHB-APB", "rtl": { "instance": "u_br", "module": "ahb_to_apb" } },
+    { "id": "uart", "kind": "peripheral", "label": "UART", "rtl": { "instance": "u_uart" } },
+    { "id": "timer", "kind": "peripheral", "label": "Timer", "rtl": { "instance": "u_timer" } }
+  ],
+  "fabrics": [
+    { "id": "ahb", "protocol": "AHB-Lite", "addr_width": 32, "data_width": 32, "topology": "bus" },
+    { "id": "apb", "protocol": "APB", "addr_width": 12, "data_width": 32, "topology": "bus" }
+  ],
+  "attachments": [
+    { "id": "at_cpu", "fabric": "ahb", "block": "cpu", "role": "manager", "rtl": { "instance": "u_cpu", "port": "H" } },
+    { "id": "at_sram", "fabric": "ahb", "block": "sram", "role": "subordinate", "address": { "base": "0x0000_0000", "size": "0x0001_0000" },
+      "rtl": { "instance": "u_sram", "base_param": "SRAM_BASE", "port": "h" } },
+    { "id": "at_br_s", "fabric": "ahb", "block": "br", "role": "subordinate", "address": { "base": "0x4000_0000", "size": "0x1000_0000" },
+      "rtl": { "instance": "u_br", "base_param": "APB_BASE", "port": "h" } },
+    { "id": "at_acc", "fabric": "ahb", "block": "acc", "role": "subordinate", "address": { "base": "0x5A00_0000", "end": "0x5A00_0FFF" },
+      "rtl": { "instance": "u_acc", "base_param": "ACC_BASE", "port": "h" } },
+    { "id": "at_br_m", "fabric": "apb", "block": "br", "role": "manager", "rtl": { "instance": "u_br", "port": "p" } },
+    { "id": "at_uart", "fabric": "apb", "block": "uart", "role": "subordinate", "address": { "base": "0x4000_0000", "size": "0x0000_1000" }, "rtl": { "instance": "u_uart", "port": "p" } },
+    { "id": "at_timer", "fabric": "apb", "block": "timer", "role": "subordinate", "address": { "base": "0x4000_1000", "size": "0x0000_1000" }, "rtl": { "instance": "u_timer", "port": "p" } }
+  ],
+  "links": [
+    { "id": "irq_acc", "from": "acc", "to": "cpu", "class": "interrupt", "irq": 21, "label": "irq" },
+    { "id": "irq_uart", "from": "uart", "to": "cpu", "class": "interrupt", "irq": 1, "label": "irq" }
+  ],
+  "domains": [
+    { "id": "clk_sys", "kind": "clock", "label": "hclk", "members": ["cpu", "sram", "acc", "br", "uart", "timer"] }
+  ],
+  "groups": [
+    { "id": "soc", "label": "SoC", "members": ["cpu", "sram", "acc", "br", "uart", "timer"], "style": "chip" }
+  ],
+  "address_map": { "table": true, "alignment": "0x1000" }
+}

@@ -1,4 +1,4 @@
-# rtl-figures — Specification (Phase 1 draft)
+# fig-gen — Specification (Phase 1 draft)
 
 Status: draft for review. Conventions for sizes, fonts, symbols and line
 weights are **provisional** until `references/CONVENTIONS.md` (sibling
@@ -42,9 +42,11 @@ Goals
 
 Non-goals (v1)
 
-- Not a schematic editor, synthesis viewer, or gate-level netlist renderer
-  (tools like netlistsvg already do that). Figures are *abstractions* chosen
-  by an author; the netlist is evidence, not the drawing.
+- Not a schematic editor or synthesis viewer. Whole-design gate-level netlist
+  rendering is out of scope (tools like netlistsvg already do that); figures
+  are *abstractions* chosen by an author and the netlist is evidence, not the
+  drawing. User-selected regions may be drawn at gate level (mixed abstraction,
+  §4.6), expanded from and equivalence-checked against the RTL.
 - No interactive viewer. No Figma / GUI step in the pipeline (an optional
   later export for hand polish may exist; it is never the source of truth).
 - No embedded EDA tool, license, PDK or vendor-specific knowledge.
@@ -81,10 +83,10 @@ Every document:
   "schema_version": 1,
   "figure_type": "datapath | fsm | timing | microarch",
   "meta": {
-    "title": "RS(6,4) decoder, PIPELINE=2",
+    "title": "Two-stage block decoder",
     "print": { "profile": "ieee", "variants": ["1col", "2col"], "max_height_in": { "1col": 3.2, "2col": 2.6 } },
     "style": { "grayscale": true, "font_family": "Tinos", "svg_profile": "figma-safe" },
-    "repository": { "root": "../rs-ecc-accelerator", "revision": "<40-hex sha>" }
+    "repository": { "root": "../my-accelerator", "revision": "<40-hex sha>" }
   },
   "params": { "DATA_W": 32, "ECC_W": 16, "DEPTH": 16 }
 }
@@ -121,7 +123,7 @@ A net endpoint is a string:
 ```
 endpoint := path "." port [ slice ]      element port, e.g.  u_mux.in1, reg_s1.q[7:0]
           | path                         a top-level port element, e.g.  hclk
-path     := id ( "/" id )*               hierarchy, e.g.  u_ecc/u_dec.valid_i
+path     := id ( "/" id )*               hierarchy, e.g.  u_core/u_dec.valid_i
 slice    := "[" int ":" int "]" | "[" int "]"
 ```
 
@@ -135,7 +137,7 @@ rippers) so every bit on the page is accounted for.
 Any element, net, state, transition, signal or block may carry:
 
 ```json
-"source": { "file": "rtl/rs_decode.sv", "line": 131, "end_line": 146, "match": "always_ff" }
+"source": { "file": "rtl/decoder.sv", "line": 131, "end_line": 146, "match": "always_ff" }
 ```
 
 - `file` is repo-relative POSIX (no `..`, no `.git`), resolved against
@@ -152,7 +154,7 @@ Any element, net, state, transition, signal or block may carry:
 {
   "code": "width/mismatch",
   "severity": "error | warning | info",
-  "message": "net n_dec_data: driver u_inj.data_o is 32 bits, sink u_ecc.dec_data_i[15:0] is 16 bits",
+  "message": "net n_dec_data: driver u_inj.data_o is 32 bits, sink u_core.dec_data_i[15:0] is 16 bits",
   "subject": { "path": "/nets/4", "id": "n_dec_data" },
   "evidence": { "driverWidth": 32, "sinkWidth": 16 },
   "supportedFixes": ["correct the net width", "slice the sink endpoint", "insert a comb split element"]
@@ -291,7 +293,7 @@ synchronizer elements may legally connect sequential logic across domains.
 `instance`
 
 ```json
-{ "id": "u_ecc", "kind": "instance", "module": "rs_ecc_core",
+{ "id": "u_core", "kind": "instance", "module": "core_top",
   "params": { "PIPELINE": 2 }, "view": "collapsed" }
 ```
 
@@ -309,7 +311,7 @@ synchronizer elements may legally connect sequential logic across domains.
 ```json
 { "id": "n_sym", "width": 48, "class": "data",
   "driver": "p_mid.q_sym", "sinks": ["corr.in0", "sym_split.in0"],
-  "label": "sym", "source": { "file": "rtl/rs_decode.sv", "line": 99 } }
+  "label": "sym", "source": { "file": "rtl/decoder.sv", "line": 99 } }
 ```
 
 - `class` ∈ `data | control | clock | reset`; default inferred from endpoints,
@@ -327,12 +329,109 @@ from pipeline partitions), `critical_path` (ordered endpoint list, emphasized
 stroke; checked to be a real connected path), `latency` (from/to endpoints
 with `cycles`; checked against register count on the path), `legend`.
 
+### 4.5 Functional names, bus operations, lanes and bundles (Phase 2)
+
+- **`function`** (required on `comb` with `op: custom` and on `instance`,
+  optional elsewhere): `{kind, qualifier?, detail?, name?, short_name?}`.
+  `kind` comes from the controlled vocabulary in
+  `schemas/function-vocabulary.json` (gf_add, gf_mul, gf_const_mul, gf_inv,
+  gf_div, gf_pow/log/antilog LUT, adder, subtractor, multiplier, divider,
+  comparator, zero_detect, shifter, lut, rom, encoder, decoder, syndrome,
+  error_locator, chien_search, error_evaluator, corrector, classifier,
+  correction_enable, controller, fsm, csr_bank, bus_slave, memory,
+  error_injector, custom + `name`). The printed name is the vocabulary
+  display name, qualified when `qualifier` is set ("GF(2^8) multiplier");
+  `detail` prints as a small secondary line in full-label layouts only; the
+  short name is a readable word (the qualified name when ≤ 14 characters).
+  An explicit `label` overrides but is linted (`label/unreadable`, §8).
+  Operators whose vocabulary entry has a glyph (⊕ ⊗ + − ×) draw as a circle
+  with no text; gates in gate regions keep their shapes. Ports print
+  `label` (readable) while `rtl.signal` keeps the exact RTL name.
+- **Bus operations** (CONVENTIONS §2.3, §3.5): `concat` renders as a hollow
+  `{ }` box with destination bit ranges on its inputs; `split` as 45° ripper
+  taps with `[msb:lsb]` labels and no body; a single-slice split whose input
+  has no other sink is drawn as a truncation label on the wire (render-only
+  merge; checks use the IR as written); `extend` (`extend: zero|sign`,
+  `out_width`) as a `zext`/`sext` box; `replicate` (`count`) as a `{N{ }}`
+  box. `expand-cone` emits `extend` for zero extension.
+- **Width labels are single integers or symbols** (CONVENTIONS §2.1). A mux
+  with `lanes` sizes its select, but no lane caption or `N×W` label is ever
+  printed (`width/product-notation`). Every multi-bit data net shows its width
+  (`width/missing`).
+- **`function.stage`** (`"k/n"`) declares stages of one function; the printed
+  name becomes `<name> (stage k/n)` and `label/duplicate` accepts the shared
+  name. **`function.basis`** `{source, structure}` cites the RTL that justifies
+  the vocabulary name; each vocabulary entry declares the required evidence
+  (`evidence.source_all` regexes, `evidence.cone_all` operation categories) and
+  a more general fallback name (`label/function-justification`).
+- **`role`** on a port definition, a top-level port or a pipeline lane
+  (`value` default, `select`, `enable`, `handshake`) states how that input is
+  used. Net line style is derived from these usages (CONVENTIONS §1): control
+  only if every sink is a select/enable/handshake input; an authored net
+  `class` that contradicts the usage needs `class_reason` (`net/class-style`).
+- **`bundle`** on an instance `port_def`: one drawn pin standing for several
+  RTL ports (e.g. `["wen", "waddr", "raddr"]`). The boundary check expands it:
+  each port must exist with the bundle's direction and the widths must add up.
+
+### 4.6 Mixed abstraction: regions, gate expansion, equivalence (Phase 2)
+
+**Regions.** `regions[]` groups elements into one abstraction level:
+`blackbox | block | rtl | gate`, with optional `parent` (levels nest, e.g. a
+gate region inside an rtl-level decoder next to blackbox memories), `label`,
+`frame`, `max_gates` (default 30), `rtl.instance` and `rtl.stop_at`. Instance
+elements may also carry `level: blackbox|block` and `internals:
+unknown|stub|known`.
+
+Checks: `region/unknown-member`, `region/unknown-parent`,
+`region/non-gate-member` (gate regions contain only gate-level kinds: logic
+gates, reduce, split/concat, 2:1 mux, const), `region/non-blackbox-member`,
+`gate/too-many`, `gate/invert-index`. Boundary consistency: collapsed or
+blackbox instances mapped with `rtl.instance` must expose exactly the RTL
+module's ports, directions and widths (`rtl/boundary-mismatch`); nets between
+regions obey the normal width rules with explicit slices.
+
+**Gate expansion grounded in RTL.** The Verilator adapter records every
+unconditional continuous assignment as an expression tree (`exprs[]`: target,
+optional constant index, tree of `ref/const/and/or/xor/not/land/lor/lnot/
+red*/eq/neq/lt…/add/sub/mul/shl/shr/cond/concat/sel/index/repl/extend/func`).
+`fig-gen expand-cone --netlist n.json --instance a/b --output sig [--index k]
+[--stop-at s1,s2]` inlines assignments backwards from the output (through
+constant-index bits/elements) until stop signals, registers, ports or
+unassigned signals, then maps operators to elements:
+
+| RTL | drawn as |
+|---|---|
+| `& \| ^ ~` (bitwise, any width) | one gate per operator chain, bus width shown with slash-N |
+| `~(a&b)` etc. | NAND/NOR/XNOR (exact folds); `~x` feeding a gate → input bubble |
+| `&& \|\| !` | 1-bit gates; multi-bit operands first go through a reduction |
+| `&x \|x ^x` | reduce element |
+| `c ? a : b` | 2:1 bar mux |
+| `x == K` (K constant, ≤ 16 bits) | bit split + one AND/NAND with bubbles on the 0 bits (bit-blast) |
+| `== < + - * << >>` otherwise | compare / arithmetic / shift blocks |
+| function calls, unknown operators | `gate/not-expandable` (draw that part at block level or stop before it) |
+
+The expansion is emitted as a figure fragment (elements, nets with `rtl`
+mappings on inputs and output, region) and capped by `max_gates`
+(`gate/too-many`, with "narrow the cone / use block level" fixes).
+
+**Equivalence check.** For every gate region with a netlist, deliver evaluates
+the drawn network (including bubbles and 2:1 muxes) against the RTL cone of
+each RTL-mapped output, with the region's input nets as the cone's stop
+signals. ≤ 16 input bits → exhaustive truth table; otherwise seeded random
+vectors (default 4096, `equivalence.vectors/seed`) and the receipt says
+`sampled`. Errors: `equiv/mismatch` (names the output, the counterexample
+inputs, drawn and RTL values), `equiv/input-unmapped`, `equiv/unmapped-input`
+(the RTL cone depends on a signal the drawing does not take), `equiv/
+no-rtl-expression`, `equiv/not-evaluable`. The receipt records each gate
+region as `kind: gate-region` with `equivalence: {method, vectors, seed?,
+input_bits, result}`.
+
 ## 5. `fsm` IR
 
 ```json
 {
   "schema_version": 1, "figure_type": "fsm", "meta": { ... },
-  "machine": { "name": "blk_acc_rs_engine.state_q", "state_width": 3, "encoding": "binary",
+  "machine": { "name": "acc_top.state_q", "state_width": 3, "encoding": "binary",
                "kind": "mixed" },
   "inputs":  [ { "name": "start", "width": 1 }, { "name": "is_last_word", "width": 1 } ],
   "outputs": [ { "name": "busy", "width": 1, "type": "moore" },
@@ -376,7 +475,7 @@ with `cycles`; checked against register count on the path), `legend`.
 
 Timing figures are **rendered by WaveDrom** (npm `wavedrom`, pinned, called
 through its Node library API `renderAny` + `onml.s` — pure Node, no browser).
-rtl-figures does not reimplement waveform drawing; it adds grounding,
+fig-gen does not reimplement waveform drawing; it adds grounding,
 consistency checks, column fitting, and a figma-safe post-process around it.
 
 ### 6.1 Document
@@ -490,7 +589,7 @@ type, and the PDF is derived from it with outlined text (§10).
 
 ```
 tiny testbench (user-owned or generated) ─► verilator --binary --trace ─► VCD
-      ─► rtl-figures vcd2wave --clock <path> --signals <paths> --from <cycle> --cycles <n>
+      ─► fig-gen vcd2wave --clock <path> --signals <paths> --from <cycle> --cycles <n>
       ─► timing IR with provenance { kind: "vcd", vcd_sha256, scope, clock, window, sample: "pre_edge" }
 ```
 
@@ -500,7 +599,7 @@ tiny testbench (user-owned or generated) ─► verilator --binary --trace ─�
 - Signal selection by hierarchical name or glob; aliases rename for print.
 - Simulator invocation goes through the same adapter interface as extraction
   (§11, `kind: "simulate"`); Verilator is the default. Testbenches live with
-  the user's project or, for rtl-figures' own tests, under `tests/fixtures/`.
+  the user's project or, for fig-gen' own tests, under `tests/fixtures/`.
 
 ### 6.6 Verification levels (recorded in every receipt)
 
@@ -532,7 +631,7 @@ Rules:
 **sim-compared semantics**
 
 - Lane → RTL mapping: `provenance.rtl_map` maps each WaveJSON `name` to a
-  hierarchical RTL path (`tb.dut.u_ecc.dec_valid_o`); unmapped lanes are
+  hierarchical RTL path (`tb.dut.u_core.dec_valid_o`); unmapped lanes are
   reported (`timing/compare-unmapped`, error unless listed in
   `provenance.compare.ignore`).
 - Clock alignment: the named clock (`clock.name` → `rtl_map`) defines cycle
@@ -555,7 +654,7 @@ Rules:
   `--binary --timing --trace`, or a C++ harness with `--cc --exe --trace`.
 - Built-in bus-functional-model helper (generic, no project names): a small
   SV package + JSON transaction script for AHB-Lite, APB, AXI4-Lite single
-  read/write, and valid/ready streams; `rtl-figures sim --bfm <script.json>`
+  read/write, and valid/ready streams; `fig-gen sim --bfm <script.json>`
   generates a wrapper testbench in the work directory around the user's top,
   mapping bus ports by a user-supplied port map.
 - Optional DPI-C golden models may be linked by the user's harness; their
@@ -588,7 +687,7 @@ SoC integration figures and abstract block pipelines. Same theme
     { "id": "at_cpu", "fabric": "ahb", "block": "cpu", "role": "manager" },
     { "id": "at_sram", "fabric": "ahb", "block": "sram", "role": "subordinate", "address": { "base": "0x0000_0000", "size": "0x1_0000" } },
     { "id": "at_acc", "fabric": "ahb", "block": "acc", "role": "subordinate",
-      "address": { "base": "0x6100_0000", "end": "0x6100_0FFF" },
+      "address": { "base": "0x5A00_0000", "end": "0x5A00_0FFF" },
       "rtl": { "instance": "u_acc", "base_param": "BASE_ADDR" } },
     { "id": "at_br_s", "fabric": "ahb", "block": "ahb2apb", "role": "subordinate", "address": { "base": "0x4000_0000", "size": "0x1000_0000" } },
     { "id": "at_br_m", "fabric": "apb", "block": "ahb2apb", "role": "manager" }
@@ -669,6 +768,38 @@ connected nets. Codes: `rtl/instance-missing`, `rtl/param-mismatch`,
 `rtl/bus-port-unconnected`, `rtl/irq-unconnected`. This yields
 `verification.level: "structural-only"` at most (§6.6).
 
+### 7.4 Documented facts: all sources, conflicts and authority
+
+Facts a figure takes from documents are checked against **every** text
+document (`.md/.txt/.rst/.adoc`) at the pinned revision, not only the pinned
+line (`lib/doc-facts.mjs`).
+
+- **Facts.** A block's `slot` and `instance`, an attachment's base address and
+  address window, and a link's `irq`. A fact counts as doc-grounded when its
+  owner or its block has a `source` pin, `doc_terms` or an `authority`.
+- **Finding the subject.** A line is about the block when it contains one of
+  the block's `doc_terms`, `rtl.module` or `instance`. It also counts when it
+  sits under a heading (or in a file whose title) names the block **and**
+  carries the attribute's keyword (slot, base/address/@, window/range/decode,
+  IRQ/interrupt, instance).
+- **Values.** Slot tokens follow the figure's slot shape (letters + number).
+  Base addresses are page-aligned hex values; windows are hex ranges; IRQ
+  numbers follow `IRQ n`.
+- **`doc/conflict` (error).** Any document value that differs from the figure
+  value. The message lists every conflicting source as file:line → value, plus
+  the supporting sources. Windows are compared only where the base agrees; a
+  different base is already a base conflict.
+- **Resolution.** Only an explicit `authority {file, line?, reason}` on the
+  fact's owner or its block resolves a conflict. The authority file must itself
+  state the figure value (`doc/authority-mismatch` otherwise). A resolved
+  conflict is still reported as a warning. The receipt's `doc_facts` records the
+  authority, the supporting sources and the overridden sources.
+- **`doc/rtl-mismatch` (warning, RTL given).** A documented window that is
+  smaller than the attachment's `rtl.addr_port` decodes, or an "effective /
+  decoded / CSR" window of a different size.
+- **Other warnings.** `doc/fact-unsupported` (no document states the value),
+  `doc/terms-missing`.
+
 ## 8. Semantic checks (catalog)
 
 All checks run after schema validation and before layout. Errors block
@@ -716,6 +847,25 @@ render; warnings are reported and allowed only under `--quality draft`.
 | `print/width-overflow` | all, per variant | figure bounding box ≤ variant `width_in` |
 | `print/max-height` | all, per variant | height ≤ `max_height_in` (figure override, else profile) |
 | `print/label-fallback` (info) | all, per variant | a `short_label` was used, listing ids |
+| `label/unreadable` | datapath, microarch | a printed primary label is a raw identifier (snake_case, `_i/_o/_q`), a ≤ 3-character mnemonic (well-known symbols/acronyms excepted), a bare ratio (`S2/S1`), an index range (`h1..0`), math shorthand (`X=a^i`, `== 0`) or an abbreviated word with a period (`Pos.`, `Calc.`, `Ctrl.`; also checked on names printed from the vocabulary); warning, **error with `--quality paper`**; suggests the vocabulary name |
+| `label/reserved-prefix` | datapath | a net or port label starts with `[` or `{` (reserved for slices and concatenation, CONVENTIONS §3.5 D3) |
+| `glyph/distinguishable` | skin + render | no two element kinds render with the same text-less glyph; a solid bar narrower than 8 pt must be a mux with a connected select and ≥ 2 inputs (D1); pipeline bars keep wedge + outline + gray fill; join/split are never filled bars |
+| `route/data-jog` | datapath, per variant | a data-net level change shorter than one pin pitch (12 pt) between same-direction runs, or a bend that moving an end block (with its far-side ports) would remove (error) |
+| `route/data-bend` (warning) | datapath, per variant | a remaining data bend with its justification: fan-out branch to another row (≥ one pitch), turn into a top/bottom pin, feedback, gate pin pitch, or "blocked" listing each attempted move and why it failed; also in receipt `route.data_bends` |
+| `route/edge-hugging` | datapath, per variant | a wire parallel to a block outline or to another net's wire closer than `route.min_parallel_gap_pt` (4 pt) over more than 3 pt (error) |
+| `arrow/missing` | datapath, per variant | a net ends at a block input pin or figure output port without an arrowhead (skin `arrow.at` omits its kind); gate inputs in gate-level regions and a bus entering a split are exempt (error) |
+| `route/crossings` (warning) | datapath, per variant | wire crossings per class (data / control / mixed) above the skin thresholds |
+| `geometry/text-on-line` | datapath, per variant | any text box touched by a drawn line other than a wire (outlines, frames, ripper stubs; slanted lines are clipped exactly) |
+| `region/frame-foreign-block`, `region/frame-member-outside`, `region/frame-edge-crossing`, `region/wire-on-frame` | datapath, per variant | a region frame intersects a non-member, misses a member (incl. its overhanging labels), crosses or touches another frame, or has a wire lying on its edge |
+| `print/slice-label-omitted` | datapath, per variant | a truncation label found no free spot on its wire (the slice would be invisible) |
+| `label/duplicate` | datapath | two or more blocks share a primary name without being declared stages of one function (`function.stage`) |
+| `label/function-justification` | datapath | a vocabulary name whose entry declares required evidence lacks `function.basis`, the cited source text does not show the required structure, or (netlist given) the RTL cone of the block's outputs lacks the required operations; suggests the entry's general name (warning, error with `--quality paper`) |
+| `width/missing` | datapath, per variant | a multi-bit data net has no width label (error) |
+| `width/product-notation` | datapath (lint + render) | a net/mux label or rendered width label is a product such as `6×8` (error) |
+| `net/class-style` | datapath | an authored net class contradicts the class derived from its sinks' roles, without `class_reason` (error) |
+| `arrow/marker-overlap` | all renderers, per variant | two arrowheads of different connections overlap, or an arrowhead touches another connection's wire |
+| `arrow/label-proximity` | all renderers, per variant | foreign text within 1.5 pt of an arrowhead or of the last stretch of its shaft |
+| `doc/conflict`, `doc/authority-mismatch`, `doc/rtl-mismatch`, `doc/fact-unsupported` | microarch | documented facts across all documents (§7.4) |
 | `svg/*` | all, per variant | figma-safe profile lint, §10.1 |
 
 ## 9. Layout
@@ -726,7 +876,7 @@ render; warnings are reported and allowed only under `--quality draft`.
   left-to-right, orthogonal routing, fixed port sides and order.
 - `fsm`: ELK Layered top-to-bottom with spline routing for arcs; renderer-owned
   self-loops, any-state and reset arcs; optional authored grid positions.
-- `timing`: rendered by WaveDrom (pinned npm library); rtl-figures only fits
+- `timing`: rendered by WaveDrom (pinned npm library); fig-gen only fits
   `config.hscale` per variant and post-processes the SVG (§6.3–6.4).
 
 ### 9.2 ELK mapping (datapath/microarch)
@@ -757,6 +907,24 @@ render; warnings are reported and allowed only under `--quality draft`.
 
 ### 9.5 Column variants (per-variant layout, never scaling)
 
+**Variant policy (decision, Phase 2).** `2col` is the required deliverable
+and must pass every check; its failure is a delivery failure. `1col` is best
+effort: the renderer runs the normal layout and exactly one retry (short
+labels + tighter layer spacing, ×0.7). If 1col still fails a print/geometry/
+lint check (min font, min stroke, width overflow, max height, label overlap),
+it is skipped — not an error: an info diagnostic `variant/1col-skipped` carries
+the reason and measured values, no 1col files are written, and the receipt
+records `variant_status["1col"] = { status: "skipped", reason, measured }`.
+`--variants 1col` (or any explicit variant list) makes the listed variants
+mandatory. No repair loops beyond the single retry.
+
+**Wide-column use (decision).** Datapath figures *spread* in 2col: when the
+content is under ~85 % of the column, layer spacing is scaled (≤ 3×) so the
+figure uses ~90 % of the width; the remainder is centered. SoC/microarch
+figures are *centered* at natural size (spreading a bus diagram only adds
+empty bar length). ELK wrapping is not used for delivery (it produced long
+return loops that read worse than a skipped 1col).
+
 Each requested variant is an independent pass: `measure → layout → geometry
 checks → SVG → print checks`. Scaling one layout into another width is
 forbidden because it moves fonts and strokes below print minimums; text is
@@ -779,14 +947,49 @@ always measured at its final printed point size.
 
 ### 9.4 Geometry diagnostics (post-layout, pure Node)
 
-`geometry/label-overlap`, `geometry/label-clearance` (min clear gap between a
-label and any stroke), `geometry/edge-through-element`,
-`geometry/edge-overlap` (collinear shared segments of different nets),
-`geometry/port-crowding`, `geometry/crossings` (warn, budget per figure),
-`print/min-font` (font size after scaling to column width, provisional ≥ 7 pt),
-`print/min-stroke` (≥ 0.5 pt), `print/aspect` (height exceeds
-`max_height_in`). Each carries `supportedFixes` (e.g. "set layout.layer on
-<id>", "switch meta.print.column to double", "collapse instance <id>").
+Implemented (Phase 2): `geometry/label-overlap`, `geometry/label-on-wire`,
+`geometry/text-on-line`, `symbol/label-clearance`, `text/glyph-missing`,
+region frame checks (`region/frame-*`, `region/wire-on-frame`),
+`route/data-jog`, `route/data-bend`, `route/crossings`, and the print checks
+(`print/min-font`, `print/min-stroke`, `print/max-height`,
+`print/width-overflow`). Each carries `supportedFixes`.
+
+Layout pipeline for straight data trunks (CONVENTIONS §1.4):
+
+1. Every multi-pin symbol puts its pins on one grid (pitch/2 + k·pitch, pitch
+   12 pt); pipeline bars pass lanes through at identical y; the stage label is
+   placed above the bar after routing (it may overhang the bar).
+2. ELK layered with NETWORK_SIMPLEX node placement and `favorStraightEdges`.
+   Framed regions are compound nodes (`hierarchyHandling: INCLUDE_CHILDREN`,
+   ROOT coordinates), so a frame encloses exactly its members.
+3. Straightening pass (`lib/render/straighten.mjs`): snap nodes back onto the
+   pin grid, then shift nodes vertically (x fixed) and replace detours between
+   aligned pins with straight wires, re-routing only the terminal segments of
+   moved nodes. Wires a moved block would cover are detoured by at least one
+   pitch. Moves are greedy with a two-step lookahead and must lower the score
+   (redundant jogs 1000, hugging wires 400, crossings `route.crossing_weight`,
+   bends 1, vertical data travel 5/pt) while keeping hard constraints (no
+   overlap, no wire through a block, no collinear wires of different nets, no
+   region growing over a foreign block). Candidates include:
+   - full-row moves (up to four pitches) of either end of a single-sink data wire;
+   - a block moved together with the figure ports on its far side;
+   - channel moves: an interior segment that hugs an outline or another wire
+     slides sideways, together with the same net's coincident branch segments.
+3a. Pin re-assignment (`tapPlan`). A block data input whose net also reaches a
+   later layer becomes a tap on the block's bottom edge. Adjacent pipeline
+   registers move the passing lane below the lanes attached to the block and
+   add whole pitches until it clears the block's bottom edge by an arrowhead
+   plus 6 pt. The figure is laid out and straightened with and without taps;
+   the lower score wins, with avoidable bends weighted like redundant jogs.
+   Receipt `route.layout_plans` records both plans and the chosen one.
+3b. Bend justification (`justifyBends`) classifies every remaining data bend
+   (see `route/data-bend`); an avoidable one is `route/data-jog`.
+4. Frames are recomputed from member boxes (plus overhanging labels) and
+   pushed off any wire lying on an edge; then the geometry and route checks
+   run. Route metrics are recorded per variant in the receipt
+   (`variants[].route`).
+
+Still planned: `geometry/port-crowding`, `print/aspect` hints.
 
 ## 10. Rendering and print output
 
@@ -847,7 +1050,7 @@ Group hierarchy (ids are derived from IR ids, `-` separated, unique):
   <g id="datapath">
     <g id="stage-0"> <g id="mux-sel_a"> <path .../> <text .../> </g> ... </g>
     <g id="stage-1"> <g id="preg-p_mid"> ... </g> </g>
-    <g id="inst-u_ecc"> ... (expanded children nested) </g>
+    <g id="inst-u_core"> ... (expanded children nested) </g>
   <g id="nets">
     <g id="nets-data"> <g id="net-n_sym"> <path/> <path id="net-n_sym-arrow"/> <text/> </g> </g>
     <g id="nets-control"> ... </g>
@@ -889,7 +1092,7 @@ it is stale on elkjs 0.3 and not a dependency):
   (`stroke-width` 1.2 for buses, 0.6 for wires); there are no CSS classes in
   the output (§10.1).
 
-rtl-figures differences kept on top of the netlistsvg look:
+fig-gen differences kept on top of the netlistsvg look:
 
 - Hand-abstracted blocks from the IR, not raw bit-level netlists.
 - Mux symbol: `mux_style: "bar"` (house default: one bold filled vertical bar,
@@ -912,7 +1115,7 @@ rtl-figures differences kept on top of the netlistsvg look:
   never distinguished by color alone; clock/reset nets omitted by default.
 - Figma-safe output rules and per-variant re-layout.
 
-Optional draft import (Phase 3+): `rtl-figures import-yosys <design.json>`
+Optional draft import (Phase 3+): `fig-gen import-yosys <design.json>`
 maps Yosys cell types to skin symbols through `skin.yosys_cell_map`
 (`$mux`/`$pmux` → mux, `$dff`/`$adff`/`$dffe` → register, `$xor`/`$and`/`$or`
 → gates, `$add` → adder) to produce a starting datapath IR that the author
@@ -927,12 +1130,12 @@ to judge the look.
 
 ### 11.1 Principles
 
-- rtl-figures never embeds, requires or assumes any commercial tool, license
+- fig-gen never embeds, requires or assumes any commercial tool, license
   mechanism, host, install path, or technology library. The only built-in
   adapter is Verilator (open source), located via `PATH` or
-  `RTLFIG_VERILATOR`.
+  `FIGGEN_VERILATOR`.
 - Other front-ends (slang, yosys, commercial tools) are plug-ins the *user*
-  registers; rtl-figures ships no knowledge of them.
+  registers; fig-gen ships no knowledge of them.
 - All tool work happens in a work directory outside the RTL repository
   (`--work-dir`, default under the OS temp dir); the RTL tree is read-only.
 
@@ -954,9 +1157,9 @@ the command must print normalized netlist JSON on stdout.
 
 ### 11.3 Discovery (runtime only)
 
-Order: CLI `--adapter <id>` → env `RTLFIG_ADAPTER` → config `default_adapter`
-→ `verilator`. Plug-ins come from `rtl-figures.config.json` (project root or
-`--config`) and `RTLFIG_ADAPTER_PATH` (path-list of adapter modules):
+Order: CLI `--adapter <id>` → env `FIGGEN_ADAPTER` → config `default_adapter`
+→ `verilator`. Plug-ins come from `fig-gen.config.json` (project root or
+`--config`) and `FIGGEN_ADAPTER_PATH` (path-list of adapter modules):
 
 ```json
 {
@@ -1005,7 +1208,7 @@ top-level ports.
 IR elements/nets carry optional `rtl` mappings:
 
 ```json
-"rtl": { "instance": "u_ecc/u_dec", "signal": "s1_s2" }
+"rtl": { "instance": "u_core/u_dec", "signal": "s1_s2" }
 ```
 
 Cross-checks: `rtl/unknown-signal`, `rtl/width-mismatch`,
@@ -1032,6 +1235,48 @@ coverage is informative, never an error.
   result; renderer, elkjs, font file hashes; profile file hash; check codes run
   with counts; source pins with repository revision; RTL netlist SHA-256 +
   adapter id/version when cross-checked; VCD SHA-256 for grounded timing.
+### 12.2 Evidence rule and per-region verification (hard rule, Phase 2)
+
+- A figure may only be verified against the **user's own** RTL, netlists
+  extracted from it, VCDs simulated from it, and the user's documents.
+  fig-gen never synthesizes RTL, stubs, models or stand-in DUTs to fill a gap;
+  a region without RTL is `unverified` (grounding `doc` when a source pin
+  points into the user's documents, else `none`).
+- **Evidence guard** (`lib/evidence.mjs`), enforced by `check-rtl`,
+  `validate --netlist`, `crosscheck`, `expand-cone`, `render` and `deliver`:
+  any RTL input, netlist input or source-pin repository located inside the
+  fig-gen installation (skill files, `tests/fixtures`) or inside a fig-gen work
+  directory (marked with `.figgen-work`; all tool-generated stubs and trees
+  live there) is rejected with `evidence/self-authored`. Missing or changed
+  inputs are `evidence/missing` / `evidence/stale`; files outside git are
+  `evidence/untracked` (warning), dirty files `evidence/uncommitted` (warning).
+- Test fixtures (e.g. the tiny generic SoC under `tests/fixtures/soc`) exist
+  only to unit-test fig-gen's own code and are never used, copied or
+  referenced during real figure generation.
+- **Stubs are not evidence.** Auto-generated blackbox stubs only copy port
+  names and widths from the user's instantiation sites so Verilator can
+  elaborate; every stubbed module is reported as a region with grounding
+  `stub` and level `unverified`. Generated BFM wrapper testbenches (Phase 3)
+  are recorded as `stimulus` and never instantiate a stand-in DUT.
+- **Receipt evidence list:** every file relied on is recorded with role
+  (`rtl`, `netlist`, `doc`, `vcd`, `stimulus`, `stub-*`), path, SHA-256 and
+  repository origin (root, revision, dirty); stubs and stimulus carry
+  `counts_as_evidence: false`.
+- **Verification is reported per region**, never as one blanket level:
+  `verification.regions[]` has one entry per figure scope, SoC block, stub
+  module and gate region (`level`, `grounding: rtl|vcd|doc|stub|none`,
+  `reason`, and `equivalence` for gate regions). The top-level `level` is the
+  common level when all regions agree, otherwise `mixed`. Schema rules make
+  `structural-only` require grounding `rtl` and `doc`/`stub`/`none` require
+  `unverified` with a reason.
+- **SoC context without SoC RTL** (typical for IP deliveries): SoC-level blocks
+  are doc-grounded; only the IP boundary is RTL-checked — the accelerator
+  block's `ports` against the IP top module (`rtl.top: true`,
+  `rtl/boundary-mismatch`) and the address window size against the local
+  address port width (`rtl.addr_port`, `rtl/addr-window-mismatch`). Context
+  subordinates without a documented window use `address_unknown: true`
+  (warning `soc/address-unknown`).
+
 - `visual-check` (optional, headless Chrome): loads the delivered SVG at print
   size, measures rendered text boxes for overlap and point size, renders a
   grayscale raster and checks adjacent-fill luminance separation, stores PNGs.
@@ -1057,11 +1302,29 @@ coverage is informative, never an error.
   (`validate` schema-only, `lint-svg`, `check-rtl`, `adapters`, `doctor`),
   Verilator extractor with two-pass auto-blackbox, tests, SKILL.md draft,
   evals plan.
-- Phase 2: datapath **and microarch/SoC**: semantic checks (datapath, memory
-  map, fabrics/bridges, domains), skin-driven ELK layout + SVG in
-  `netlist-mono` with 1col/2col re-layout, address-map table figure,
-  outlined-text PDF spike (opentype.js + pdfkit), source-pin verification,
-  `deliver` + receipts, SoC-level structural RTL cross-check.
+- Phase 2 (implemented; see docs/PHASE2_SUMMARY.md): datapath **and
+  microarch/SoC** semantic checks (datapath, memory map, fabrics/bridges,
+  domains), skin-driven ELK datapath renderer in `netlist-mono` (bar mux,
+  parametric IEEE gates, blackbox hatch), deterministic row/bus SoC renderer,
+  2col required / 1col best effort, address-map table figure, outlined-text PDF
+  (opentype.js + pdfkit + svg-to-pdfkit), source-pin verification, `deliver` +
+  receipts with evidence origins and per-region verification, evidence guard,
+  structural RTL cross-checks (datapath transfers, registers, domains, mux
+  order, latency; SoC instances, params, bus ports, IRQ, IP boundary, address
+  window), mixed-abstraction regions with RTL-grounded gate expansion
+  (`expand-cone`) and equivalence checks.
+  Revised acceptance: (a) a decoder datapath from the user's real RTL; (b1) the user's IP in
+  its documented SoC context (doc-grounded blocks, IP boundary RTL-checked);
+  (b2) the SoC cross-check itself is proven on a tiny generic unit-test fixture
+  only (never evidence).
+  Later Phase 2 addenda, also implemented: (Q) functional block names from a
+  controlled vocabulary with `label/unreadable` lint and `--quality paper`
+  (§4.5, CONVENTIONS §4.3); (R) exact region frames via ELK compound nodes,
+  frame/wire/text collision checks and crossing counts (§8, §9.4); (S)
+  straight data trunks: shared pin grid, straightening pass and
+  `route/data-jog` (§9.4, CONVENTIONS §1.4); (T) distinguishable bus-operation
+  glyphs (`{ }` box, ripper taps, truncation label, `sext`/`zext`, `{N{ }}`)
+  and `glyph/distinguishable` (§4.5, CONVENTIONS §2.3, §3.5).
 - Phase 3: WaveDrom integration (fitting + figma-safe post-process + golden
   test); `vcd2wavejson`; sim-compare; BFM helper; FSM checks + renderer;
   datapath IR↔netlist cross-checks; FSM extraction from `case(state)`;

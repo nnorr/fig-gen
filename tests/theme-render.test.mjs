@@ -15,11 +15,19 @@ test('default skin passes the skin lint (bar kinds distinct, mux has select)', (
   assert.deepEqual(checkSkin(loadSkin()), []);
 });
 
-test('skin lint flags a join bar that looks like the mux bar', () => {
+test('skin lint rejects a concatenation or split drawn as a filled bar (glyph/distinguishable)', () => {
   const skin = loadSkin();
-  skin.symbols.join.width = skin.symbols.mux.bar.width;
-  skin.symbols.join.label = null;
-  assert.ok(checkSkin(skin).some((d) => d.code === 'skin/bar-kinds-indistinct'));
+  skin.symbols.join = { parametric: 'bus-bar', width: skin.symbols.mux.bar.width, fill: 'ink' };
+  const diags = checkSkin(skin);
+  assert.ok(diags.some((d) => d.code === 'glyph/distinguishable'));
+  assert.ok(diags.some((d) => d.code === 'skin/bar-kinds-indistinct'));
+  const skin2 = loadSkin();
+  skin2.symbols.split.parametric = 'bus-bar';
+  assert.ok(checkSkin(skin2).some((d) => d.code === 'glyph/distinguishable'));
+  const skin3 = loadSkin();
+  skin3.symbols.pipeline_register.wedge = false;
+  assert.ok(checkSkin(skin3).some((d) => d.code === 'glyph/distinguishable'));
+  assert.deepEqual(checkSkin(loadSkin()), []);
 });
 
 for (const variant of ['1col', '2col']) {

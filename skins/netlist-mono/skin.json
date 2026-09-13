@@ -1,25 +1,74 @@
 {
   "skin": "netlist-mono",
-  "version": "1.1.0",
-  "description": "Default datapath theme: clean monochrome schematic in the spirit of netlistsvg (idea only; geometry drawn fresh for rtl-figures). Tokens follow references/CONVENTIONS.md §12. All units are print points. Override per figure (meta.style) or per lab theme (a skin file with the same shape; unspecified keys inherit).",
+  "version": "1.2.0",
+  "description": "Default datapath theme: clean monochrome schematic in the spirit of netlistsvg (idea only; geometry drawn fresh for fig-gen). Tokens follow references/CONVENTIONS.md §12. All units are print points. Override per figure (meta.style) or per lab theme (a skin file with the same shape; unspecified keys inherit).",
   "tokens": {
     "background": "#FFFFFF",
     "ink": "#000000",
     "ctrl": "#000000",
-    "fill": { "logic": "#FFFFFF", "storage": "#D9D9D9", "bar": "#BFBFBF", "offchip": "#BFBFBF", "ink": "#000000" },
-    "font": { "family": "Arial, Helvetica, sans-serif", "label_pt": 8, "secondary_pt": 7 },
+    "fill": {
+      "logic": "#FFFFFF",
+      "storage": "#D9D9D9",
+      "bar": "#BFBFBF",
+      "offchip": "#BFBFBF",
+      "ink": "#000000"
+    },
+    "font": {
+      "family": "Arial, Helvetica, sans-serif",
+      "label_pt": 8,
+      "secondary_pt": 7
+    },
     "stroke": {
       "wire": 0.6,
       "bus": 1.2,
       "control": 0.6,
-      "outline": { "default": 0.8 }
+      "outline": {
+        "default": 0.8
+      }
     },
-    "dash": { "control": [2, 1.5], "reset": [0.8, 1.2] },
+    "dash": {
+      "control": [
+        2,
+        1.5
+      ],
+      "reset": [
+        0.8,
+        1.2
+      ]
+    },
     "junction_diam_factor": 2.5,
-    "arrow": { "length": 4.5, "width": 3.2, "at": ["bus", "control"] },
-    "bus_slash": { "length": 6, "offset": 7, "label_gap": 1.5 },
-    "min_gap": { "wire": 6, "block": 14 },
-    "block_margin": 5
+    "arrow": {
+      "length": 4.5,
+      "width": 3.2,
+      "at": [
+        "bus",
+        "wire",
+        "control",
+        "clock",
+        "reset"
+      ]
+    },
+    "bus_slash": {
+      "length": 6,
+      "offset": 7,
+      "label_gap": 1.5
+    },
+    "min_gap": {
+      "wire": 6,
+      "block": 14
+    },
+    "block_margin": 5,
+    "route": {
+      "jog_min_offset_pt": 12,
+      "max_crossings": {
+        "data": 2,
+        "control": 8,
+        "mixed": 6
+      },
+      "crossing_weight": 100,
+      "description": "jog_min_offset_pt: a data-net level change shorter than this is a redundant jog (error). max_crossings: warning thresholds per net class. crossing_weight: straightening cost of one wire crossing relative to a redundant jog (1000) and a bend (1).",
+      "min_parallel_gap_pt": 4
+    }
   },
   "elk": {
     "variants": {
@@ -39,7 +88,9 @@
         "elk.layered.spacing.edgeNodeBetweenLayers": 6,
         "elk.layered.spacing.edgeEdgeBetweenLayers": 6
       }
-    }
+    },
+    "min_layer_gap": 10,
+    "min_layer_gap_description": "Floor for the gap between layers in tight retries: a width slash, its number and an arrowhead must fit on any wire between two layers (width/missing)."
   },
   "symbols": {
     "mux": {
@@ -48,109 +99,328 @@
       "index_font": "secondary",
       "index_gap": 1.5,
       "select_side": "NORTH",
-      "bar": { "width": 5, "pin_pitch": 12, "fill": "ink" },
-      "trapezoid": { "width": 16, "pin_pitch": 12, "taper_ratio": 0.5, "end_pad": 8, "fill": "logic", "index_inset": 1 }
+      "bar": {
+        "width": 5,
+        "pin_pitch": 12,
+        "fill": "ink"
+      },
+      "trapezoid": {
+        "width": 16,
+        "pin_pitch": 12,
+        "taper_ratio": 0.5,
+        "end_pad": 8,
+        "fill": "logic",
+        "index_inset": 1
+      }
+    },
+    "gates": {
+      "parametric": "ieee-distinctive",
+      "description": "Gate-level symbols (AND/OR/XOR/NAND/NOR/XNOR/NOT/BUF, n inputs) drawn from parameters; inverted pins get bubbles. Used for comb gate ops with more than two inputs, inversions, or inside gate-level regions.",
+      "width": 22,
+      "pin_pitch": 6,
+      "min_height": 16,
+      "bubble_diameter": 3.5,
+      "xor_gap": 3.5,
+      "fill": "logic"
+    },
+    "blackbox": {
+      "hatch_spacing": 5,
+      "hatch_stroke": 0.5,
+      "hatch_color": "#BFBFBF"
+    },
+    "region_frame": {
+      "dash": [
+        2,
+        2
+      ],
+      "stroke": 0.5,
+      "pad": 5
     },
     "join": {
-      "parametric": "bus-bar",
-      "width": 2.5,
+      "parametric": "concat-box",
+      "description": "Concatenation (CONVENTIONS §2.3.3): hollow outlined box with { } inside; inputs enter on the left, MSB field on top, each labeled with its destination bit range in the result.",
+      "min_width": 14,
       "pin_pitch": 12,
-      "fill": "ink",
+      "fill": "logic",
       "label": "{ }",
-      "label_font": "secondary"
+      "label_font": "secondary",
+      "label_gap": 1.5,
+      "input_range_labels": true
     },
     "split": {
-      "parametric": "bus-bar",
-      "width": 2.5,
+      "parametric": "bus-ripper",
+      "description": "Split (CONVENTIONS §2.3.1): the source bus is a spine; each slice leaves through a 45° ripper stub labeled [msb:lsb]; no junction dot, no body.",
       "pin_pitch": 12,
-      "fill": "ink",
-      "slice_labels": true,
+      "stub": 5,
+      "in_stub": 8,
       "label_font": "secondary",
-      "label_gap": 1.5
+      "label_gap": 1.5,
+      "dot_at_tap": false
     },
     "register": {
-      "size": [16, 24],
+      "size": [
+        16,
+        24
+      ],
       "fill": "storage",
       "body": [
-        { "el": "rect", "x": 0, "y": 0, "width": 16, "height": 24, "role": "outline" },
-        { "el": "path", "d": "M5 24 L8 19.5 L11 24", "role": "wedge" }
+        {
+          "el": "rect",
+          "x": 0,
+          "y": 0,
+          "width": 16,
+          "height": 24,
+          "role": "outline"
+        },
+        {
+          "el": "path",
+          "d": "M5 24 L8 19.5 L11 24",
+          "role": "wedge"
+        }
       ],
       "pins": {
-        "d": { "x": 0, "y": 12, "side": "WEST", "class": "data" },
-        "q": { "x": 16, "y": 12, "side": "EAST", "class": "data" },
-        "en": { "x": 8, "y": 0, "side": "NORTH", "class": "control", "optional": "enable" },
-        "rst": { "x": 12, "y": 24, "side": "SOUTH", "class": "reset", "optional": "reset_pin" }
+        "d": {
+          "x": 0,
+          "y": 12,
+          "side": "WEST",
+          "class": "data"
+        },
+        "q": {
+          "x": 16,
+          "y": 12,
+          "side": "EAST",
+          "class": "data"
+        },
+        "en": {
+          "x": 8,
+          "y": 0,
+          "side": "NORTH",
+          "class": "control",
+          "optional": "enable"
+        },
+        "rst": {
+          "x": 12,
+          "y": 24,
+          "side": "SOUTH",
+          "class": "reset",
+          "optional": "reset_pin"
+        }
       },
-      "label": { "inside": true, "font": "secondary" }
+      "label": {
+        "inside": true,
+        "font": "secondary"
+      }
     },
     "xor": {
-      "size": [24, 20],
+      "size": [
+        24,
+        20
+      ],
       "fill": "logic",
       "body": [
-        { "el": "path", "d": "M0 0 Q6 10 0 20", "role": "line" },
-        { "el": "path", "d": "M5 0 Q15 0 24 10 Q15 20 5 20 Q11 10 5 0 Z", "role": "outline" },
-        { "el": "path", "d": "M0 5 L7.25 5 M0 15 L7.25 15", "role": "line" }
+        {
+          "el": "path",
+          "d": "M0 0 Q6 10 0 20",
+          "role": "line"
+        },
+        {
+          "el": "path",
+          "d": "M5 0 Q15 0 24 10 Q15 20 5 20 Q11 10 5 0 Z",
+          "role": "outline"
+        },
+        {
+          "el": "path",
+          "d": "M0 5 L7.25 5 M0 15 L7.25 15",
+          "role": "line"
+        }
       ],
       "pins": {
-        "in0": { "x": 0, "y": 5, "side": "WEST", "class": "data" },
-        "in1": { "x": 0, "y": 15, "side": "WEST", "class": "data" },
-        "out": { "x": 24, "y": 10, "side": "EAST", "class": "data" }
+        "in0": {
+          "x": 0,
+          "y": 5,
+          "side": "WEST",
+          "class": "data"
+        },
+        "in1": {
+          "x": 0,
+          "y": 15,
+          "side": "WEST",
+          "class": "data"
+        },
+        "out": {
+          "x": 24,
+          "y": 10,
+          "side": "EAST",
+          "class": "data"
+        }
       }
     },
     "and": {
-      "size": [22, 20],
+      "size": [
+        22,
+        20
+      ],
       "fill": "logic",
       "body": [
-        { "el": "path", "d": "M2 0 L12 0 A10 10 0 0 1 12 20 L2 20 Z", "role": "outline" },
-        { "el": "path", "d": "M0 5 L2 5 M0 15 L2 15", "role": "line" }
+        {
+          "el": "path",
+          "d": "M2 0 L12 0 A10 10 0 0 1 12 20 L2 20 Z",
+          "role": "outline"
+        },
+        {
+          "el": "path",
+          "d": "M0 5 L2 5 M0 15 L2 15",
+          "role": "line"
+        }
       ],
       "pins": {
-        "in0": { "x": 0, "y": 5, "side": "WEST", "class": "data" },
-        "in1": { "x": 0, "y": 15, "side": "WEST", "class": "data" },
-        "out": { "x": 22, "y": 10, "side": "EAST", "class": "data" }
+        "in0": {
+          "x": 0,
+          "y": 5,
+          "side": "WEST",
+          "class": "data"
+        },
+        "in1": {
+          "x": 0,
+          "y": 15,
+          "side": "WEST",
+          "class": "data"
+        },
+        "out": {
+          "x": 22,
+          "y": 10,
+          "side": "EAST",
+          "class": "data"
+        }
       }
     },
     "or": {
-      "size": [24, 20],
+      "size": [
+        24,
+        20
+      ],
       "fill": "logic",
       "body": [
-        { "el": "path", "d": "M2 0 Q14 0 24 10 Q14 20 2 20 Q8 10 2 0 Z", "role": "outline" },
-        { "el": "path", "d": "M0 5 L4.25 5 M0 15 L4.25 15", "role": "line" }
+        {
+          "el": "path",
+          "d": "M2 0 Q14 0 24 10 Q14 20 2 20 Q8 10 2 0 Z",
+          "role": "outline"
+        },
+        {
+          "el": "path",
+          "d": "M0 5 L4.25 5 M0 15 L4.25 15",
+          "role": "line"
+        }
       ],
       "pins": {
-        "in0": { "x": 0, "y": 5, "side": "WEST", "class": "data" },
-        "in1": { "x": 0, "y": 15, "side": "WEST", "class": "data" },
-        "out": { "x": 24, "y": 10, "side": "EAST", "class": "data" }
+        "in0": {
+          "x": 0,
+          "y": 5,
+          "side": "WEST",
+          "class": "data"
+        },
+        "in1": {
+          "x": 0,
+          "y": 15,
+          "side": "WEST",
+          "class": "data"
+        },
+        "out": {
+          "x": 24,
+          "y": 10,
+          "side": "EAST",
+          "class": "data"
+        }
       }
     },
     "add": {
-      "size": [20, 32],
+      "size": [
+        20,
+        32
+      ],
       "fill": "logic",
       "body": [
-        { "el": "path", "d": "M0 0 L20 8 L20 24 L0 32 L0 19 L4 16 L0 13 Z", "role": "outline" }
+        {
+          "el": "path",
+          "d": "M0 0 L20 8 L20 24 L0 32 L0 19 L4 16 L0 13 Z",
+          "role": "outline"
+        }
       ],
-      "text": { "value": "+", "x": 12, "y": 16, "font": "label" },
+      "text": {
+        "value": "+",
+        "x": 12,
+        "y": 16,
+        "font": "label"
+      },
       "pins": {
-        "in0": { "x": 0, "y": 6, "side": "WEST", "class": "data" },
-        "in1": { "x": 0, "y": 26, "side": "WEST", "class": "data" },
-        "out": { "x": 20, "y": 16, "side": "EAST", "class": "data" }
+        "in0": {
+          "x": 0,
+          "y": 6,
+          "side": "WEST",
+          "class": "data"
+        },
+        "in1": {
+          "x": 0,
+          "y": 26,
+          "side": "WEST",
+          "class": "data"
+        },
+        "out": {
+          "x": 20,
+          "y": 16,
+          "side": "EAST",
+          "class": "data"
+        }
       }
     },
     "pipeline_register": {
       "parametric": "bar",
       "width": 7,
       "lane_pitch": 12,
-      "margin": 6,
+      "margin": 12,
       "fill": "bar",
       "outline": true,
       "wedge": true,
-      "label": { "above": true, "font": "secondary" }
+      "label": {
+        "above": true,
+        "font": "secondary",
+        "placement": "after-routing"
+      }
     },
     "port": {
       "parametric": "label-pin",
       "height": 8,
       "gap": 2.5,
       "font": "label"
+    },
+    "op_circle": {
+      "parametric": "circle-operator",
+      "description": "Arithmetic and GF operators drawn as a circle with the operator stroked inside (⊕ GF add/XOR, ⊗ GF multiply, + adder, − subtractor, × multiplier); the glyph is the name, no text.",
+      "diameter": 12,
+      "fill": "logic"
+    },
+    "truncate": {
+      "parametric": "wire-label",
+      "description": "Truncation (CONVENTIONS §2.3.2): one contiguous range kept is a [msb:lsb] label on the straight wire, no symbol.",
+      "min_length": 16,
+      "label_font": "secondary",
+      "label_gap": 1.5
+    },
+    "extend": {
+      "parametric": "box",
+      "description": "Sign/zero extension (CONVENTIONS §2.3.4): hollow outlined box with sext or zext, one input, one output.",
+      "fill": "logic",
+      "labels": {
+        "sign": "sext",
+        "zero": "zext"
+      },
+      "label_font": "secondary"
+    },
+    "replicate": {
+      "parametric": "box",
+      "description": "Replication (CONVENTIONS §2.3.5): hollow outlined box with {N{ }}, one input, output N x input width.",
+      "fill": "logic",
+      "label_font": "secondary"
     }
   },
   "yosys_cell_map": {
@@ -165,5 +435,15 @@
     "$or": "or",
     "$add": "add",
     "$concat": "join"
+  },
+  "glyph_lint": {
+    "solid_bar_is_mux": true,
+    "solid_bar_max_width": 8,
+    "mux_requires_select": true,
+    "forbid_split_join_bars": true,
+    "reserved_label_prefixes": [
+      "[",
+      "{"
+    ]
   }
 }

@@ -1,6 +1,6 @@
 # Prior Art: Hardware Figure Tools
 
-This is background research for the `rtl-figures` skill. The skill takes typed JSON and renders paper-quality SVG/PDF figures: RTL datapaths, FSM/control diagrams, timing waveforms, microarchitecture/pipeline diagrams, and SoC block diagrams.
+This is background research for the `fig-gen` skill. The skill takes typed JSON and renders paper-quality SVG/PDF figures: RTL datapaths, FSM/control diagrams, timing waveforms, microarchitecture/pipeline diagrams, and SoC block diagrams.
 
 Research date: 2026-09-13. Versions, dates and licenses come from each project's docs, from GitHub
 (`api.github.com/repos/...` `pushed_at` / `license`), or from package registries

@@ -31,7 +31,7 @@ library 3.x render SVG in plain Node (library + `onml`).
 - Annotations use native WaveDrom features: `node`/`edge` arrows with labels
   for latency and handshakes, `head`/`foot` ticks for the cycle axis,
   `config.hscale` for cycle width.
-- rtl-figures adds only the value around it (SPEC §6):
+- fig-gen adds only the value around it (SPEC §6):
   1. grounding: `verilator --binary --trace` → VCD → `vcd2wavejson`
      (signal + cycle-window selection) with VCD hash provenance;
   2. consistency checks on WaveJSON: clock periodicity, bus transitions vs
@@ -44,7 +44,7 @@ library 3.x render SVG in plain Node (library + `onml`).
      real text, pt units, meaningful group ids), checked by the same lint as
      other figure types;
   5. PDF from that SVG with outlined text.
-- rtl-figures' own tests use tiny self-written testbenches under
+- fig-gen' own tests use tiny self-written testbenches under
   `tests/fixtures/`; user projects' testbenches are never modified.
 
 ## Consequences

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://rtl-figures.local/schemas/rtl-netlist.schema.json",
+  "$id": "https://fig-gen.local/schemas/rtl-netlist.schema.json",
   "title": "Normalized RTL netlist produced by any extraction adapter",
   "type": "object",
   "additionalProperties": false,
@@ -29,7 +29,9 @@
           }
         },
         "defines": { "type": "object", "additionalProperties": { "type": "string" } },
-        "params": { "type": "object" }
+        "params": { "type": "object" },
+        "source_root": { "type": "string", "description": "Absolute root that relative file paths are resolved against (evidence origin)." },
+        "work_dir": { "type": "string", "description": "Tool work directory (never evidence)." }
       }
     },
     "modules": {
@@ -142,6 +144,38 @@
                     }
                   }
                 }
+              }
+            }
+          },
+          "exprs": {
+            "description": "Unconditional continuous assignments with their expression trees (target[index] = expr).",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["target", "expr"],
+              "properties": {
+                "target": { "type": "string" },
+                "index": { "type": "integer" },
+                "width": { "type": "integer" },
+                "expr": { "type": "object" },
+                "source": { "$ref": "#/$defs/loc" }
+              }
+            }
+          },
+          "muxes": {
+            "description": "2:1 conditional assignments (target = sel ? in1 : in0), by contributing signal names.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["target", "sel", "in0", "in1"],
+              "properties": {
+                "target": { "type": "string" },
+                "sel": { "type": "array", "items": { "type": "string" } },
+                "in0": { "type": "array", "items": { "type": "string" } },
+                "in1": { "type": "array", "items": { "type": "string" } },
+                "source": { "$ref": "#/$defs/loc" }
               }
             }
           },

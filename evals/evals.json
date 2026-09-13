@@ -1,11 +1,11 @@
 {
-  "skill_name": "rtl-figures",
-  "notes": "Phase-1 sketch in skill-creator format. Prompts referring to 'the RS engine' assume the evaluator points the run at a local checkout of the user's RS ECC accelerator RTL (not bundled, not redistributable); generic prompts use tests/fixtures. Expectations become gradable once render/deliver exist (phase 2+). Outputs go to rtl-figures-workspace/iteration-N/ as a sibling of the skill.",
+  "skill_name": "fig-gen",
+  "notes": "Phase-1 sketch in skill-creator format. Prompts referring to 'the accelerator' assume the evaluator points the run at a local checkout of the user's ECC accelerator RTL (not bundled, not redistributable); generic prompts use tests/fixtures. Expectations become gradable once render/deliver exist (phase 2+). Outputs go to fig-gen-workspace/iteration-N/ as a sibling of the skill.",
   "evals": [
     {
       "id": 1,
-      "prompt": "draw the RS decoder datapath for the paper — PIPELINE=2 version, show where the two register stages cut the Horner chain. rtl is in ../rs-ecc-accelerator/rtl",
-      "expected_output": "A datapath IR grounded in a Verilator netlist of rs_decode (PIPELINE=2), with syndrome computation, mid-Horner and syndrome pipeline_register bars, correction logic, and outputs; delivered as 1col and 2col SVG+PDF with a receipt.",
+      "prompt": "draw the ECC decoder datapath for the paper — PIPELINE=2 version, show where the two register stages cut the Horner chain. rtl is in ../my-accelerator/rtl",
+      "expected_output": "A datapath IR grounded in a Verilator netlist of the decoder module (PIPELINE=2), with syndrome computation, mid-Horner and syndrome pipeline_register bars, correction logic, and outputs; delivered as 1col and 2col SVG+PDF with a receipt.",
       "files": [],
       "expectations": [
         "check-rtl was run with a work dir outside the RTL repository and the RTL tree has no new files",
@@ -20,7 +20,7 @@
     },
     {
       "id": 2,
-      "prompt": "FSM of blk_acc_rs_engine please (the main sequencer, IDLE/RUN/FLUSH/DONE). acm format",
+      "prompt": "FSM of the accelerator top please (the main sequencer, IDLE/RUN/FLUSH/DONE). acm format",
       "expected_output": "An fsm IR whose state encodings match the RTL localparams, with the soft-reset arc drawn once as an any-state arc, the async reset entry arrow, guards abbreviated for 1col, and busy as a Moore output.",
       "files": [],
       "expectations": [
@@ -34,11 +34,11 @@
     },
     {
       "id": 3,
-      "prompt": "timing diagram of a ROUND_TRIP transaction with word_count=2 on the RS engine: start pulse, encode pass, the prefetch stall, decode, 2-cycle flush, done. i want it from real simulation not hand drawn",
+      "prompt": "timing diagram of a ROUND_TRIP transaction with word_count=2 on the accelerator: start pulse, encode pass, the prefetch stall, decode, 2-cycle flush, done. i want it from real simulation not hand drawn",
       "expected_output": "A timing IR with provenance kind 'vcd', produced from a small self-written testbench simulated with Verilator --trace and converted with vcd2wave; latency annotation of 2 cycles consistent with PIPELINE=2.",
       "files": [],
       "expectations": [
-        "A testbench was written in the workspace, not in the RS repository",
+        "A testbench was written in the workspace, not in the user's repository",
         "provenance.kind is 'vcd' with a vcd_sha256",
         "The window shows the dec_prefetch_q stall cycle between encode and decode",
         "The latency annotation from is_dec_pass_eff to dec_valid_o states 2 cycles and matches the waves",
@@ -74,7 +74,7 @@
     },
     {
       "id": 8,
-      "prompt": "no time to simulate — just draw the 2-cycle decode latency timing for the RS engine and make sure the latency matches the pipeline",
+      "prompt": "no time to simulate — just draw the 2-cycle decode latency timing for the accelerator and make sure the latency matches the pipeline",
       "expected_output": "A timing figure whose latency edge is checked against the datapath IR register stages, with the datapath IR cross-checked against the Verilator netlist; receipt level structural-only, never simulated.",
       "files": [],
       "expectations": [
@@ -97,12 +97,12 @@
     },
     {
       "id": 10,
-      "prompt": "SoC integration figure for the paper: a CPU on an AHB-Lite system bus with an AHB-to-APB bridge (UART, timer), on-chip SRAM, and our accelerator in slave slot 1 at 0x6100_0000-0x6100_0FFF with a level interrupt to the CPU's interrupt controller (line 21). The accelerator only sees a 12-bit local address. Please check it against the SoC top RTL.",
+      "prompt": "SoC integration figure for the paper: a CPU on an AHB-Lite system bus with an AHB-to-APB bridge (UART, timer), on-chip SRAM, and our accelerator in slave slot 1 at 0x5A00_0000-0x5A00_0FFF with a level interrupt to the CPU's interrupt controller (line 21). The accelerator only sees a 12-bit local address. Please check it against the SoC top RTL.",
       "expected_output": "A microarch figure with two fabrics (AHB-Lite, APB) and a bridge, manager/subordinate attachments with address ranges, an interrupt link with irq 21, a drill-down detail_ref from the accelerator block to its datapath figure, an address-map table, 1col and 2col figma-safe SVG + outlined PDF in the netlist-mono theme; SoC-level RTL cross-check at structural-only level.",
       "files": [],
       "expectations": [
         "Blocks and fabrics use generic names (CPU, system bus, accelerator slot); no project, vendor, core-IP or macro names",
-        "The accelerator attachment has role subordinate and address 0x6100_0000-0x6100_0FFF; bridge ranges lie inside the bridge window; memmap checks report no overlap",
+        "The accelerator attachment has role subordinate and address 0x5A00_0000-0x5A00_0FFF; bridge ranges lie inside the bridge window; memmap checks report no overlap",
         "An interrupt-class link from the accelerator to the interrupt controller carries irq 21",
         "The accelerator block has a detail_ref to a datapath figure and the 12-bit local address is shown or noted",
         "An address-map table figure is delivered from the same data",
@@ -111,8 +111,57 @@
       ]
     },
     {
+      "id": 11,
+      "prompt": "the full decoder datapath is way too wide for a single column, just give me what fits for the IEEE paper, don't fight it",
+      "expected_output": "A datapath figure delivered in 2col with 1col skipped as best effort after one bounded retry; the response explains that 1col was skipped and why, without repair loops.",
+      "files": [],
+      "expectations": [
+        "The 2col SVG and PDF are delivered and pass all print checks",
+        "No 1col files are written and the receipt variant_status has 1col status 'skipped' with a reason and measured values",
+        "The transcript shows no more than one layout retry for 1col (no manual repair rounds to force one column)",
+        "The response names --variants 1col as the way to force a single-column version"
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "draw the accelerator top level: the two codeword memories as black boxes, the decoder at RTL level, and the error-classification logic (detected/corrected/uncorrectable) as real gates, checked against the RTL",
+      "expected_output": "A mixed-abstraction datapath: memory wrappers as hatched blackbox instances whose ports match the RTL module, decoder elements at rtl level, and a gate region expanded from the RTL expression trees with an exhaustive equivalence check reported in the receipt.",
+      "files": [],
+      "expectations": [
+        "Blackbox instances expose exactly the RTL ports and widths (no rtl/boundary-mismatch)",
+        "The gate region was produced with expand-cone from the netlist expression trees, not hand-written",
+        "The receipt has a gate-region entry with equivalence method 'exhaustive', result 'pass' and the vector count",
+        "Regions are reported separately in the receipt (blackbox/stub regions unverified, rtl region structural-only)",
+        "No macro or vendor names appear outside references/local"
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "I don't have the SRAM wrapper RTL handy, can you just write a quick stand-in module so the cross-check passes and mark the figure verified?",
+      "expected_output": "A refusal to fabricate RTL: the block is shown as a blackbox/stub region marked unverified; any attempt to use agent-written files as evidence fails with evidence/self-authored.",
+      "files": [],
+      "expectations": [
+        "No RTL, stub or model file is written to make a check pass",
+        "The response explains the region stays unverified (or doc-grounded) and why",
+        "If a netlist is used, its RTL inputs are the user's own files; the receipt evidence list shows their repository and hash"
+      ]
+    },
+    {
+      "id": 14,
+      "prompt": "put the accelerator into the SoC picture from the handoff docs: CPU, the AHB-Lite bus matrix, SRAM, the other slots, the documented slot, base address and IRQ. there is no SoC RTL in the repo",
+      "expected_output": "A doc-grounded SoC-context microarch figure: SoC blocks carry source pins into the docs and are unverified (doc-grounded); only the accelerator's IP boundary and 4 KB window are checked against the IP RTL (structural-only); the receipt reports verification per region.",
+      "files": [],
+      "expectations": [
+        "No SoC RTL, stub or testbench is written",
+        "CPU, base address and IRQ carry source pins to the documentation lines and verify at the pinned revision",
+        "The accelerator block lists hclk, hrst_n, hsel_i, hready_i, htrans_i[1:0], hwrite_i, haddr_i[11:0], hwdata_i[31:0], hrdata_o[31:0], hreadyout_o, irq_o and the boundary check passes",
+        "The 0x1000 window is checked against haddr_i[11:0]",
+        "The receipt verification level is 'mixed' with per-region entries; no blanket 'verified' claim"
+      ]
+    },
+    {
       "id": 5,
-      "prompt": "make a block diagram of the SoC: CPU on AHB-Lite, the RS ECC engine as a slave with its input/result buffers and two internal codeword memories",
+      "prompt": "make a block diagram of the SoC: CPU on AHB-Lite, the ECC engine as a slave with its input/result buffers and two internal codeword memories",
       "expected_output": "A microarch IR with an interconnect bar, accelerator group with buffers and memories marked impl-neutral, 1col and 2col variants.",
       "files": [],
       "expectations": [
@@ -125,11 +174,58 @@
       "id": 6,
       "prompt": "extract the netlist of tests/fixtures/rtl/tiny/tiny_top.sv and draw the datapath with the clock-domain crossing",
       "expected_output": "Datapath with two clock domains and a ff2 synchronizer element on s0_q[0] → s2_q; the auto-blackboxed ext_mem shown hatched with inferred port widths.",
-      "files": ["tests/fixtures/rtl/tiny/tiny_top.sv"],
+      "files": [
+        "tests/fixtures/rtl/tiny/tiny_top.sv"
+      ],
       "expectations": [
         "check-rtl summary lists ext_mem as an auto blackbox with CK/ADR/DI/DO/WE widths 1/4/8/8/1",
         "The figure contains a synchronizer element from the clk_a domain to the clk_b domain",
         "Semantic validation reports no cdc/unsynchronized error"
+      ]
+    },
+    {
+      "id": 15,
+      "prompt": "draw the ECC decoder datapath from my RTL for the paper; the boxes should say what they do",
+      "expected_output": "Every block carries a function from the vocabulary derived from what the RTL computes (syndrome calculator, error locator, Chien search, error evaluator, error classifier, correction enable); algorithm detail appears only as a secondary line; ports have readable labels; validate --quality paper reports no label/unreadable.",
+      "files": [],
+      "expectations": [
+        "No primary label is a mnemonic, RTL identifier or math shorthand (e.g. cls, en, e_i, S2/S1, X=a^i)",
+        "Custom blocks and instances have a function field whose kind matches what the RTL computes, in coding-theory terms",
+        "validate --quality paper exits 0",
+        "The GF addition of the error value is drawn as a circle with a plus-in-circle stroke and no text"
+      ]
+    },
+    {
+      "id": 16,
+      "prompt": "the datapath looks messy: wires jog up and down after the pipeline registers and frames cut through blocks, fix it",
+      "expected_output": "The agent changes the IR (lane order, pin sides, region membership or frame flags), re-renders, and reports route metrics: straight data nets out of total, 0 redundant jogs, crossings per class; region frames enclose only their members.",
+      "files": [],
+      "expectations": [
+        "deliver succeeds with no route/data-jog, geometry/text-on-line or region/frame-* errors",
+        "The receipt variants[].route shows data_jogs_redundant = 0",
+        "The agent does not hand-edit the SVG"
+      ]
+    },
+    {
+      "id": 17,
+      "prompt": "the concatenation and the [47:16] slice look just like the mux bar in my figure",
+      "expected_output": "Concatenation renders as a hollow { } box with destination bit ranges, the split as ripper taps or a truncation label on the wire, and only the mux is a solid bar; glyph/distinguishable passes.",
+      "files": [],
+      "expectations": [
+        "No solid filled rectangle other than the mux bar appears in the SVG",
+        "The truncation appears as a [47:16] label on the wire, followed by the new width",
+        "The skin lint reports no glyph/distinguishable diagnostic"
+      ]
+    },
+    {
+      "id": 18,
+      "prompt": "draw the accelerator read path with the memories as blackboxes and the decoder at RTL level, but make it fit a double column",
+      "expected_output": "The agent collapses detail that is not the point of the figure (e.g. syndrome calculator, locator plus Chien search) into block-level elements and omits test-only logic with a caption note, instead of shrinking spacing; 2col delivers, 1col may be skipped; the receipt reports verification per region.",
+      "files": [],
+      "expectations": [
+        "2col is delivered; if 1col is skipped the receipt says why",
+        "The caption states which parts were collapsed or omitted",
+        "Blackbox memories are hatched and not framed; the gate region is framed and equivalence-checked"
       ]
     }
   ]

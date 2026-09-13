@@ -9,7 +9,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const SKIP_DIRS = new Set(['.git', 'node_modules', 'local', '.rtlfig-work', 'out', '.claude']);
+const SKIP_DIRS = new Set(['.git', 'node_modules', 'local', '.figgen-work', 'out', '.claude']);
 const TEXT_EXT = new Set(['.mjs', '.js', '.json', '.md', '.sv', '.v', '.svg', '.yaml', '.yml', '']);
 
 function* walk(dir) {

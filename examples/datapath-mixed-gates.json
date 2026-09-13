@@ -1,0 +1,246 @@
+{
+  "schema_version": 1,
+  "figure_type": "datapath",
+  "meta": {
+    "title": "Mixed abstraction: gate-level classifier beside a blackbox memory",
+    "caption": "Generic example: the error classifier is drawn at gate level, the memory as a blackbox with only its ports.",
+    "print": {
+      "profile": "ieee",
+      "variants": [
+        "1col",
+        "2col"
+      ]
+    },
+    "style": {
+      "grayscale": true,
+      "font_family": "Arial",
+      "svg_profile": "figma-safe"
+    }
+  },
+  "clock_domains": [],
+  "elements": [
+    {
+      "id": "a_zero",
+      "kind": "port",
+      "dir": "in",
+      "width": 1,
+      "class": "control",
+      "label": "A is zero"
+    },
+    {
+      "id": "b_zero",
+      "kind": "port",
+      "dir": "in",
+      "width": 1,
+      "class": "control",
+      "label": "B is zero"
+    },
+    {
+      "id": "hits",
+      "kind": "port",
+      "dir": "in",
+      "width": 4,
+      "class": "control",
+      "label": "hit flags"
+    },
+    {
+      "id": "g_det",
+      "kind": "comb",
+      "op": "nand",
+      "width": 1,
+      "inputs": 2
+    },
+    {
+      "id": "g_any",
+      "kind": "comb",
+      "op": "reduce",
+      "reduce": "or",
+      "width": 4
+    },
+    {
+      "id": "g_cor",
+      "kind": "comb",
+      "op": "and",
+      "width": 1,
+      "inputs": 4,
+      "invert_inputs": [
+        1,
+        2
+      ]
+    },
+    {
+      "id": "g_unc",
+      "kind": "comb",
+      "op": "and",
+      "width": 1,
+      "inputs": 2,
+      "invert_inputs": [
+        1
+      ]
+    },
+    {
+      "id": "det",
+      "kind": "port",
+      "dir": "out",
+      "width": 1,
+      "class": "control",
+      "label": "error detected"
+    },
+    {
+      "id": "cor",
+      "kind": "port",
+      "dir": "out",
+      "width": 1,
+      "class": "control",
+      "label": "corrected"
+    },
+    {
+      "id": "unc",
+      "kind": "port",
+      "dir": "out",
+      "width": 1,
+      "class": "control",
+      "label": "uncorrectable"
+    },
+    {
+      "id": "addr",
+      "kind": "port",
+      "dir": "in",
+      "width": 4,
+      "class": "control",
+      "label": "address"
+    },
+    {
+      "id": "mem",
+      "kind": "instance",
+      "module": "sram_1p",
+      "function": {
+        "kind": "memory"
+      },
+      "level": "blackbox",
+      "internals": "unknown",
+      "pin_labels": false,
+      "ports": [
+        {
+          "id": "raddr",
+          "dir": "in",
+          "width": 4,
+          "class": "control"
+        },
+        {
+          "id": "rdata",
+          "dir": "out",
+          "width": 8
+        }
+      ]
+    },
+    {
+      "id": "rdata",
+      "kind": "port",
+      "dir": "out",
+      "width": 8,
+      "label": "read data"
+    }
+  ],
+  "nets": [
+    {
+      "id": "n_az",
+      "width": 1,
+      "driver": "a_zero",
+      "sinks": [
+        "g_det.in0",
+        "g_cor.in1"
+      ]
+    },
+    {
+      "id": "n_bz",
+      "width": 1,
+      "driver": "b_zero",
+      "sinks": [
+        "g_det.in1",
+        "g_cor.in2"
+      ]
+    },
+    {
+      "id": "n_hits",
+      "width": 4,
+      "driver": "hits",
+      "sinks": [
+        "g_any.in0"
+      ]
+    },
+    {
+      "id": "n_any",
+      "width": 1,
+      "driver": "g_any.out",
+      "sinks": [
+        "g_cor.in3"
+      ]
+    },
+    {
+      "id": "n_det",
+      "width": 1,
+      "driver": "g_det.out",
+      "sinks": [
+        "g_cor.in0",
+        "g_unc.in0",
+        "det"
+      ]
+    },
+    {
+      "id": "n_cor",
+      "width": 1,
+      "driver": "g_cor.out",
+      "sinks": [
+        "g_unc.in1",
+        "cor"
+      ]
+    },
+    {
+      "id": "n_unc",
+      "width": 1,
+      "driver": "g_unc.out",
+      "sinks": [
+        "unc"
+      ]
+    },
+    {
+      "id": "n_addr",
+      "width": 4,
+      "driver": "addr",
+      "sinks": [
+        "mem.raddr"
+      ]
+    },
+    {
+      "id": "n_rdata",
+      "width": 8,
+      "driver": "mem.rdata",
+      "sinks": [
+        "rdata"
+      ]
+    }
+  ],
+  "regions": [
+    {
+      "id": "cls",
+      "label": "Error classifier (gates)",
+      "short_label": "Classifier",
+      "level": "gate",
+      "members": [
+        "g_det",
+        "g_any",
+        "g_cor",
+        "g_unc"
+      ]
+    },
+    {
+      "id": "bb",
+      "label": "blackbox",
+      "level": "blackbox",
+      "members": [
+        "mem"
+      ]
+    }
+  ]
+}

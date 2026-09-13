@@ -3,36 +3,185 @@
   "figure_type": "datapath",
   "meta": {
     "title": "Two-stage pipelined select-and-mask",
-    "print": { "profile": "ieee", "variants": ["1col", "2col"] },
-    "style": { "grayscale": true, "font_family": "Arial", "svg_profile": "figma-safe" }
+    "print": {
+      "profile": "ieee",
+      "variants": [
+        "1col",
+        "2col"
+      ]
+    },
+    "style": {
+      "grayscale": true,
+      "font_family": "Arial",
+      "svg_profile": "figma-safe"
+    }
   },
-  "params": { "W": 8 },
+  "params": {
+    "W": 8
+  },
   "clock_domains": [
-    { "id": "sys", "clock": "clk", "reset": { "net": "rst_n", "active": "low", "async": true } }
+    {
+      "id": "sys",
+      "clock": "clk",
+      "reset": {
+        "net": "rst_n",
+        "active": "low",
+        "async": true
+      }
+    }
   ],
   "elements": [
-    { "id": "a", "kind": "port", "dir": "in", "width": "W", "class": "data", "domain": "sys" },
-    { "id": "b", "kind": "port", "dir": "in", "width": "W", "class": "data", "domain": "sys" },
-    { "id": "sel", "kind": "port", "dir": "in", "width": 1, "class": "control", "domain": "sys" },
-    { "id": "y", "kind": "port", "dir": "out", "width": "W", "class": "data" },
-    { "id": "m0", "kind": "mux", "inputs": 2, "width": "W", "input_labels": { "0": "B", "1": "A" } },
-    { "id": "s0", "kind": "register", "width": "W", "domain": "sys", "reset": "async" },
-    { "id": "mask", "kind": "const", "value": "8'h5a" },
-    { "id": "x0", "kind": "comb", "op": "xor", "width": "W" },
-    { "id": "p1", "kind": "pipeline_register", "domain": "sys", "stage": 1,
-      "lanes": [ { "id": "data", "width": "W" } ] }
+    {
+      "id": "a",
+      "kind": "port",
+      "dir": "in",
+      "width": "W",
+      "class": "data",
+      "domain": "sys",
+      "label": "input A"
+    },
+    {
+      "id": "b",
+      "kind": "port",
+      "dir": "in",
+      "width": "W",
+      "class": "data",
+      "domain": "sys",
+      "label": "input B"
+    },
+    {
+      "id": "sel",
+      "kind": "port",
+      "dir": "in",
+      "width": 1,
+      "class": "control",
+      "domain": "sys",
+      "label": "select"
+    },
+    {
+      "id": "y",
+      "kind": "port",
+      "dir": "out",
+      "width": "W",
+      "class": "data",
+      "label": "output"
+    },
+    {
+      "id": "m0",
+      "kind": "mux",
+      "inputs": 2,
+      "width": "W",
+      "input_labels": {
+        "0": "B",
+        "1": "A"
+      }
+    },
+    {
+      "id": "s0",
+      "kind": "register",
+      "width": "W",
+      "domain": "sys",
+      "reset": "async"
+    },
+    {
+      "id": "mask",
+      "kind": "const",
+      "value": "8'h5a"
+    },
+    {
+      "id": "x0",
+      "kind": "comb",
+      "op": "xor",
+      "width": "W"
+    },
+    {
+      "id": "p1",
+      "kind": "pipeline_register",
+      "domain": "sys",
+      "stage": 1,
+      "lanes": [
+        {
+          "id": "data",
+          "width": "W"
+        }
+      ]
+    }
   ],
   "nets": [
-    { "id": "n_a", "width": "W", "driver": "a", "sinks": ["m0.in1"] },
-    { "id": "n_b", "width": "W", "driver": "b", "sinks": ["m0.in0"] },
-    { "id": "n_sel", "width": 1, "class": "control", "driver": "sel", "sinks": ["m0.sel"] },
-    { "id": "n_m", "width": "W", "driver": "m0.out", "sinks": ["s0.d"] },
-    { "id": "n_s0", "width": "W", "driver": "s0.q", "sinks": ["x0.in0"], "label": "s0_q" },
-    { "id": "n_mask", "width": "W", "driver": "mask.out", "sinks": ["x0.in1"] },
-    { "id": "n_x", "width": "W", "driver": "x0.out", "sinks": ["p1.d_data"] },
-    { "id": "n_y", "width": "W", "driver": "p1.q_data", "sinks": ["y"] }
+    {
+      "id": "n_a",
+      "width": "W",
+      "driver": "a",
+      "sinks": [
+        "m0.in1"
+      ]
+    },
+    {
+      "id": "n_b",
+      "width": "W",
+      "driver": "b",
+      "sinks": [
+        "m0.in0"
+      ]
+    },
+    {
+      "id": "n_sel",
+      "width": 1,
+      "class": "control",
+      "driver": "sel",
+      "sinks": [
+        "m0.sel"
+      ]
+    },
+    {
+      "id": "n_m",
+      "width": "W",
+      "driver": "m0.out",
+      "sinks": [
+        "s0.d"
+      ]
+    },
+    {
+      "id": "n_s0",
+      "width": "W",
+      "driver": "s0.q",
+      "sinks": [
+        "x0.in0"
+      ],
+      "label": "stage-0 value"
+    },
+    {
+      "id": "n_mask",
+      "width": "W",
+      "driver": "mask.out",
+      "sinks": [
+        "x0.in1"
+      ]
+    },
+    {
+      "id": "n_x",
+      "width": "W",
+      "driver": "x0.out",
+      "sinks": [
+        "p1.d_data"
+      ]
+    },
+    {
+      "id": "n_y",
+      "width": "W",
+      "driver": "p1.q_data",
+      "sinks": [
+        "y"
+      ]
+    }
   ],
   "annotations": [
-    { "kind": "latency", "from": "a", "to": "y", "cycles": 2, "text": "2 cycles" }
+    {
+      "kind": "latency",
+      "from": "a",
+      "to": "y",
+      "cycles": 2,
+      "text": "2 cycles"
+    }
   ]
 }

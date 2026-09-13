@@ -26,7 +26,7 @@ doc.meta.style = { ...doc.meta.style, ...(opt('mux-style') ? { mux_style: opt('m
 const profiles = JSON.parse(fs.readFileSync(path.join(root, 'profiles', 'print-profiles.json'), 'utf8'));
 const prefix = opt('prefix') || 'theme-sample';
 const outDir = path.join(root, 'docs', 'samples');
-const workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rtlfig-sample-'));
+const workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'figgen-sample-'));
 fs.mkdirSync(outDir, { recursive: true });
 
 const schema = await validateFigure('datapath', doc);

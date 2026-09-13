@@ -23,11 +23,11 @@ test('width expressions evaluate over params without eval', () => {
 });
 
 test('endpoint parsing round-trips', () => {
-  for (const text of ['hclk', 'u_mux.in1', 'reg_s1.q[7:0]', 'u_ecc/u_dec.valid_i', 'p1.q_data[3]']) {
+  for (const text of ['hclk', 'u_mux.in1', 'reg_s1.q[7:0]', 'u_core/u_dec.valid_i', 'p1.q_data[3]']) {
     assert.equal(formatEndpoint(parseEndpoint(text)), text);
   }
-  const e = parseEndpoint('u_ecc/u_dec.sym[15:8]');
-  assert.deepEqual(e.path, ['u_ecc', 'u_dec']);
+  const e = parseEndpoint('u_core/u_dec.sym[15:8]');
+  assert.deepEqual(e.path, ['u_core', 'u_dec']);
   assert.equal(e.port, 'sym');
   assert.deepEqual(e.slice, { msb: 15, lsb: 8, width: 8, valid: true });
   assert.equal(parseEndpoint('bad..port'), null);

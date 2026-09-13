@@ -183,14 +183,42 @@ Rules:
 
 | Net class | Stroke | Color | Dash | Arrowhead | Tag |
 |-----------|--------|-------|------|-----------|-----|
-| Data, 1 bit | 0.6 pt | `ink` | solid | at sink only if direction is unclear | [house] |
+| Data, 1 bit (computed flags, status outputs, compare / zero-detect / match results, classifier outputs) | 0.6 pt | `ink` | solid | at sink | [house] |
 | Data bus | 1.2 pt | `ink` | solid | at sink | [house] |
-| Control (select, enable, write-enable, valid/ready) | 0.6 pt | `ctrl` | solid (color mode) / dashed 2–1.5 (grayscale mode) | at sink | [house] |
-| Clock | 0.6 pt | `ink` | solid | none; use the clock wedge at the sink | [house] |
-| Reset | 0.6 pt | `ink` | dotted 0.8–1.2 | none | [house] |
+| Control (mux select, register/memory enable, write/chip enable, valid/ready handshake, controller strobes such as start/clear) | 0.6 pt | `ctrl` | solid (color mode) / dashed 2–1.5 (grayscale mode) | at sink | [house] |
+| Clock (when drawn) | 0.6 pt | `ink` | solid | at sink | [house] |
+| Reset (when drawn) | 0.6 pt | `ink` | dotted 0.8–1.2 | at sink | [house] |
+
+**Arrowheads [house].** Every net that ends at a block input pin or a figure
+output port gets an arrowhead, whatever its width or class. One exception: the
+inputs of gate symbols inside a gate-level region, where the gate shape already
+shows direction. A bus entering a split does not end there; it continues as the
+ripper spine and has no head. A skin that leaves a net kind out of `arrow.at`
+fails `arrow/missing` (error). *Why:* when some thin wires have heads and
+others don't, readers take the difference to mean something.
 | Configuration / quasi-static (CSR fields) | 0.6 pt | gray `#777` | dashed 1–1.5 | at sink | [house] |
 
 Rules:
+
+0. **The class comes from usage, not from names or width.** A net is
+   **control** only if **every sink** uses it as a select, an enable (register or
+   memory enable, write/chip enable) or a handshake (valid/ready) input. Clock and
+   reset keep their own styles. If **any sink consumes the net as a value**, it is
+   **data** and drawn solid. That includes a 1-bit result: "error detected", a
+   comparator or zero-detect output, a position-match vector, a classifier output.
+   - **Mixed use**: when one signal feeds both a value input and a select, the
+     **whole net is drawn solid**. The select pin itself marks the branch; the
+     style is not switched after the junction.
+   - A generic block whose output drives only select/enable pins (e.g. a
+     correction-enable block) produces a control net; its inputs are data when
+     they are values.
+   - The renderer derives the class from the sinks' roles (`role` on port
+     definitions, top-level ports and pipeline lanes; mux select, register and
+     memory enables are built in). An authored `class` that contradicts the usage
+     is an error (`net/class-style`) unless it carries a `class_reason`.
+   - *Why:* dashed means "this steers something". Drawing a computed flag dashed
+     tells the reader it is a control input when it is a result they should
+     follow as data.
 
 1. **Control MUST differ from data in at least two of: color, weight, dash.**
    [ext rationale: IEEE color + shape redundancy]. By default the renderer uses color
@@ -211,9 +239,14 @@ Rules:
 5. Never allow a **4-way junction** (two wires meeting at one dot from all four
    directions). Offset the tees by at least 4 pt. *Why:* after reduction, a 4-way dot
    looks the same as a crossing.
-6. Route orthogonally (horizontal and vertical segments only). Use at least 6 pt
-   between parallel wires, and at most 2 bends per net where possible. Diagonal
-   wires are allowed only in FSM arcs and in abstract dataflow figures (§11).
+6. Route orthogonally (horizontal and vertical segments only). Aim for 6 pt
+   between parallel wires, and at most 2 bends per net where possible. A wire
+   running parallel to a block outline or to another net's wire **closer than
+   4 pt** is an error (`route/edge-hugging`): it reads as part of the outline or
+   as one wire, and its crossings become ambiguous. Every wire gets its own
+   channel. Diagonal
+   wires are allowed only in FSM arcs, in abstract dataflow figures (§11), and as
+   the 4–6 pt 45° ripper stubs that mark a bus split (§2.3.1).
 
 ```
 data bus  ━━━━━━━━━━━▶        control  ───────────▶ (blue, thin)
@@ -221,6 +254,45 @@ junction  ━━━━●━━━━━▶           crossing  ━━━━┿�
               ┃
               ┗━━━━▶
 ```
+
+### 1.4 Straight data trunks [house]
+
+- **Data wires are straight by default**, usually horizontal west→east. A data
+  net's trunk from its source to its sink has **no bends** unless one is
+  unavoidable. Only these count:
+  - a fan-out branch to a block at least one pin pitch away in another row;
+  - a single turn into a pin on a block's top or bottom edge (a side input, or a tap);
+  - a feedback path;
+  - gate-symbol pin pitch;
+  - a straight path that no vertical re-ordering or pin re-assignment can clear.
+- **Re-order and re-assign before accepting a bend.** A full-row level change
+  counts as a bend to remove, not as "cross-row". Try these first:
+  - **Vertical re-ordering:** move either end block into line, with the ports
+    on its far side.
+  - **Pin re-assignment:** when a trunk feeds a block and also continues past
+    it (e.g. a codeword feeding one computation stage and travelling on to the
+    next pipeline register), the block's input becomes a tap on its bottom
+    edge. The trunk then runs straight underneath on its own lane, and the
+    neighbouring pipeline registers put that lane below the block's lanes,
+    far enough down to clear the block.
+
+  The renderer lays the figure out with and without taps and keeps the better
+  straightened route. Each remaining bend is reported with its justification
+  (`route/data-bend`, receipt `route.data_bends`). If a bend has none, meaning
+  a tried move would have removed it, the result is `route/data-jog` (error).
+- A **level change smaller than one pin pitch (12 pt)** on a data trunk is a
+  redundant jog and is not allowed (renderer error `route/data-jog`). Typical
+  causes are lanes that step up or down right after a pipeline bar, or a block
+  whose pins sit off the neighbour's lane grid. The layout fixes them: all
+  multi-pin symbols put their pins on one grid (pitch/2 + k·pitch), pipeline
+  bars pass lanes through at identical y, and a post-layout pass straightens
+  what remains. A detour, when needed, steps at least one full pitch.
+- Bends are free for **control, clock and reset** nets.
+- Keep wire **crossings** low. The renderer counts them per class (data,
+  control, mixed) and warns above a threshold (`route/crossings`).
+- *Why:* the reader's eye follows the data path. A jog implies structure (a
+  different row, a new stage) that isn't there, and every crossing is a
+  decision the reader has to make.
 
 ---
 
@@ -233,9 +305,18 @@ junction  ━━━━●━━━━━▶           crossing  ━━━━┿�
   vertical bus, at 7 pt.
 - Label every bus width **once**, near its source. Label it again after any operation
   that changes the width (extension, truncation, concatenation, split).
-- Do not label 1-bit wires (1-bit is the default).
-- Symbolic widths are fine: `/W`, `/log₂N`, `/m`. Say what the symbols mean in the
-  caption.
+- Do not label 1-bit wires (1-bit is the default). **A multi-bit data net shows
+  its width wherever that width is introduced or changed**: at a port or
+  constant, after a truncation, split, concatenation or extension, and on any
+  block output whose width none of the block's inputs carries (renderer error
+  `width/missing` when no label fits). A width that is only carried through (a
+  pipeline-register lane, a register, a mux, a same-width block) is labeled when
+  there is room and may be left to the label upstream.
+- **A width label is a single integer or a symbolic expression** (`48`, `/W`,
+  `/log₂N`, `/m`), **never a product** such as `6×8` or `6 × 8-bit` (renderer and
+  lint error `width/product-notation`). Structure such as "N symbols of W bits" goes
+  in the caption or a block's `function.detail`, never on a net or a mux.
+- Say what symbolic widths mean in the caption.
 - *Why:* this notation is common in textbooks and circuit papers. It costs almost no
   space and answers the reader's first question, "how wide is that?".
 
@@ -255,28 +336,122 @@ junction  ━━━━●━━━━━▶           crossing  ━━━━┿�
 - Use `[i]` for a single bit, `[N-1:0]` for a full parametric range, and
   `{a, b}` for concatenation (§2.3).
 
-### 2.3 Split and merge
+### 2.3 Split, truncation, concatenation, extension, replication
 
-- **Split [house]:** Draw the parent bus into a tap point. Each child leaves as a
-  thinner branch labeled with its slice. Use a **bus ripper**: a short 45° stub off the
-  bus, as in EDA schematics (Verdi nSchema / Virtuoso style), when the children leave
-  in the same direction. Use a plain tee when they leave in different directions.
-- **Merge / concatenation [house]:** Draw a narrow vertical bar (4 pt wide, filled
-  `ink`) that the child buses enter from the left and the merged bus leaves on the
-  right. Label it `{ }` above, or list the fields MSB first top-to-bottom.
-  *Why:* a bar with an explicit order removes the "which field is MSB?" ambiguity that
-  a plain junction dot has.
-- **Extension:** sign-extend or zero-extend is a small block labeled `SignExt` /
-  `ZeroExt` (or `sext`/`zext`), with widths on both sides. Do not draw it as a merge
-  bar.
+**Why this section changed.** The house mux is a solid filled bar (§3.1). The old
+split/merge rule also drew a thin filled bar (the netlistsvg `$_split_`/`$_join_`
+look). In earlier fig-gen datapath figures that meant a mux, a `{ }` join and a `[47:16]` split
+looked almost the same at 1-column size. Evidence below is from figures opened
+and inspected in `figures.yaml`, so the entries carry `verified: true` unless
+stated otherwise.
+
+**Evidence: what published figures actually draw**
+
+| Operation | Observed drawing | Where (figures.yaml) |
+|-----------|------------------|----------------------|
+| Split into several slices | Plain orthogonal branches off the bus, each with its own slash-N width and/or a field name (`C_h`, `C_l`, `x_l`). No symbol body. | F42 Bertels et al. FPL'24 Fig. 2 (redrawn from Ni et al.); F43 RI5CY Fig. 8 (32 → 16/16) |
+| Truncation | Only the width label changes (e.g. `24` → `12`). No symbol. | F42, F43 |
+| Concatenation | A small outlined box with `{ }` inside, defined in the figure legend as "Concatenation". Inputs 6 and 12 bits, output 18. | F41 Bertels et al. FPL'24 Fig. 3 (redrawn from Nguyen et al.) |
+| Concatenation (implicit) | Not drawn. The text says outputs "are concatenated together to the bus". | F36 McEliece Fig. 6 (text p. 13) |
+| Grouping parallel signals | Set-brace labels `{S1,…,S3}` with a vertical ellipsis. No merge symbol. | F37 BCH Fig. 2 |
+| Sign/zero extension | A labeled block: `align/extend` (load sign/zero extension), `decoder_imm`; a `Dec/Imm` cloud. Or absorbed into operator width: RI5CY's `17x17` and `9x9` multiplier blocks take sign-extended 16b/8b inputs with no extension glyph. | F47 RVCoreP Fig. 1; F46 Wildcat Fig. 1; F43. Textbook "Sign Extend" blocks (Harris & Harris, Patterson & Hennessy) are unverified |
+| Fields of one word | A strip of labeled cells with bit indices above, field names like `imm[31:3]`. | F48 Hwacha Figure 7 |
+| Bus rippers (45° entries) | **Not seen in any paper figure examined.** This is an EDA schematic convention: Altium bus entries are diagonal and bus labels use `Name[7..0]`. | Tool docs (§Sources) |
+| Replication `{N{x}}` | **Not seen in any figure examined.** | — |
+| Split/merge drawn as bars | netlistsvg default skin: split/join are 5-unit filled rectangles with `hi:lo` labels (tool). Spatz Fig. 2: unlabeled flat bars fan three 32-bit buses out to four datapaths and merge them back; the silhouette is identical to a trapezoid/bar mux. | Tool; F44 Spatz ICCAD'22 Fig. 2 (cautionary) |
+
+**Takeaway.** Papers never use a filled bar to mean split or concatenation, except
+tool output and one ambiguous example. Splits and truncation have no symbol body.
+Concatenation, when drawn, is an **outlined labeled box**. Extension is a **labeled
+block**. So the encoding below keeps "solid bar" for the mux alone.
+
+#### 2.3.1 Split: ripper taps [house]
+
+- Draw the source bus as one continuous spine (bus stroke 1.2 pt). Each extracted
+  slice leaves through a **45° ripper stub** (4–6 pt long, bus stroke) and then
+  continues orthogonally. Put the **`[msb:lsb]` label on the stub side**, at 7 pt.
+  The spine may continue past the last tap or end in the last stub.
+- **No junction dot at a tap. No symbol body.** Taps are spaced by at least the pin
+  pitch (12 pt).
+- Each child gets its own width slash only if its width isn't obvious from the slice
+  (`[31:26]` is 6 bits, so no slash is needed).
+- Slices are listed **MSB first**, in order along the flow. Overlapping slices
+  (the same bit in two taps) are allowed; label them exactly.
+- *Why:* evidence shows splits have no body (F42, F43). A plain tee, however,
+  is identical to **fanout** (a junction dot means *all* bits go to both sinks, §1
+  rule 4). The 45° stub is the one mark that says "a subset of the bits". It borrows
+  the EDA bus-entry convention and adds no filled shape to confuse with a mux.
+
+#### 2.3.2 Truncation: label only [house]
+
+- Keeping one contiguous range of a bus is **not a symbol**. Write `[msb:lsb]` on the
+  straight wire, 3–6 pt downstream of the source pin or of the point where the range
+  is taken. Then put the new width slash after it: `━━[47:16]━━╱32━━▶`.
+- If more than one range is taken from the same bus, it is a split (§2.3.1), not
+  several truncations.
+- *Why:* this matches the published figures (F42, F43), which only change the
+  width label. A label that starts with `[` is never a net name in this guide
+  (§3.5 rule D3), so it reads as a slice even in grayscale.
+
+#### 2.3.3 Concatenation: outlined `{ }` box [house]
+
+- Draw a **hollow outlined box**: outline 0.8 pt, fill `fill-logic` (white/`fill-1`),
+  at least 14 pt wide, height = inputs × pin pitch. Put `{ }` centered inside at 7 pt.
+- Inputs enter on the **left**, **MSB field at the top**. Label each input just
+  outside the box with the **destination bit range in the result** (`[15:8]`,
+  `[7:0]`). The output leaves on the right with the summed width slash. You may add
+  the field list `{a, b}` next to the output.
+- A constant field (`4'b0000`) is an input with a constant source label, not a
+  separate glyph. The whole pattern `{K'b0, x}` is zero extension (§2.3.4).
+- *Considered and rejected:* a **ripper merge** (45° entries converging into a bus).
+  1. It was not seen in any paper figure.
+  2. It is the mirror image of a split: at 1-column size in grayscale, only
+     arrowhead direction separates the two, which is exactly the confusion being
+     fixed.
+  3. Entries arriving from different directions can't all be 45° into one spine
+     without extra bends.
+
+  The `{ }` box is the one concatenation glyph found in a published legend (F41).
+  It shares no visual channel with the mux bar (hollow vs solid, text vs none, no
+  select pin).
+
+#### 2.3.4 Extension: labeled `sext` / `zext` box [house]
+
+- Draw an outlined box, same family as the concat box (0.8 pt outline, white fill),
+  containing `sext` or `zext` at 7 pt. It has exactly **one input and one output**,
+  with width slashes on both sides (`╱12` → `╱32`).
+- The renderer MUST turn the RTL patterns `{{K{x[msb]}}, x}` into `sext` and
+  `{K'b0, x}` into `zext`. Don't draw these as a replication box feeding a concat
+  box.
+- Shift-and-extend helpers keep their own names (`align/extend`, `<<2`). A pure
+  constant shift is a wire label (`<<3`, as in F42) or a small `<<k` box. It is
+  never drawn as a concatenation with zeros.
+- *Why:* extension appears as a named block in the verified processor figures (F46,
+  F47) and in the textbook anchors. The label says whether bits are sign or zero;
+  a shape can't.
+
+#### 2.3.5 Replication: `{N{ }}` box [house]
+
+- Draw the same outlined box with `{N{ }}` inside (e.g. `{4{ }}`), one input, output
+  width = N × input width. Use it only for replication that is **not** sign
+  extension (for example broadcasting a 1-bit enable to a W-bit mask).
+- *Why:* no published convention was found. Reusing the concat box family with
+  Verilog replication syntax is the smallest new glyph, and it is still distinct
+  from `sext`/`zext` by its text.
 
 ```
-             [31:26]
-instr  32  ┌────────────▶ opcode       a  8 ━━┓
-━━━━━╱━━━━━┤ [25:21]                         ┃█  16
-           ├────────────▶ rs          b  8 ━━┫█━━━╱━━▶ {a,b}
-           │ [15:0]                          ┃
-           └━━━━━━━━━━━▶ imm         (order: top = MSB)
+SPLIT (ripper taps, no dots, no body)       TRUNCATION (label only)
+instr ━━╱32━━━┳━━━━━━━┳━━━━━━━━━━━┓           prod ━━╱48━━[47:16]━━╱32━━▶ hi
+              ╲       ╲           ┃
+        [31:26]╲       ╲[25:21]    ┃[15:0]    (the ┳ above is a 45° stub
+               ┗━━▶ op  ┗━━▶ rs    ┗━━▶ imm    leaving the spine, not a tee+dot)
+
+CONCAT (outlined { } box, MSB on top)       EXTENSION / REPLICATION
+         [15:8] ┌─────┐                      imm ━━╱12━━┥ sext ┝━━╱32━━▶
+  a ━━╱8━━━━━━━┥     │                      d   ━━╱8━━━┥ zext ┝━━╱16━━▶
+                │ { } ┝━━╱16━━▶ {a,b}        en  ───────┥{4{ }}┝━━╱4━━━▶ mask
+  b ━━╱8━━━━━━━┥     │
+          [7:0] └─────┘
 ```
 
 ---
@@ -293,12 +468,12 @@ instr  32  ┌────────────▶ opcode       a  8 ━━�
   1 bit). The bar has no outline and no text.
   *Why:* this is the compact netlistsvg-style schematic look chosen for this
   project. It keeps dense datapaths narrow and reads clearly in grayscale.
-- **Disambiguation (required):** the mux bar must never look like another bar.
-  Pipeline-register bars are gray (`fill-3`), outlined, carry a clock wedge and span
-  lanes (§5.3). Bus join/split bars are thinner (about 2.5 pt), have no select pin,
-  and carry a `{ }` label (join) or slice labels (split) (§2.3). A mux bar always
-  shows its select pin. The renderer's skin lint enforces that the bar kinds are
-  distinct.
+- **Disambiguation (required):** a **solid filled bar means mux and nothing else**
+  (§3.5). Pipeline-register bars are gray, outlined, carry a clock wedge and span
+  every net at a stage boundary (§5.3). Splits have **no body** (45° ripper taps with
+  `[msb:lsb]` labels). Truncation is a label on the wire. Concatenation, extension
+  and replication are **hollow outlined boxes** with `{ }`, `sext`/`zext` or `{N{ }}`
+  inside (§2.3). There are no join/split bars. A mux bar always shows its select pin.
 - **[house] Alternative (textbook):** an **isosceles trapezoid**, long side facing
   the inputs, short side facing the output, slope ratio short:long about 0.5, as in
   Patterson & Hennessy / Harris & Harris. Select it per theme or per figure with
@@ -309,6 +484,11 @@ instr  32  ┌────────────▶ opcode       a  8 ━━�
   any, above.
 - A 2:1 mux on a single-bit control path MAY be drawn as a small rectangle
   `sel ? a : b` when space is tight.
+- **Bit-sliced replicas** (one 2:1 mux per symbol of a multi-symbol bus) are
+  drawn as one bar mux with no caption. Its buses carry their total width and
+  its select carries its total width, each as a single number (§2.1). Say
+  that it repeats per symbol in the figure caption or a block's
+  `function.detail`, never on a net or on the mux.
 
 ### 3.2 Select pin side
 
@@ -355,6 +535,70 @@ instr  32  ┌────────────▶ opcode       a  8 ━━�
   labeled `PriEnc` / `1-hot sel`, not a trapezoid. *Why:* the trapezoid means binary
   select. Changing the shape shows the select meaning is different.
 
+### 3.5 Distinguishability of bar-like and width-changing glyphs [house]
+
+Every glyph that is a narrow bar, or that changes a bus width, is listed here.
+Each pair MUST differ in **at least two independent visual channels** that survive
+grayscale printing at 1-column size:
+- **body/fill:** solid ink, gray + outline, white + outline, or none
+- **mandatory attachment:** select pin, clock wedge, or none
+- **text on the glyph:** none, brackets, braces, or a word
+- **arity:** inputs → outputs
+- **extent:** own pins only, or spans every net at a boundary
+
+| Glyph | Body / fill | Size at print | Mandatory attachment | Text on glyph | Arity | Extent |
+|-------|-------------|---------------|----------------------|---------------|-------|--------|
+| **Mux bar** (§3.1) | solid `ink`, no outline | 5 pt × (inputs × 12 pt) | **select pin** on N or S edge, control style, ≥ 4 pt visible | none (opt-in select indices: bare digits, outside the bar) | ≥ 2 → 1 | own pins |
+| **Pipeline-register bar** (§5.3) | `fill-3` gray + 0.8 pt outline | 7 pt × full datapath height | **clock wedge** at bottom; stage label above | `IF/ID`-style label above, none inside | n → n (pass-through) | **every net crossing the stage boundary** |
+| Single register (§5.1) | `fill-2` + outline | 16 × 24 pt | clock wedge | optional `D`/`Q` | 1 → 1 | own pins |
+| **Split** (§2.3.1) | **none** (45° stubs off a bus spine) | stub 4–6 pt | none, and **no junction dot** | `[msb:lsb]` per stub | 1 → k | own bus |
+| **Truncation** (§2.3.2) | none | — | none | one `[msb:lsb]` on the wire | 1 → 1 | own wire |
+| **Concatenation** (§2.3.3) | white + 0.8 pt outline | ≥ 14 pt wide | none | `{ }` inside; `[msb:lsb]` destination range at each input | k → 1 | own pins |
+| **Extension** (§2.3.4) | white + 0.8 pt outline | fits text | none | `sext` or `zext` inside | 1 → 1 | own pins |
+| **Replication** (§2.3.5) | white + 0.8 pt outline | fits text | none | `{N{ }}` inside | 1 → 1 | own pins |
+| Fanout (§1 rule 4) | junction dot | 2.5 × stroke | — | none | 1 → k (all bits) | — |
+
+Rules:
+
+- **D1. A solid filled bar is always a mux.** The renderer's lint MUST reject any
+  solid-filled rectangle narrower than 8 pt that lacks a select pin or has fewer
+  than two data inputs. It MUST NOT emit netlistsvg-style `$_split_`/`$_join_` bars.
+  *Why:* this single rule guarantees no bar-shaped glyph is misread as a mux, and no
+  mux is misread as a bus operation. The Spatz MACU figure (F44) shows how
+  unlabeled bars leave the reader guessing.
+- **D2. Mux bar vs pipeline bar:** they differ in fill (solid vs gray + outline),
+  attachment (select pin vs clock wedge) and extent (own pins vs whole boundary).
+  A pipeline bar never has a select pin, and a mux bar never has a wedge.
+- **D3. Reserved label syntax.** `[msb:lsb]` appears only on slices (split stubs,
+  truncation, concat destination ranges). `{…}` appears only on concatenation and
+  replication boxes and their result names. Bare digits next to a mux input are
+  select values. Net names MUST NOT begin with `[` or `{`.
+  *Why:* when shapes are tiny, the first character of a label is often the
+  distinguishing channel.
+- **D4. Split vs fanout:** a junction dot means the same bits go to every sink. A
+  45° ripper stub means a subset. A dot is never drawn at a ripper tap.
+- **D5. Concat vs extension vs replication** share one box family on purpose (all
+  are width-changing bus operations). They differ by arity (k → 1 vs 1 → 1) and by
+  their mandatory text. Replication vs extension differ **only** by text. This is
+  allowed because replication is rare and must use the Verilog `{N{ }}` form, which
+  can't be read as a word.
+- **D6. Minimum legibility at 1 column:** ripper stub ≥ 4 pt; slice and brace labels
+  7 pt (never below 6.5 pt); mux bar ≥ 5 pt wide with the select stub visible ≥ 4 pt;
+  box outlines 0.8 pt so a white box can't vanish in grayscale.
+- **D7. Trapezoid theme:** with `mux_style: trapezoid` the mux loses the solid fill.
+  The trapezoid silhouette itself is then the mux's channel, and it still needs its
+  select pin. Concat/extension boxes stay rectangular, so they never taper.
+
+```
+mux bar         pipeline bar      split (taps)        concat box    sext box
+   sel             IF/ID
+    │               ┃▒┃           ━━━━┳━━━━┳━━━      ─┥     │       ┥ sext ┝
+ ━━┫█                ┃▒┃               ╲    ╲        │ { } ┝━      (1 → 1)
+ ━━┫█━━▶            ┃▒┃             [a:b]  [c:d]   ─┥     │
+ ━━┫█               ▷┃▒┃                             (k → 1)
+solid+select    gray+wedge+span   no body, brackets  hollow+{ }    hollow+word
+```
+
 ---
 
 ## 4. Combinational logic
@@ -378,6 +622,32 @@ instr  32  ┌────────────▶ opcode       a  8 ━━�
 - Inversion: a bubble (diameter 4 pt) at the pin. Do not draw a separate inverter
   unless the inverter itself matters.
 
+### 4.1a Mixed abstraction levels in one figure
+
+A figure may combine four levels; each region is drawn in its own style:
+
+- **blackbox** — a plain box with the module or instance name and only its
+  ports (port labels inside the edge). Hatch the box lightly (explicit 45°
+  lines, `fill-3` gray) when its internals are unknown or come from a stub.
+  Its ports and widths must equal the RTL module (or the declared stub).
+- **block** and **rtl** — the `netlist-mono` symbols of §3–§6 (bar mux,
+  register with wedge, pipeline bars, labeled comb blocks, memories).
+- **gate** — IEEE Std 91 distinctive shapes (AND, OR, XOR, NAND, NOR, XNOR,
+  NOT/BUF) in the same monochrome stroke family; inversion bubbles on the
+  inverted pins (bubbles are folded into NAND/NOR/XNOR where exact).
+  Arithmetic and compare operators stay blocks unless bit-blasted on request.
+- **Bold bar mux at every level**, including inside gate regions.
+- A thin dashed frame (0.5 pt, dash 2–2) with a 7 pt label inside its top
+  edge marks an RTL, block or gate region. A frame **encloses exactly its
+  members** (including labels that hang off them), never cuts through a
+  block that is not a member, and nested frames keep clearance: they never
+  share or cross edges. No wire may run along a frame edge. Blackbox regions
+  are not framed by default — the hatch already marks them. The layout groups
+  framed members together so these rules can hold. Nets crossing between
+  regions must agree in width, and bit slices at the boundary are explicit.
+- Add a small legend of levels only when more than two levels appear in one
+  figure.
+
 ### 4.2 Arithmetic and GF operators
 
 | Operator | Symbol | When | Tag |
@@ -386,8 +656,8 @@ instr  32  ┌────────────▶ opcode       a  8 ━━�
 | Adder / ALU (processor style) | "chevron" trapezoid with notch on the input side, labeled `+` or `ALU` | processor datapaths | [house] (P&H / H&H style) |
 | Subtracter | circle with `−`; mark which input is subtracted with a `−` sign at that pin | | [house] |
 | Multiplier | circle with `×` | | [house] |
-| **GF(2) addition / XOR (ECC, crypto)** | circle with `⊕` | BCH/RS/LDPC, AES, SHA-3, CRC, LFSR figures | [house] follows the math in the paper |
-| GF(2^m) multiplier | circle with `⊗` | RS/BCH key-equation solvers, AES MixColumns | [house] |
+| **GF(2) addition / XOR (ECC, crypto)** | circle with `⊕` | BCH/Reed–Solomon/LDPC, AES, SHA-3, CRC, LFSR figures | [house] follows the math in the paper |
+| GF(2^m) multiplier | circle with `⊗` | Reed–Solomon/BCH key-equation solvers, AES MixColumns | [house] |
 | Constant multiplier (by α^i, by 2) | circle `⊗` with constant written outside, or a small box `×α^i` | | [house] |
 | Comparator | rectangle `=`, `<`, `≥` or `COMP`; output is 1-bit control style | | [house] + [ext label COMP] |
 | Shifter | rectangle `<<` / `>>`, with shift amount entering from the top (control) or as data | | [house] |
@@ -400,6 +670,70 @@ instr  32  ┌────────────▶ opcode       a  8 ━━�
   the equations next to it. Mixing the two in one figure is not allowed.
 - Carry-in / carry-out pins SHOULD enter from the top and leave from the bottom, as
   control-weight wires.
+- **The glyph is the name.** A circle operator (`⊕`, `⊗`, `+`, `−`, `×`) carries
+  no text label. Gate-level regions keep gate shapes without text.
+
+### 4.3 Block naming: say what the block is [house]
+
+- The printed name of a block is its **function**, taken from a controlled
+  vocabulary (`schemas/function-vocabulary.json`): *GF multiplier*, *GF adder
+  (XOR)*, *GF inverter*, *Adder*, *Comparator*, *Zero detector*, *Syndrome
+  calculator*, *Error locator*, *Chien search*, *Error evaluator*,
+  *Corrector*, *Error classifier*, *Correction enable*, *Controller*, *CSR
+  bank*, *Bus slave*, *Memory*, *Error injector*, … An open `custom` entry
+  takes a functional name for anything else. A qualifier refines it:
+  *GF(2^8) multiplier*, *AHB-Lite slave*, *Data memory*.
+- **Never print** signal mnemonics, internal RTL names or math shorthand as a
+  block's primary name: not `cls`, `en`, `H4..2`, `S2/S1`, `X=a^i`, `e_i`,
+  `== 0`. Algorithm detail (*Horner*, *X = S2/S1*) may appear only as a small
+  secondary line under the name, and only where it fits.
+- Short labels for narrow variants are **readable words** (*Locator*, *GF mul*,
+  *Classifier*), never cryptic abbreviations. If the readable form does not
+  fit one column, the single-column variant is skipped (best effort) rather
+  than abbreviated.
+- **One name, one block.** Two or more blocks in one figure with the same
+  primary name are an error (`label/duplicate`), unless they are declared stages
+  of one function (`function.stage: "1/2"`, `"2/2"`). The renderer then prints
+  *Syndrome calculator (stage 1/2)* and *(stage 2/2)*. A single block spanning the
+  pipeline bar is the alternative when the stages need no separate boxes.
+- **The name must be justified by the RTL.** A vocabulary name that claims an
+  algorithm requires the structure its entry declares, cited in
+  `function.basis` (source pin + a short description):
+  - *syndrome calculator*: polynomial evaluation at the code's roots, e.g.
+    Horner steps (multiply by a constant root, add the next symbol);
+  - *Chien search*: per-position evaluation of the error-locator polynomial,
+    iterative or parallel, each result compared with zero;
+  - *position match*: equality compares of one value against a constant table of
+    field powers, one compare per position (not a Chien search);
+  - *error locator*, *error evaluator*: a GF division or multiplication by an
+    inverse (or a key-equation solver);
+  - *zero detector*, *comparator*, *GF adder*, *GF multiplier*: the compare,
+    XOR or multiply itself.
+
+  The lint `label/function-justification` checks the cited source text and,
+  with a netlist, the operations in the RTL cone of the block's outputs. When
+  the evidence is missing or contradicted, use the entry's more general name
+  (e.g. *Comparator* instead of *Chien search*). It is a warning, and an error
+  under `--quality paper`.
+- For ECC figures (Reed–Solomon, BCH), use coding-theory terms and derive them from what
+  the RTL computes, not from instance names: syndrome calculator, error
+  locator (Berlekamp–Massey / RiBM, or direct for t = 1), Chien search,
+  Forney error evaluator, corrector.
+- **Ports** print a readable name (*corrected data*, *error detected*, *valid
+  in*); the RTL signal name stays in the IR mapping and source pins, where the
+  cross-check uses it exactly.
+- Lint: `label/unreadable` flags primary labels that are raw identifiers
+  (snake_case, trailing `_i/_o/_q`), mnemonics of three characters or fewer
+  (except well-known symbols and acronyms such as `+`, `⊕`, `MUX`, `LUT`,
+  `CSR`, `ECC`), bare ratios (`S2/S1`), index ranges (`h1..0`), or
+  abbreviated words with a period (`Pos.`, `Calc.`, `Ctrl.`). Write the word
+  out and let the block wrap to two lines ("Position match"). The rule also
+  covers names printed from the vocabulary, so every `display`, `short` and
+  `stage_display` entry is written out. It is a warning, and an error under
+  `--quality paper`.
+- *Why:* a reader who has not seen the RTL must be able to name every box.
+  Mnemonics shift the decoding work to the reader and hide what the figure is
+  meant to show.
 
 ```
  a ━━━▶( + )━━━▶ s        x ━━▶(⊕)━━▶ y        ┌────────┐
@@ -729,6 +1063,24 @@ out    XXXXXXXXXXXXXXXX< A' >X
 
 ---
 
+### 11.1 Facts taken from documents [house]
+
+- A slot, base address, address window, IRQ number or instance name shown in an
+  SoC figure is a **documented fact**. Gather it from **every** document of the
+  repository revision, not the first hit. Integration guides, READMEs, design
+  reviews and test plans often disagree after a reassignment.
+- When documents disagree, the figure **does not pick one silently**. The
+  conflict is an error until the user chooses the authoritative document. That
+  choice is recorded in the figure (`authority {file, reason}`), and the receipt
+  lists the overridden sources.
+- A documented window that the RTL cannot decode (e.g. an "effective" window
+  smaller than the address port spans) is flagged against the RTL, whichever
+  document is authoritative.
+- *Why:* a figure is often read as the integration reference. One stale
+  address in it propagates into firmware and test benches.
+
+---
+
 ## 12. Renderer style tokens (summary)
 
 ```yaml
@@ -765,7 +1117,15 @@ spacing:
   block_gap_min: 14
   junction_dot_diam: 2.5x_stroke
 mux: { style: bar, bar_width: 5, bar_fill: ink, indices: false, index_font: 7, index_order: top-down, select_side: north, trapezoid: { taper_ratio: 0.5, end_pad: 8, index_inset: 1 } }
-join_split: { bar_width: 2.5, bar_fill: ink, join_label: "{ }", split_labels: slices }
+split: { style: ripper, stub_len: 5, stub_angle: 45, label: slice, dot_at_tap: false }
+truncate: { style: label, offset: [3, 6] }
+concat: { style: box, min_width: 14, fill: logic, outline: 0.8, label: "{ }", input_range_labels: true, msb: top }
+extend: { style: box, fill: logic, outline: 0.8, labels: [sext, zext], recognize: ["{{K{x[msb]}},x}", "{K'b0,x}"] }
+replicate: { style: box, fill: logic, outline: 0.8, label: "{N{ }}" }
+glyph_lint: { solid_bar_is_mux: true, solid_bar_max_width: 8, mux_requires_select: true, forbid_split_join_bars: true, reserved_label_prefixes: ["[", "{"] }
+route: { jog_min_offset_pt: 12, max_crossings: { data: 2, control: 8, mixed: 6 }, pin_grid: "pitch/2 + k*pitch", detour_min_step: pitch }
+naming: { vocabulary: schemas/function-vocabulary.json, primary: function name, secondary: algorithm detail, short: readable word, lint: label/unreadable }
+region_frame: { stroke: 0.5, dash: [2, 2], pad: 5, label: inside top edge, encloses: exactly members, blackbox_framed: false }
 register: { width: 10, wedge_base: 4, fill: fill-2 }
 pipeline_bar: { width: 7, fill: fill-3 }
 timing: { cycle_width: 18, min_cycle_width: 12, x_hatch_pitch: 1.5, edge_slant: 1.5 }
@@ -785,20 +1145,52 @@ max_font_sizes: 2
 4. Figure reads in grayscale (renderer SHOULD produce a `_gray` preview); control
    differs from data in two ways.
 5. Every mux shows its select pin; inputs are in fixed order (0 at top); index labels
-   only where opted in, never touching wires; mux bars look different from
-   pipeline and join/split bars.
+   only where opted in, never touching wires; the only solid filled bars are muxes
+   (§3.5 D1).
 6. Every clocked element has a wedge; no latch has one.
 7. Every pipeline bar crosses every net at its boundary; cut-sets are complete.
 8. Every CDC crossing ends in a synchronizer.
-9. Every bus width labeled once at its source and after width changes.
+9. Every bus width labeled once at its source and after width changes. Splits are
+   45° ripper taps with `[msb:lsb]` (no dots, no body), truncation is a wire label,
+   and concat/extension/replication are hollow labeled boxes (§2.3).
 10. FSM: reset arc present, no double circles, outgoing conditions complete.
 11. Timing: cycle indices, handshake fires marked, latency given as a dimension line.
 12. No caption or "Fig. N" in the image; (a)/(b) callouts in 8 pt Times if multi-part.
 13. Every abbreviation and color/line meaning is explained in the caption or legend.
+14. Every block prints a functional name (§4.3); no mnemonics, RTL names or math
+    shorthand as primary labels; circle operators and gates carry no text.
+15. Data trunks are straight: no level change under one pitch. Bends are
+    allowed only for control, fan-out to another row, a turn into a top or
+    bottom pin, feedback, or a path that lane re-ordering and pin
+    re-assignment cannot clear; each is justified (§1.4). Crossings are few.
+    No wire runs closer than 4 pt along an outline or another wire (§1 rule 6).
+    Every net ending at a block input or output port has an arrowhead, except
+    gate inputs in gate-level regions (§1).
+16. Region frames enclose exactly their members, don't cut foreign blocks,
+    don't touch each other, and no wire or text lies on a frame edge (§4.1a).
+17. No two blocks share a primary name unless they are declared stages; every
+    algorithm name (syndrome calculator, Chien search, position match, …) is
+    justified by the cited RTL structure, otherwise the general name is used
+    (§4.3).
+18. Line style follows usage: solid for all data including 1-bit results; dashed
+    only when every sink is a select, enable or handshake input (§1 rule 0).
+    Every multi-bit data net shows one integer width, never a product (§2.1).
+19. Arrowheads have their own pins: no two arrowheads overlap, and no label sits
+    against another connection's arrow.
+20. Facts taken from documents (slot, base, window, IRQ, instance) agree across
+    all documents of the pinned revision, or the user's chosen authority is
+    recorded and the overridden sources are listed in the receipt (§11.1).
 
 ---
 
 ## Sources
+
+Added for §2.3 / §3.5 (bus operations and glyph distinguishability):
+
+- Figure evidence F36, F37, F41–F48 in `figures.yaml` (opened and inspected; see each entry).
+- netlistsvg default skin, `lib/default.svg`: `split`/`join` cells are 5-unit filled `rect`s with `hi:lo` pin labels; `mux` is a trapezoid path. <https://github.com/nturley/netlistsvg/blob/master/lib/default.svg> [tool]
+- Altium Designer, "Bundling Multiple Nets into Buses": a Bus Entry connects a wire to a bus line; bus net labels use `<Name>[<start>..<end>]`, e.g. `Address[7..0]`. <https://www.altium.com/documentation/altium-designer/schematic-bus> [tool]
+- DigitalJS README: separate device types `BusGroup`, `BusUngroup`, `BusSlice`, `ZeroExtend`, `SignExtend` (semantics only; no drawing convention stated). <https://github.com/tilk/digitaljs> [tool]
 
 External facts used above (tag **[ext]**):
 

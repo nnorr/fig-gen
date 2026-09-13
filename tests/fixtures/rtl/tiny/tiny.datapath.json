@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "figure_type": "datapath",
+  "meta": {
+    "title": "tiny_top select-and-mask",
+    "print": { "profile": "ieee", "variants": ["1col", "2col"] }
+  },
+  "clock_domains": [
+    { "id": "a", "clock": "clk_a", "reset": { "net": "rst_n", "active": "low", "async": true } }
+  ],
+  "elements": [
+    { "id": "a", "kind": "port", "dir": "in", "width": 8, "domain": "a" },
+    { "id": "b", "kind": "port", "dir": "in", "width": 8, "domain": "a" },
+    { "id": "sel", "kind": "port", "dir": "in", "width": 1, "class": "control", "domain": "a" },
+    { "id": "m0", "kind": "mux", "inputs": 2, "width": 8 },
+    { "id": "mask", "kind": "const", "value": "8'h5a" },
+    { "id": "x0", "kind": "comb", "op": "xor", "width": 8 },
+    { "id": "s0", "kind": "register", "width": 8, "domain": "a", "reset": "async" },
+    { "id": "q", "kind": "port", "dir": "out", "width": 8 }
+  ],
+  "nets": [
+    { "id": "n_a", "width": 8, "driver": "a", "sinks": ["m0.in1"], "rtl": { "signal": "a" } },
+    { "id": "n_b", "width": 8, "driver": "b", "sinks": ["m0.in0"], "rtl": { "signal": "b" } },
+    { "id": "n_sel", "width": 1, "driver": "sel", "sinks": ["m0.sel"], "rtl": { "signal": "sel" } },
+    { "id": "n_m", "width": 8, "driver": "m0.out", "sinks": ["x0.in0"], "rtl": { "signal": "m" } },
+    { "id": "n_k", "width": 8, "driver": "mask.out", "sinks": ["x0.in1"] },
+    { "id": "n_x", "width": 8, "driver": "x0.out", "sinks": ["s0.d"] },
+    { "id": "n_q", "width": 8, "driver": "s0.q", "sinks": ["q"], "rtl": { "signal": "s0_q" } }
+  ],
+  "annotations": [
+    { "kind": "latency", "from": "a", "to": "q", "cycles": 1 }
+  ]
+}

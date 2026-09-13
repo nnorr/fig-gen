@@ -1,145 +1,142 @@
-<svg xmlns="http://www.w3.org/2000/svg" id="fig-theme-sample-2col" width="515.5pt" height="98pt" viewBox="0 0 515.5 98">
+<svg xmlns="http://www.w3.org/2000/svg" id="fig-theme-sample-2col" width="515.5pt" height="108pt" viewBox="0 0 515.5 108">
   <g id="frame">
-    <rect x="0" y="0" width="515.5" height="98" fill="#FFFFFF" stroke="none"/>
+    <rect x="0" y="0" width="515.5" height="108" fill="#FFFFFF" stroke="none"/>
   </g>
   <g id="nets">
     <g id="nets-data">
       <g id="net-n_a">
-        <path id="net-n_a-seg0" d="M159.44 32 L178.21 32" fill="none" stroke="#000000" stroke-width="1.2" stroke-linecap="butt" stroke-linejoin="miter"/>
-        <path id="net-n_a-arrow0" d="M182.71 32 L178.21 33.6 L178.21 30.4 Z" fill="#000000" stroke="none"/>
-        <path id="net-n_a-slash" d="M164.31 34.12 L168.56 29.88" fill="none" stroke="#000000" stroke-width="0.6"/>
-        <text id="net-n_a-width" x="165.99" y="28.38" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#000000">8</text>
+        <path id="net-n_a-seg0" d="M57.62 36 L114.12 36" fill="none" stroke="#000000" stroke-width="1.2" stroke-linecap="butt" stroke-linejoin="miter"/>
+        <path id="net-n_a-arrow0" d="M114.12 37.6 L118.62 36 L114.12 34.4 Z" fill="#000000" stroke="none"/>
+        <path id="net-n_a-slash" d="M62.5 38.12 L66.74 33.88" fill="none" stroke="#000000" stroke-width="0.6"/>
+        <text id="net-n_a-width" x="64.18" y="32.38" font-family="Arial, Arial, Helvetica, Arimo, sans-serif" font-size="7" fill="#000000">8</text>
       </g>
       <g id="net-n_b">
-        <path id="net-n_b-seg0" d="M159.44 44 L178.21 44" fill="none" stroke="#000000" stroke-width="1.2" stroke-linecap="butt" stroke-linejoin="miter"/>
-        <path id="net-n_b-arrow0" d="M182.71 44 L178.21 45.6 L178.21 42.4 Z" fill="#000000" stroke="none"/>
-        <path id="net-n_b-slash" d="M164.31 46.12 L168.56 41.88" fill="none" stroke="#000000" stroke-width="0.6"/>
-        <text id="net-n_b-width" x="165.99" y="40.38" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#000000">8</text>
+        <path id="net-n_b-seg0" d="M57.62 48 L114.12 48" fill="none" stroke="#000000" stroke-width="1.2" stroke-linecap="butt" stroke-linejoin="miter"/>
+        <path id="net-n_b-arrow0" d="M114.12 49.6 L118.62 48 L114.12 46.4 Z" fill="#000000" stroke="none"/>
+        <path id="net-n_b-slash" d="M62.5 50.12 L66.74 45.88" fill="none" stroke="#000000" stroke-width="0.6"/>
+        <text id="net-n_b-width" x="64.18" y="44.38" font-family="Arial, Arial, Helvetica, Arimo, sans-serif" font-size="7" fill="#000000">8</text>
       </g>
       <g id="net-n_c">
-        <path id="net-n_c-seg0" d="M159.44 56 L178.21 56" fill="none" stroke="#000000" stroke-width="1.2" stroke-linecap="butt" stroke-linejoin="miter"/>
-        <path id="net-n_c-arrow0" d="M182.71 56 L178.21 57.6 L178.21 54.4 Z" fill="#000000" stroke="none"/>
-        <path id="net-n_c-slash" d="M164.31 58.12 L168.56 53.88" fill="none" stroke="#000000" stroke-width="0.6"/>
-        <text id="net-n_c-width" x="165.99" y="52.38" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#000000">8</text>
+        <path id="net-n_c-seg0" d="M57.62 60 L114.12 60" fill="none" stroke="#000000" stroke-width="1.2" stroke-linecap="butt" stroke-linejoin="miter"/>
+        <path id="net-n_c-arrow0" d="M114.12 61.6 L118.62 60 L114.12 58.4 Z" fill="#000000" stroke="none"/>
+        <path id="net-n_c-slash" d="M62.5 62.12 L66.74 57.88" fill="none" stroke="#000000" stroke-width="0.6"/>
+        <text id="net-n_c-width" x="64.18" y="56.38" font-family="Arial, Arial, Helvetica, Arimo, sans-serif" font-size="7" fill="#000000">8</text>
       </g>
       <g id="net-n_d">
-        <path id="net-n_d-seg0" d="M159.44 68 L178.21 68" fill="none" stroke="#000000" stroke-width="1.2" stroke-linecap="butt" stroke-linejoin="miter"/>
-        <path id="net-n_d-arrow0" d="M182.71 68 L178.21 69.6 L178.21 66.4 Z" fill="#000000" stroke="none"/>
-        <path id="net-n_d-slash" d="M164.31 70.12 L168.56 65.88" fill="none" stroke="#000000" stroke-width="0.6"/>
-        <text id="net-n_d-width" x="165.99" y="64.38" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#000000">8</text>
+        <path id="net-n_d-seg0" d="M57.62 72 L114.12 72" fill="none" stroke="#000000" stroke-width="1.2" stroke-linecap="butt" stroke-linejoin="miter"/>
+        <path id="net-n_d-arrow0" d="M114.12 73.6 L118.62 72 L114.12 70.4 Z" fill="#000000" stroke="none"/>
+        <path id="net-n_d-slash" d="M62.5 74.12 L66.74 69.88" fill="none" stroke="#000000" stroke-width="0.6"/>
+        <text id="net-n_d-width" x="64.18" y="68.38" font-family="Arial, Arial, Helvetica, Arimo, sans-serif" font-size="7" fill="#000000">8</text>
       </g>
       <g id="net-n_m">
-        <path id="net-n_m-seg0" d="M187.71 50 L210.33 50" fill="none" stroke="#000000" stroke-width="1.2" stroke-linecap="butt" stroke-linejoin="miter"/>
-        <path id="net-n_m-arrow0" d="M214.83 50 L210.33 51.6 L210.33 48.4 Z" fill="#000000" stroke="none"/>
-        <path id="net-n_m-slash" d="M192.59 52.12 L196.84 47.88" fill="none" stroke="#000000" stroke-width="0.6"/>
-        <text id="net-n_m-width" x="194.27" y="46.38" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#000000">8</text>
+        <path id="net-n_m-seg0" d="M123.62 54 L203.18 54" fill="none" stroke="#000000" stroke-width="1.2" stroke-linecap="butt" stroke-linejoin="miter"/>
+        <path id="net-n_m-arrow0" d="M203.18 55.6 L207.68 54 L203.18 52.4 Z" fill="#000000" stroke="none"/>
+        <path id="net-n_m-slash" d="M128.5 56.12 L132.74 51.88" fill="none" stroke="#000000" stroke-width="0.6"/>
+        <text id="net-n_m-width" x="130.18" y="50.38" font-family="Arial, Arial, Helvetica, Arimo, sans-serif" font-size="7" fill="#000000">8</text>
       </g>
       <g id="net-n_r">
-        <path id="net-n_r-seg0" d="M230.83 50 L237.83 50 L237.83 63 L248.72 63" fill="none" stroke="#000000" stroke-width="1.2" stroke-linecap="butt" stroke-linejoin="miter"/>
-        <path id="net-n_r-seg1" d="M230.83 50 L248.33 50" fill="none" stroke="#000000" stroke-width="1.2" stroke-linecap="butt" stroke-linejoin="miter"/>
-        <path id="net-n_r-arrow0" d="M253.22 63 L248.72 64.6 L248.72 61.4 Z" fill="#000000" stroke="none"/>
-        <path id="net-n_r-arrow1" d="M252.83 50 L248.33 51.6 L248.33 48.4 Z" fill="#000000" stroke="none"/>
-        <circle id="net-n_r-dot0" cx="237.83" cy="50" r="1.5" fill="#000000" stroke="none"/>
-        <path id="net-n_r-slash" d="M235.71 52.12 L239.95 47.88" fill="none" stroke="#000000" stroke-width="0.6"/>
-        <text id="net-n_r-width" x="237.39" y="46.38" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#000000">8</text>
+        <path id="net-n_r-seg0" d="M223.68 54 L251.86 54 L251.86 68 L301.28 68" fill="none" stroke="#000000" stroke-width="1.2" stroke-linecap="butt" stroke-linejoin="miter"/>
+        <path id="net-n_r-seg1" d="M223.68 54 L286.02 54" fill="none" stroke="#000000" stroke-width="1.2" stroke-linecap="butt" stroke-linejoin="miter"/>
+        <path id="net-n_r-arrow0" d="M301.28 69.6 L305.78 68 L301.28 66.4 Z" fill="#000000" stroke="none"/>
+        <path id="net-n_r-arrow1" d="M286.02 55.6 L290.52 54 L286.02 52.4 Z" fill="#000000" stroke="none"/>
+        <circle id="net-n_r-dot0" cx="251.86" cy="54" r="1.5" fill="#000000" stroke="none"/>
+        <path id="net-n_r-slash" d="M228.56 56.12 L232.8 51.88" fill="none" stroke="#000000" stroke-width="0.6"/>
+        <text id="net-n_r-width" x="230.23" y="50.38" font-family="Arial, Arial, Helvetica, Arimo, sans-serif" font-size="7" fill="#000000">8</text>
       </g>
       <g id="net-n_key">
-        <path id="net-n_key-seg0" d="M230.83 73 L248.72 73" fill="none" stroke="#000000" stroke-width="1.2" stroke-linecap="butt" stroke-linejoin="miter"/>
-        <path id="net-n_key-arrow0" d="M253.22 73 L248.72 74.6 L248.72 71.4 Z" fill="#000000" stroke="none"/>
-        <path id="net-n_key-slash" d="M235.71 75.12 L239.95 70.88" fill="none" stroke="#000000" stroke-width="0.6"/>
-        <text id="net-n_key-width" x="237.39" y="69.38" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#000000">8</text>
+        <path id="net-n_key-seg0" d="M233.82 80 L311.78 80 L311.78 78.5" fill="none" stroke="#000000" stroke-width="1.2" stroke-linecap="butt" stroke-linejoin="miter"/>
+        <path id="net-n_key-arrow0" d="M313.38 78.5 L311.78 74 L310.18 78.5 Z" fill="#000000" stroke="none"/>
+        <path id="net-n_key-slash" d="M238.7 82.12 L242.94 77.88" fill="none" stroke="#000000" stroke-width="0.6"/>
+        <text id="net-n_key-width" x="240.38" y="76.38" font-family="Arial, Arial, Helvetica, Arimo, sans-serif" font-size="7" fill="#000000">8</text>
       </g>
       <g id="net-n_x">
-        <path id="net-n_x-seg0" d="M277.22 68 L295.5 68" fill="none" stroke="#000000" stroke-width="1.2" stroke-linecap="butt" stroke-linejoin="miter"/>
-        <path id="net-n_x-arrow0" d="M300 68 L295.5 69.6 L295.5 66.4 Z" fill="#000000" stroke="none"/>
-        <path id="net-n_x-slash" d="M282.1 70.12 L286.34 65.88" fill="none" stroke="#000000" stroke-width="0.6"/>
-        <text id="net-n_x-width" x="283.78" y="64.38" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#000000">8</text>
+        <path id="net-n_x-seg0" d="M317.78 68 L385.23 68" fill="none" stroke="#000000" stroke-width="1.2" stroke-linecap="butt" stroke-linejoin="miter"/>
+        <path id="net-n_x-arrow0" d="M385.23 69.6 L389.73 68 L385.23 66.4 Z" fill="#000000" stroke="none"/>
+        <path id="net-n_x-slash" d="M322.66 70.12 L326.9 65.88" fill="none" stroke="#000000" stroke-width="0.6"/>
+        <text id="net-n_x-width" x="324.33" y="64.38" font-family="Arial, Arial, Helvetica, Arimo, sans-serif" font-size="7" fill="#000000">8</text>
       </g>
       <g id="net-n_y">
-        <path id="net-n_y-seg0" d="M318.95 68 L336.45 68" fill="none" stroke="#000000" stroke-width="1.2" stroke-linecap="butt" stroke-linejoin="miter"/>
-        <path id="net-n_y-arrow0" d="M340.95 68 L336.45 69.6 L336.45 66.4 Z" fill="#000000" stroke="none"/>
-        <path id="net-n_y-slash" d="M323.82 70.12 L328.07 65.88" fill="none" stroke="#000000" stroke-width="0.6"/>
-        <text id="net-n_y-width" x="325.5" y="64.38" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#000000">8</text>
+        <path id="net-n_y-seg0" d="M396.73 68 L448.93 68" fill="none" stroke="#000000" stroke-width="1.2" stroke-linecap="butt" stroke-linejoin="miter"/>
+        <path id="net-n_y-arrow0" d="M448.93 69.6 L453.43 68 L448.93 66.4 Z" fill="#000000" stroke="none"/>
+        <path id="net-n_y-slash" d="M401.61 70.12 L405.85 65.88" fill="none" stroke="#000000" stroke-width="0.6"/>
+        <text id="net-n_y-width" x="403.29" y="64.38" font-family="Arial, Arial, Helvetica, Arimo, sans-serif" font-size="7" fill="#000000">8</text>
       </g>
     </g>
     <g id="nets-control">
       <g id="net-n_sel">
-        <path id="net-n_sel-seg0" d="M159.44 20 L185.21 20 L185.21 21.5" fill="none" stroke="#000000" stroke-width="0.6" stroke-linecap="butt" stroke-linejoin="miter" stroke-dasharray="2 1.5"/>
-        <path id="net-n_sel-arrow0" d="M185.21 26 L183.61 21.5 L186.81 21.5 Z" fill="#000000" stroke="none"/>
-        <path id="net-n_sel-slash" d="M164.31 22.12 L168.56 17.88" fill="none" stroke="#000000" stroke-width="0.6"/>
-        <text id="net-n_sel-width" x="165.99" y="16.38" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#000000">2</text>
+        <path id="net-n_sel-seg0" d="M57.62 24 L121.12 24 L121.12 25.5" fill="none" stroke="#000000" stroke-width="0.6" stroke-linecap="butt" stroke-linejoin="miter" stroke-dasharray="2 1.5"/>
+        <path id="net-n_sel-arrow0" d="M119.52 25.5 L121.12 30 L122.72 25.5 Z" fill="#000000" stroke="none"/>
+        <path id="net-n_sel-slash" d="M62.5 26.12 L66.74 21.88" fill="none" stroke="#000000" stroke-width="0.6"/>
+        <text id="net-n_sel-width" x="64.18" y="20.38" font-family="Arial, Arial, Helvetica, Arimo, sans-serif" font-size="7" fill="#000000">2</text>
       </g>
       <g id="net-n_en">
-        <path id="net-n_en-seg0" d="M192.83 10 L222.83 10 L222.83 33.5" fill="none" stroke="#000000" stroke-width="0.6" stroke-linecap="butt" stroke-linejoin="miter" stroke-dasharray="2 1.5"/>
-        <path id="net-n_en-arrow0" d="M222.83 38 L221.23 33.5 L224.43 33.5 Z" fill="#000000" stroke="none"/>
+        <path id="net-n_en-seg0" d="M140.84 14 L215.68 14 L215.68 37.5" fill="none" stroke="#000000" stroke-width="0.6" stroke-linecap="butt" stroke-linejoin="miter" stroke-dasharray="2 1.5"/>
+        <path id="net-n_en-arrow0" d="M214.08 37.5 L215.68 42 L217.28 37.5 Z" fill="#000000" stroke="none"/>
       </g>
       <g id="net-n_vi">
-        <path id="net-n_vi-seg0" d="M278 86 L285 86 L285 80 L295.5 80" fill="none" stroke="#000000" stroke-width="0.6" stroke-linecap="butt" stroke-linejoin="miter" stroke-dasharray="2 1.5"/>
-        <path id="net-n_vi-arrow0" d="M300 80 L295.5 81.6 L295.5 78.4 Z" fill="#000000" stroke="none"/>
+        <path id="net-n_vi-seg0" d="M333.04 90 L351.08 90 L351.08 80 L385.23 80" fill="none" stroke="#000000" stroke-width="0.6" stroke-linecap="butt" stroke-linejoin="miter" stroke-dasharray="2 1.5"/>
+        <path id="net-n_vi-arrow0" d="M385.23 81.6 L389.73 80 L385.23 78.4 Z" fill="#000000" stroke="none"/>
       </g>
       <g id="net-n_vo">
-        <path id="net-n_vo-seg0" d="M318.95 80 L336.45 80" fill="none" stroke="#000000" stroke-width="0.6" stroke-linecap="butt" stroke-linejoin="miter" stroke-dasharray="2 1.5"/>
-        <path id="net-n_vo-arrow0" d="M340.95 80 L336.45 81.6 L336.45 78.4 Z" fill="#000000" stroke="none"/>
+        <path id="net-n_vo-seg0" d="M396.73 80 L448.93 80" fill="none" stroke="#000000" stroke-width="0.6" stroke-linecap="butt" stroke-linejoin="miter" stroke-dasharray="2 1.5"/>
+        <path id="net-n_vo-arrow0" d="M448.93 81.6 L453.43 80 L448.93 78.4 Z" fill="#000000" stroke="none"/>
       </g>
     </g>
   </g>
   <g id="datapath">
     <g id="ports">
       <g id="port-a">
-        <text x="152.49" y="34.88" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#000000">a</text>
+        <text id="port-a-label" x="30.66" y="38.75" font-family="Arial, Arial, Helvetica, Arimo, sans-serif" font-size="8" fill="#000000">input A</text>
       </g>
       <g id="port-b">
-        <text x="152.49" y="46.88" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#000000">b</text>
+        <text id="port-b-label" x="30.22" y="50.75" font-family="Arial, Arial, Helvetica, Arimo, sans-serif" font-size="8" fill="#000000">input B</text>
       </g>
       <g id="port-c">
-        <text x="152.94" y="58.88" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#000000">c</text>
+        <text id="port-c-label" x="29.77" y="62.75" font-family="Arial, Arial, Helvetica, Arimo, sans-serif" font-size="8" fill="#000000">input C</text>
       </g>
       <g id="port-d">
-        <text x="152.49" y="70.88" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#000000">d</text>
+        <text id="port-d-label" x="29.77" y="74.75" font-family="Arial, Arial, Helvetica, Arimo, sans-serif" font-size="8" fill="#000000">input D</text>
       </g>
       <g id="port-sel">
-        <text x="146.71" y="22.88" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#000000">sel</text>
+        <text id="port-sel-label" x="34.22" y="26.75" font-family="Arial, Arial, Helvetica, Arimo, sans-serif" font-size="8" fill="#000000">select</text>
       </g>
       <g id="port-en">
-        <text x="181.44" y="12.88" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#000000">en</text>
+        <text id="port-en-label" x="114.32" y="16.75" font-family="Arial, Arial, Helvetica, Arimo, sans-serif" font-size="8" fill="#000000">enable</text>
       </g>
       <g id="port-key">
-        <text x="215.88" y="75.88" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#000000">key</text>
+        <text id="port-key-label" x="197.54" y="82.75" font-family="Arial, Arial, Helvetica, Arimo, sans-serif" font-size="8" fill="#000000">mask key</text>
       </g>
       <g id="port-valid_i">
-        <text x="252.83" y="88.88" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#000000">valid_i</text>
+        <text id="port-valid_i-label" x="305.63" y="92.75" font-family="Arial, Arial, Helvetica, Arimo, sans-serif" font-size="8" fill="#000000">valid in</text>
       </g>
       <g id="port-r_q">
-        <text x="255.33" y="52.88" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#000000">r_q</text>
+        <text id="port-r_q-label" x="293.02" y="56.75" font-family="Arial, Arial, Helvetica, Arimo, sans-serif" font-size="8" fill="#000000">register out</text>
       </g>
       <g id="port-y">
-        <text x="343.45" y="70.88" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#000000">y</text>
+        <text id="port-y-label" x="455.93" y="70.75" font-family="Arial, Arial, Helvetica, Arimo, sans-serif" font-size="8" fill="#000000">output</text>
       </g>
       <g id="port-valid_o">
-        <text x="343.45" y="82.88" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#000000">valid_o</text>
+        <text id="port-valid_o-label" x="455.93" y="82.75" font-family="Arial, Arial, Helvetica, Arimo, sans-serif" font-size="8" fill="#000000">valid out</text>
       </g>
     </g>
     <g id="stage-0">
       <g id="mux-m0">
-        <rect id="mux-m0-body" x="182.71" y="26" width="5" height="48" fill="#000000" stroke="none"/>
+        <rect id="mux-m0-body" x="118.62" y="30" width="5" height="48" fill="#000000" stroke="none"/>
       </g>
       <g id="reg-r0">
-        <rect x="214.83" y="38" width="16" height="24" fill="#D9D9D9" stroke="#000000" stroke-width="0.8"/>
-        <path d="M219.83 62 L222.83 57.5 L225.83 62" fill="none" stroke="#000000" stroke-width="0.6" stroke-linejoin="miter"/>
+        <rect id="reg-r0-body" x="207.68" y="42" width="16" height="24" fill="#D9D9D9" stroke="#000000" stroke-width="0.8"/>
+        <path d="M212.68 66 L215.68 61.5 L218.68 66" fill="none" stroke="#000000" stroke-width="0.6"/>
       </g>
       <g id="xor-x0">
-        <path d="M253.22 58 Q259.22 68 253.22 78" fill="none" stroke="#000000" stroke-width="0.6" stroke-linejoin="miter"/>
-        <path d="M258.22 58 Q268.22 58 277.22 68 Q268.22 78 258.22 78 Q264.22 68 258.22 58 Z" fill="#FFFFFF" stroke="#000000" stroke-width="0.8" stroke-linejoin="miter"/>
-        <path d="M253.22 63 L260.47 63 M253.22 73 L260.47 73" fill="none" stroke="#000000" stroke-width="0.6" stroke-linejoin="miter"/>
+        <circle id="xor-x0-body" cx="311.78" cy="68" r="6" fill="#FFFFFF" stroke="#000000" stroke-width="0.8"/>
+        <path id="xor-x0-op" d="M305.78 68 L317.78 68 M311.78 62 L311.78 74" fill="none" stroke="#000000" stroke-width="0.8"/>
       </g>
     </g>
     <g id="stage-1">
       <g id="preg-p1">
-        <path id="preg-p1-lane0-stub" d="M300 68 L305.97 68 M312.97 68 L318.95 68" fill="none" stroke="#000000" stroke-width="1.2" stroke-linecap="butt" stroke-linejoin="miter"/>
-        <path id="preg-p1-lane1-stub" d="M300 80 L305.97 80 M312.97 80 L318.95 80" fill="none" stroke="#000000" stroke-width="0.6" stroke-linecap="butt" stroke-linejoin="miter" stroke-dasharray="2 1.5"/>
-        <rect id="preg-p1-body" x="305.97" y="56" width="7" height="36" fill="#BFBFBF" stroke="#000000" stroke-width="0.8"/>
-        <path d="M306.97 92 L309.47 88 L311.97 92" fill="none" stroke="#000000" stroke-width="0.6"/>
-        <text x="300" y="53" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#000000">S0|S1</text>
+        <rect id="preg-p1-body" x="389.73" y="50" width="7" height="48" fill="#BFBFBF" stroke="#000000" stroke-width="0.8"/>
+        <path d="M390.73 98 L393.23 94 L395.73 98" fill="none" stroke="#000000" stroke-width="0.6"/>
+        <text id="preg-p1-label" x="383.76" y="48" font-family="Arial, Arial, Helvetica, Arimo, sans-serif" font-size="7" fill="#000000">S0|S1</text>
       </g>
     </g>
   </g>

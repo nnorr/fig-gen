@@ -1,33 +1,94 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://rtl-figures.local/schemas/receipt.schema.json",
-  "title": "rtl-figures delivery receipt (schema_version 1, skeleton)",
+  "$id": "https://fig-gen.local/schemas/receipt.schema.json",
+  "title": "fig-gen delivery receipt (schema_version 1)",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "kind", "figure", "tool", "variants", "checks", "verification"],
+  "required": [
+    "schema_version",
+    "kind",
+    "figure",
+    "tool",
+    "variants",
+    "checks",
+    "evidence",
+    "verification"
+  ],
   "properties": {
-    "schema_version": { "const": 1 },
-    "kind": { "const": "rtl-figures-receipt" },
+    "schema_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "fig-gen-receipt"
+    },
     "figure": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["type", "spec_sha256", "spec_bytes"],
+      "required": [
+        "type",
+        "spec_sha256",
+        "spec_bytes"
+      ],
       "properties": {
-        "type": { "enum": ["datapath", "fsm", "timing", "microarch"] },
-        "spec_sha256": { "$ref": "#/$defs/sha256" },
-        "spec_bytes": { "type": "integer", "minimum": 0 }
+        "type": {
+          "enum": [
+            "datapath",
+            "fsm",
+            "timing",
+            "microarch"
+          ]
+        },
+        "spec_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "spec_bytes": {
+          "type": "integer",
+          "minimum": 0
+        }
       }
     },
     "tool": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["version", "node"],
+      "required": [
+        "version",
+        "node"
+      ],
       "properties": {
-        "version": { "type": "string" },
-        "node": { "type": "string" },
-        "dependencies": { "type": "object", "additionalProperties": { "type": "string" } },
-        "fonts": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["family", "sha256"], "properties": { "family": { "type": "string" }, "sha256": { "$ref": "#/$defs/sha256" } } } },
-        "profile_sha256": { "$ref": "#/$defs/sha256" }
+        "version": {
+          "type": "string"
+        },
+        "node": {
+          "type": "string"
+        },
+        "dependencies": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "fonts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "family",
+              "sha256"
+            ],
+            "properties": {
+              "family": {
+                "type": "string"
+              },
+              "sha256": {
+                "$ref": "#/$defs/sha256"
+              }
+            }
+          }
+        },
+        "profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
       }
     },
     "variants": {
@@ -36,169 +97,960 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "svg", "pdf", "min_font_pt", "min_stroke_pt", "svg_lint"],
+        "required": [
+          "id",
+          "svg",
+          "pdf",
+          "min_font_pt",
+          "min_stroke_pt",
+          "svg_lint"
+        ],
         "properties": {
-          "id": { "type": "string" },
-          "svg": { "$ref": "#/$defs/artifact" },
+          "id": {
+            "type": "string"
+          },
+          "svg": {
+            "$ref": "#/$defs/artifact"
+          },
           "pdf": {
-            "allOf": [{ "$ref": "#/$defs/artifact" }],
-            "required": ["fonts_present"],
-            "properties": { "fonts_present": { "const": false } },
+            "allOf": [
+              {
+                "$ref": "#/$defs/artifact"
+              }
+            ],
+            "required": [
+              "fonts_present"
+            ],
+            "properties": {
+              "fonts_present": {
+                "const": false
+              }
+            },
             "unevaluatedProperties": false
           },
-          "min_font_pt": { "type": "number" },
-          "min_stroke_pt": { "type": "number" },
-          "short_labels_used": { "type": "array", "items": { "type": "string" } },
-          "svg_lint": { "const": "pass" }
+          "min_font_pt": {
+            "type": "number"
+          },
+          "min_stroke_pt": {
+            "type": "number"
+          },
+          "short_labels_used": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "route": {
+            "description": "Routing quality of this variant (SPEC §9.4): straight data nets, jogs and wire crossings per net class.",
+            "type": "object",
+            "properties": {
+              "data_nets_straight": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "data_nets_total": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "data_jogs_redundant": {
+                "const": 0
+              },
+              "data_bends_unavoidable": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "crossings": {
+                "type": "object"
+              },
+              "edge_hugging": {
+                "const": 0
+              },
+              "data_bends": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "wire",
+                    "justification"
+                  ],
+                  "properties": {
+                    "wire": {
+                      "type": "string"
+                    },
+                    "net": {
+                      "type": "string"
+                    },
+                    "bends": {
+                      "type": "integer"
+                    },
+                    "justification": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "svg_lint": {
+            "const": "pass"
+          }
         }
+      }
+    },
+    "variant_status": {
+      "description": "Outcome per requested variant. 2col must be delivered; 1col is best effort and may be skipped with the reason and measured values.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "enum": [
+              "delivered",
+              "skipped"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "measured": {
+            "type": "object"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "skipped"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "reason",
+                "measured"
+              ]
+            }
+          }
+        ]
       }
     },
     "checks": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["codes_run", "errors", "warnings"],
+      "required": [
+        "codes_run",
+        "errors",
+        "warnings"
+      ],
       "properties": {
-        "codes_run": { "type": "array", "items": { "type": "string" } },
-        "errors": { "const": 0 },
-        "warnings": { "type": "integer", "minimum": 0 },
-        "quality": { "enum": ["paper", "draft"] }
+        "codes_run": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "errors": {
+          "const": 0
+        },
+        "warnings": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "quality": {
+          "enum": [
+            "paper",
+            "draft"
+          ]
+        }
       }
     },
     "source_pins": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["revision", "verified"],
-      "properties": { "revision": { "type": "string", "pattern": "^[0-9a-f]{40}$" }, "verified": { "type": "integer", "minimum": 0 } }
+      "required": [
+        "revision",
+        "verified"
+      ],
+      "properties": {
+        "revision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "verified": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
     },
-    "rtl": { "$ref": "#/$defs/rtl_evidence" },
-    "verification": { "$ref": "#/$defs/verification" }
+    "evidence": {
+      "description": "Origin of every file the verification relied on. Files inside the fig-gen installation, tests/fixtures or a fig-gen work directory are never accepted (evidence/self-authored).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "role",
+          "path",
+          "sha256",
+          "repository"
+        ],
+        "properties": {
+          "role": {
+            "enum": [
+              "rtl",
+              "netlist",
+              "doc",
+              "vcd",
+              "stimulus",
+              "stub-auto",
+              "stub-user"
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "$ref": "#/$defs/sha256"
+          },
+          "counts_as_evidence": {
+            "type": "boolean"
+          },
+          "repository": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "root",
+                  "revision",
+                  "dirty"
+                ],
+                "properties": {
+                  "root": {
+                    "type": "string"
+                  },
+                  "revision": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "dirty": {
+                    "type": [
+                      "boolean",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "role": {
+                  "enum": [
+                    "stub-auto",
+                    "stub-user",
+                    "stimulus"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "counts_as_evidence": {
+                  "const": false
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "rtl": {
+      "$ref": "#/$defs/rtl_evidence"
+    },
+    "verification": {
+      "$ref": "#/$defs/verification"
+    },
+    "doc_facts": {
+      "description": "Doc-grounded facts checked against every document of the pinned revision (SPEC §7.4): supporting sources, and for conflicts the user-chosen authority and the overridden sources.",
+      "type": "object",
+      "required": [
+        "scanned_files",
+        "facts"
+      ],
+      "properties": {
+        "scanned_files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "facts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "block",
+              "attribute",
+              "figure_value",
+              "supporting",
+              "overridden"
+            ],
+            "properties": {
+              "block": {
+                "type": "string"
+              },
+              "attribute": {
+                "enum": [
+                  "slot",
+                  "instance",
+                  "base",
+                  "window",
+                  "irq"
+                ]
+              },
+              "figure_value": {
+                "type": "string"
+              },
+              "supporting": {
+                "type": "array"
+              },
+              "overridden": {
+                "type": "array"
+              },
+              "authority": {
+                "type": "object",
+                "required": [
+                  "file",
+                  "reason"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "function_evidence": {
+      "description": "Vocabulary names justified by cited RTL structure (label/function-justification).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "basis"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "basis": {
+            "type": "string"
+          },
+          "rtl": {
+            "type": "string"
+          }
+        }
+      }
+    }
   },
   "$defs": {
-    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
     "file_hash": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["path", "sha256"],
-      "properties": { "path": { "type": "string" }, "sha256": { "$ref": "#/$defs/sha256" } }
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
     },
     "artifact": {
       "type": "object",
-      "required": ["path", "sha256", "bytes", "width_pt", "height_pt"],
+      "required": [
+        "path",
+        "sha256",
+        "bytes",
+        "width_pt",
+        "height_pt"
+      ],
       "properties": {
-        "path": { "type": "string" },
-        "sha256": { "$ref": "#/$defs/sha256" },
-        "bytes": { "type": "integer", "minimum": 1 },
-        "width_pt": { "type": "number", "exclusiveMinimum": 0 },
-        "height_pt": { "type": "number", "exclusiveMinimum": 0 }
+        "path": {
+          "type": "string"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "width_pt": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "height_pt": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
       }
     },
     "rtl_evidence": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["adapter", "top", "netlist_sha256", "rtl_files", "crosscheck"],
+      "required": [
+        "adapter",
+        "top",
+        "netlist_sha256",
+        "rtl_files",
+        "crosscheck"
+      ],
       "properties": {
-        "adapter": { "type": "object", "additionalProperties": false, "required": ["id", "version"], "properties": { "id": { "type": "string" }, "version": { "type": "string" } } },
-        "top": { "type": "string" },
-        "netlist_sha256": { "$ref": "#/$defs/sha256" },
-        "rtl_files": { "type": "array", "items": { "$ref": "#/$defs/file_hash" } },
-        "blackboxes": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["module", "origin"], "properties": { "module": { "type": "string" }, "origin": { "enum": ["user", "auto"] } } } },
-        "crosscheck": { "enum": ["pass", "fail", "not-run"] }
+        "adapter": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "version"
+          ],
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          }
+        },
+        "top": {
+          "type": "string"
+        },
+        "netlist_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "rtl_files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/file_hash"
+          }
+        },
+        "blackboxes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "module",
+              "origin"
+            ],
+            "properties": {
+              "module": {
+                "type": "string"
+              },
+              "origin": {
+                "enum": [
+                  "user",
+                  "auto"
+                ]
+              }
+            }
+          }
+        },
+        "crosscheck": {
+          "enum": [
+            "pass",
+            "fail",
+            "not-run"
+          ]
+        }
       }
     },
     "simulation": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["simulator", "top", "stimulus", "rtl_files", "vcd_sha256", "clock", "window", "signals"],
+      "required": [
+        "simulator",
+        "top",
+        "stimulus",
+        "rtl_files",
+        "vcd_sha256",
+        "clock",
+        "window",
+        "signals"
+      ],
       "properties": {
-        "simulator": { "type": "object", "additionalProperties": false, "required": ["id", "version"], "properties": { "id": { "type": "string" }, "version": { "type": "string" } } },
-        "top": { "type": "string" },
+        "simulator": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "version"
+          ],
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          }
+        },
+        "top": {
+          "type": "string"
+        },
         "stimulus": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["kind", "files"],
+          "required": [
+            "kind",
+            "files"
+          ],
           "properties": {
-            "kind": { "enum": ["sv-testbench", "cpp-harness", "bfm-script"] },
-            "files": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/file_hash" } },
-            "dpi_models": { "type": "array", "items": { "$ref": "#/$defs/file_hash" } },
-            "seed": { "type": "integer" }
+            "kind": {
+              "enum": [
+                "sv-testbench",
+                "cpp-harness",
+                "bfm-script"
+              ]
+            },
+            "files": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/file_hash"
+              }
+            },
+            "dpi_models": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/file_hash"
+              }
+            },
+            "seed": {
+              "type": "integer"
+            }
           }
         },
-        "rtl_files": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/file_hash" } },
-        "defines": { "type": "object", "additionalProperties": { "type": "string" } },
-        "params": { "type": "object" },
-        "vcd_sha256": { "$ref": "#/$defs/sha256" },
-        "clock": { "type": "object", "additionalProperties": false, "required": ["path", "edge"], "properties": { "path": { "type": "string" }, "edge": { "enum": ["pos", "neg"] } } },
-        "window": { "type": "object", "additionalProperties": false, "required": ["first_cycle", "cycles"], "properties": { "first_cycle": { "type": "integer", "minimum": 0 }, "cycles": { "type": "integer", "minimum": 1 } } },
-        "signals": { "type": "array", "minItems": 1, "items": { "type": "object", "additionalProperties": false, "required": ["lane", "rtl_path"], "properties": { "lane": { "type": "string" }, "rtl_path": { "type": "string" } } } },
-        "generated_wavejson_sha256": { "$ref": "#/$defs/sha256" }
+        "rtl_files": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/file_hash"
+          }
+        },
+        "defines": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "params": {
+          "type": "object"
+        },
+        "vcd_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "clock": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "edge"
+          ],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "edge": {
+              "enum": [
+                "pos",
+                "neg"
+              ]
+            }
+          }
+        },
+        "window": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "first_cycle",
+            "cycles"
+          ],
+          "properties": {
+            "first_cycle": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cycles": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "signals": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "lane",
+              "rtl_path"
+            ],
+            "properties": {
+              "lane": {
+                "type": "string"
+              },
+              "rtl_path": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "generated_wavejson_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
       }
+    },
+    "region": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "level",
+        "grounding"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "figure",
+            "element",
+            "block",
+            "region",
+            "stub",
+            "gate-region"
+          ]
+        },
+        "label": {
+          "type": "string"
+        },
+        "level": {
+          "enum": [
+            "simulated",
+            "sim-compared",
+            "structural-only",
+            "unverified"
+          ]
+        },
+        "grounding": {
+          "enum": [
+            "rtl",
+            "vcd",
+            "doc",
+            "stub",
+            "none"
+          ]
+        },
+        "reason": {
+          "type": "string"
+        },
+        "equivalence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "method",
+            "vectors",
+            "result"
+          ],
+          "properties": {
+            "method": {
+              "enum": [
+                "exhaustive",
+                "sampled"
+              ]
+            },
+            "vectors": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "seed": {
+              "type": "integer"
+            },
+            "input_bits": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "result": {
+              "const": "pass"
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "level": {
+                "const": "structural-only"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "grounding": {
+                "const": "rtl"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "level": {
+                "enum": [
+                  "simulated",
+                  "sim-compared"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "grounding": {
+                "const": "vcd"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "grounding": {
+                "enum": [
+                  "stub",
+                  "doc",
+                  "none"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "level": {
+                "const": "unverified"
+              }
+            },
+            "required": [
+              "reason"
+            ]
+          }
+        }
+      ]
     },
     "verification": {
       "type": "object",
-      "required": ["level"],
+      "required": [
+        "level",
+        "regions"
+      ],
       "properties": {
-        "level": { "enum": ["simulated", "sim-compared", "structural-only", "unverified"] },
-        "scope_note": { "const": "Simulation evidence covers only the recorded stimulus and cycle window." },
-        "reason": { "type": "string", "minLength": 1 },
-        "simulation": { "type": "object" },
-        "compare": { "type": "object" },
-        "structural": { "type": "object" },
+        "level": {
+          "enum": [
+            "simulated",
+            "sim-compared",
+            "structural-only",
+            "unverified",
+            "mixed"
+          ]
+        },
+        "regions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/region"
+          }
+        },
+        "scope_note": {
+          "const": "Simulation evidence covers only the recorded stimulus and cycle window."
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "simulation": {
+          "type": "object"
+        },
+        "compare": {
+          "type": "object"
+        },
+        "structural": {
+          "type": "object"
+        },
         "failed": {
-          "description": "Evidence from a higher level that was attempted and failed (e.g. sim-compare mismatches).",
           "type": "object"
         }
       },
       "allOf": [
         {
-          "if": { "properties": { "level": { "const": "simulated" } } },
+          "if": {
+            "properties": {
+              "level": {
+                "const": "simulated"
+              }
+            }
+          },
           "then": {
-            "required": ["simulation", "scope_note"],
-            "properties": { "simulation": { "allOf": [{ "$ref": "#/$defs/simulation" }], "required": ["generated_wavejson_sha256"] } }
+            "required": [
+              "simulation",
+              "scope_note"
+            ],
+            "properties": {
+              "simulation": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/simulation"
+                  }
+                ],
+                "required": [
+                  "generated_wavejson_sha256"
+                ]
+              }
+            }
           }
         },
         {
-          "if": { "properties": { "level": { "const": "sim-compared" } } },
-          "then": {
-            "required": ["simulation", "compare", "scope_note"],
+          "if": {
             "properties": {
-              "simulation": { "$ref": "#/$defs/simulation" },
+              "level": {
+                "const": "sim-compared"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "simulation",
+              "compare",
+              "scope_note"
+            ],
+            "properties": {
+              "simulation": {
+                "$ref": "#/$defs/simulation"
+              },
               "compare": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["compared_cells", "dont_care_cells", "skipped_symbolic_values", "mismatches"],
+                "required": [
+                  "compared_cells",
+                  "dont_care_cells",
+                  "skipped_symbolic_values",
+                  "mismatches"
+                ],
                 "properties": {
-                  "compared_cells": { "type": "integer", "minimum": 1 },
-                  "dont_care_cells": { "type": "integer", "minimum": 0 },
-                  "skipped_symbolic_values": { "type": "integer", "minimum": 0 },
-                  "value_map_used": { "type": "boolean" },
-                  "mismatches": { "type": "array", "maxItems": 0 }
+                  "compared_cells": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "dont_care_cells": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "skipped_symbolic_values": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "value_map_used": {
+                    "type": "boolean"
+                  },
+                  "mismatches": {
+                    "type": "array",
+                    "maxItems": 0
+                  }
                 }
               }
             }
           }
         },
         {
-          "if": { "properties": { "level": { "const": "structural-only" } } },
+          "if": {
+            "properties": {
+              "level": {
+                "const": "structural-only"
+              }
+            }
+          },
           "then": {
-            "required": ["structural"],
+            "required": [
+              "structural"
+            ],
             "properties": {
               "structural": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["netlist_sha256", "crosscheck"],
+                "required": [
+                  "netlist_sha256",
+                  "crosscheck"
+                ],
                 "properties": {
-                  "datapath_figure_sha256": { "$ref": "#/$defs/sha256" },
-                  "netlist_sha256": { "$ref": "#/$defs/sha256" },
-                  "crosscheck": { "const": "pass" },
-                  "latencies_checked": { "type": "integer", "minimum": 0 }
+                  "datapath_figure_sha256": {
+                    "$ref": "#/$defs/sha256"
+                  },
+                  "netlist_sha256": {
+                    "$ref": "#/$defs/sha256"
+                  },
+                  "crosscheck": {
+                    "const": "pass"
+                  },
+                  "latencies_checked": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
                 }
               }
             }
           }
         },
         {
-          "if": { "properties": { "level": { "const": "unverified" } } },
-          "then": { "required": ["reason"] }
+          "if": {
+            "properties": {
+              "level": {
+                "const": "unverified"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "reason"
+            ]
+          }
         }
       ],
       "unevaluatedProperties": false

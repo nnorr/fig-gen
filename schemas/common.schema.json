@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://rtl-figures.local/schemas/common.schema.json",
-  "title": "rtl-figures shared definitions",
+  "$id": "https://fig-gen.local/schemas/common.schema.json",
+  "title": "fig-gen shared definitions",
   "$defs": {
     "id": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$", "maxLength": 64 },
     "width": {
@@ -95,7 +95,16 @@
         "caption": { "type": "string", "maxLength": 600 },
         "print": { "$ref": "#/$defs/print" },
         "style": { "$ref": "#/$defs/style" },
-        "repository": { "$ref": "#/$defs/repository" }
+        "repository": { "$ref": "#/$defs/repository" },
+        "rtl": {
+          "description": "RTL scope the figure depicts: an instance path relative to the netlist top (omit for the top itself).",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "instance": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_\\[\\]]*(/[A-Za-z_][A-Za-z0-9_\\[\\]]*)*$" },
+            "module": { "type": "string" }
+          }
+        }
       }
     },
     "params": {

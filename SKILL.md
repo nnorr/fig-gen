@@ -1,16 +1,17 @@
 ---
-name: rtl-figures
-description: Draw paper-quality hardware figures — RTL datapath / block schematics (muxes, registers, pipeline stages, memories, clock domains), finite-state machines, timing waveforms, and pipeline / accelerator / SoC micro-architecture diagrams — as validated JSON rendered to editable SVG and print PDF in IEEE/ACM single- and double-column sizes. Checks widths, mux selects, clocks, CDC, FSM reachability and latencies, and can ground the figure in real Verilog/SystemVerilog through Verilator netlist extraction and simulation waveforms. Use this whenever the user wants a figure, diagram, schematic, block diagram, state diagram, waveform or timing diagram of hardware or RTL for a paper, thesis, slide or design doc — even if they only say "draw the decoder", "show the pipeline", "FSM of this module", or paste WaveDrom/WaveJSON.
+name: fig-gen
+description: Generate paper-quality figures of hardware designs from validated JSON — datapath / RTL block schematics (muxes, registers, pipeline stages, memories, clock domains), FSM / state diagrams (encodings, guards, Moore/Mealy outputs), timing / waveform diagrams (WaveJSON, latency and handshake annotations, simulation-grounded), and micro-architecture / SoC block diagrams (bus fabrics and bridges, address maps, interrupts, power/clock domains, accelerator integration) — delivered as editable figma-safe SVG plus outlined-text PDF in IEEE/ACM single- and double-column sizes. Checks widths, mux selects, clocks, CDC, reachability, latencies and memory maps, and cross-checks figures against real Verilog/SystemVerilog through Verilator. Use this whenever the user wants any figure, diagram, schematic, block diagram, state machine drawing, waveform, timing diagram, SoC/system architecture figure or address-map table of hardware or RTL for a paper, thesis, slides or a design doc — even if they only say "draw the decoder", "show the pipeline", "FSM of this module", "SoC figure", or paste WaveDrom/WaveJSON.
 license: MIT
 metadata:
   version: "0.1-phase1"
 ---
 
-# rtl-figures
+# fig-gen
 
-Phase 1 draft. `validate` (schema), `lint-svg` and `check-rtl` work;
-`render` and `deliver` are not implemented yet — say so plainly if asked for
-an actual figure file.
+Phase 2. `datapath` and `microarch` figures validate, render and deliver
+(SVG + outlined PDF + receipt), with RTL cross-checks and gate-level
+equivalence. `fsm` and `timing` validate only; say so plainly if asked for
+those figure files.
 
 A figure is a small JSON document of one type. The pipeline validates the
 hardware semantics before any layout, lays out each column variant separately,
@@ -39,7 +40,7 @@ the JSON and re-run, so the fix survives the next render.
    RTL, extract a netlist first and author from it:
 
    ```bash
-   node <skill>/bin/rtl-figures.mjs check-rtl --top <module> --files <rtl files...> \
+   node <skill>/bin/fig-gen.mjs check-rtl --top <module> --files <rtl files...> \
      --work-dir <scratch dir outside the RTL repo> --source-root <repo root> \
      --out <scratch>/netlist.json --summary
    ```
@@ -57,7 +58,7 @@ the JSON and re-run, so the fix survives the next render.
 5. **Validate after every edit**:
 
    ```bash
-   node <skill>/bin/rtl-figures.mjs validate <type> <figure.json> --json
+   node <skill>/bin/fig-gen.mjs validate <type> <figure.json> --json
    ```
 
    Fix only what a diagnostic names, using its `supportedFixes`. If two
@@ -70,9 +71,13 @@ the JSON and re-run, so the fix survives the next render.
 
 ## Things that matter for paper figures
 
-- Every figure ships in single- and double-column variants, each laid out for
-  its width. Don't scale one into the other; that pushes text below the 6 pt
-  floor (labels are 8 pt, secondary text 7 pt — `references/CONVENTIONS.md`).
+- The double-column (2col) variant is the required deliverable. The
+  single-column (1col) variant is best effort: fig-gen tries the normal layout
+  and one retry with short labels and tighter spacing, then skips 1col with an
+  info diagnostic and a receipt entry. Do not spend repair rounds forcing a
+  figure into one column; only `--variants 1col` makes 1col mandatory. Never
+  scale one variant into the other — that pushes text below the 6 pt floor
+  (labels are 8 pt, secondary text 7 pt — `references/CONVENTIONS.md`).
 - The canvas is the printed size; the figure contains no title or "Fig. N" —
   the caption lives in LaTeX and should define colors, line styles and
   abbreviations.
@@ -81,6 +86,85 @@ the JSON and re-run, so the fix survives the next render.
   vector editor; the PDF has outlined text for printing.
 - No vendor tool, license, host or technology-library names in anything you
   generate; describe memories as `impl: blackbox` rather than by macro name.
+
+## Naming blocks (readers must be able to name every box)
+
+- Give every custom block and instance a `function` from
+  `schemas/function-vocabulary.json` (`syndrome`, `error_locator`,
+  `chien_search`, `error_evaluator`, `classifier`, `comparator`,
+  `zero_detect`, `gf_mul`, `adder`, `controller`, `bus_slave`, `memory`, …;
+  `custom` with a `name` otherwise). Leave `label` unset so the functional
+  name prints; put algorithm detail (`Horner`, `X = S2/S1`) in
+  `function.detail`.
+- Decide the function from what the RTL computes, not from instance or
+  signal names. For ECC use coding-theory terms (syndrome calculator, error
+  locator, Chien search, Forney evaluator, corrector).
+- Ports get readable `label`s ("corrected data", "error detected"); keep the
+  RTL name in `rtl.signal`. Never print mnemonics like `cls`, `en`, `e_i`,
+  `X=a^i`, or abbreviated words like `Pos.`, `Calc.`, `Ctrl.`. Write the word
+  out and let the block wrap. `label/unreadable` flags them (an error with
+  `--quality paper`).
+- XOR/GF add, GF multiply and arithmetic draw as circle glyphs with no text;
+  concatenation is a `{ }` box, a split is ripper taps, a single slice is a
+  `[msb:lsb]` label on the wire, extension is `sext`/`zext`.
+- **Justify every algorithm name.** Put the RTL lines that show the structure in
+  `function.basis {source, structure}`. If the RTL does not show the structure
+  the vocabulary entry requires (e.g. per-position polynomial evaluation for a
+  Chien search, versus a compare against a power table for a position match),
+  use the more general name the lint suggests. Never keep a name the RTL does
+  not support.
+- **No duplicate names.** Split stages of one function get `function.stage`
+  ("1/2", "2/2"); otherwise give each block its own name.
+- **Widths are one number.** Never write `N×W` on a net or a mux; say "6
+  symbols of 8 bits" in the caption or `function.detail`.
+- **Line style comes from usage.** Do not set `class: control` on computed
+  flags or status outputs; mark real control inputs with `role` (`select`,
+  `enable`, `handshake`) and let fig-gen derive dashed/solid.
+
+## Facts from documents
+
+- Before using a slot, address, window, IRQ or instance name from a document,
+  let `validate` check it against all documents (`doc_terms` on the block helps
+  find them). A `doc/conflict` means the documents disagree: **ask the user
+  which document is authoritative**, then record it as `authority {file,
+  reason}`. Never choose silently, and never edit the user's documents.
+
+## Layout quality you should expect (and not fight)
+
+- Data wires come out straight. Before accepting any bend, the renderer tries
+  vertical re-ordering and pin re-assignment: a trunk that feeds a block and
+  continues past it passes underneath and taps the block from below. Each
+  remaining bend is reported with its justification (`route/data-bend`,
+  receipt `route.data_bends`). An avoidable bend or a redundant jog is an
+  error (`route/data-jog`). If one remains, fix the IR (lane order, pin pitch
+  between neighbours), not the SVG.
+- Every net ending at a block input or output port has an arrowhead
+  (`arrow/missing`), and no wire runs within 4 pt of an outline or another
+  wire (`route/edge-hugging`). Both are errors; do not work around them.
+- Region frames enclose exactly their members; blackbox regions are not
+  framed (the hatch marks them). If a mixed-abstraction figure is too wide
+  for 2col, collapse detail that is not the figure's point into block-level
+  elements and say so in the caption, rather than squeezing spacing.
+
+## Evidence rule (hard, no exceptions)
+
+A figure is only as verified as the user's own design files make it.
+
+- **Never write RTL, stubs, models or testbench stand-ins to make a check
+  pass.** If the RTL for a block is not in the user's repository, that block is
+  `unverified` (or doc-grounded when a document pins it). Say so; do not fill
+  the gap.
+- Verify only against the user's actual RTL, netlists extracted from it, and
+  VCDs simulated from it. fig-gen rejects evidence located in its own
+  installation, in `tests/fixtures`, or in a fig-gen work directory
+  (`evidence/self-authored`) — do not try to work around that.
+- Auto-generated blackbox stubs exist only so Verilator can elaborate; they
+  copy port names/widths from the user's instantiation sites. Anything behind
+  a stub is unverified.
+- Generated bus-functional wrapper testbenches are stimulus for the user's DUT,
+  never a replacement for it.
+- Receipts report verification per region. Never describe a figure as verified
+  above the level its receipt shows.
 
 ## References (read on demand)
 

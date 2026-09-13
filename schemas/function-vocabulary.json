@@ -1,0 +1,340 @@
+{
+  "version": 2,
+  "description": "Controlled vocabulary for the functional name of datapath blocks (CONVENTIONS §4.3, SPEC §4.5). `display` is the printed primary name; `qualified` is used when the element gives function.qualifier ({q} is replaced, e.g. GF(2^8)); `short` is a readable word for narrow variants; `stage_display` is the name used with function.stage (\"Syndrome calculator\" + \" (stage 1/2)\"); `glyph` marks operators whose circle glyph is the name (no text). `evidence` declares the RTL structure a figure must cite (function.basis) to use the name: `source_all` regexes must all match the cited source text, and `cone_all` operation categories must all occur in the RTL cone of the block's mapped outputs when a netlist is given. When the evidence is missing or not satisfied, the lint suggests `general`, a more general name. Operation categories: compare-eq, compare-zero, multiply, multiply-by-constant, gf-add, division.",
+  "kinds": {
+    "gf_add": {
+      "display": "GF adder (XOR)",
+      "qualified": "{q} adder (XOR)",
+      "short": "GF add",
+      "glyph": "oplus",
+      "evidence": {
+        "description": "bitwise XOR (addition in GF(2^m))",
+        "source_all": [
+          "\\^|xor|add"
+        ],
+        "cone_all": [
+          "gf-add"
+        ]
+      }
+    },
+    "gf_mul": {
+      "display": "GF multiplier",
+      "qualified": "{q} multiplier",
+      "short": "GF mul",
+      "glyph": "otimes",
+      "evidence": {
+        "description": "a GF multiplication (multiplier function or shift-and-reduce network)",
+        "source_all": [
+          "mul|\\*"
+        ],
+        "cone_all": [
+          "multiply"
+        ]
+      }
+    },
+    "gf_const_mul": {
+      "display": "GF constant multiplier",
+      "qualified": "{q} constant multiplier",
+      "short": "Constant multiplier",
+      "evidence": {
+        "description": "multiplication by a constant field element",
+        "source_all": [
+          "mul|\\*"
+        ],
+        "cone_all": [
+          "multiply-by-constant"
+        ]
+      },
+      "general": "gf_mul"
+    },
+    "gf_inv": {
+      "display": "GF inverter",
+      "qualified": "{q} inverter",
+      "short": "Inverter"
+    },
+    "gf_div": {
+      "display": "GF divider",
+      "qualified": "{q} divider",
+      "short": "Divider",
+      "evidence": {
+        "description": "a GF division or multiplication by an inverse",
+        "source_all": [
+          "inv|div|/"
+        ],
+        "cone_all": [
+          "division"
+        ]
+      },
+      "general": "gf_mul"
+    },
+    "gf_poly_eval": {
+      "display": "GF polynomial evaluator",
+      "qualified": "{q} polynomial evaluator",
+      "short": "Polynomial evaluator",
+      "evidence": {
+        "description": "polynomial evaluation: repeated multiply by a constant point and add the next coefficient (Horner) or a sum of scaled terms",
+        "source_all": [
+          "mul|\\*",
+          "\\^|add|xor"
+        ],
+        "cone_all": [
+          "multiply-by-constant",
+          "gf-add"
+        ]
+      }
+    },
+    "gf_pow_lut": {
+      "display": "GF power LUT",
+      "qualified": "{q} power LUT",
+      "short": "Power LUT"
+    },
+    "gf_log_lut": {
+      "display": "GF log LUT",
+      "qualified": "{q} log LUT",
+      "short": "Log LUT"
+    },
+    "gf_antilog_lut": {
+      "display": "GF antilog LUT",
+      "qualified": "{q} antilog LUT",
+      "short": "Antilog LUT"
+    },
+    "adder": {
+      "display": "Adder",
+      "qualified": "{q} adder",
+      "short": "Adder",
+      "glyph": "plus"
+    },
+    "subtractor": {
+      "display": "Subtractor",
+      "qualified": "{q} subtractor",
+      "short": "Subtractor",
+      "glyph": "minus"
+    },
+    "multiplier": {
+      "display": "Multiplier",
+      "qualified": "{q} multiplier",
+      "short": "Multiplier",
+      "glyph": "times"
+    },
+    "divider": {
+      "display": "Divider",
+      "qualified": "{q} divider",
+      "short": "Divider"
+    },
+    "comparator": {
+      "display": "Comparator",
+      "qualified": "{q} comparator",
+      "short": "Compare",
+      "evidence": {
+        "description": "an equality or magnitude compare",
+        "source_all": [
+          "==|!=|<|>"
+        ],
+        "cone_all": [
+          "compare-eq"
+        ]
+      }
+    },
+    "zero_detect": {
+      "display": "Zero detector",
+      "short": "Zero detect",
+      "evidence": {
+        "description": "a compare against zero or a reduction OR/NOR",
+        "source_all": [
+          "==|!=|\\|"
+        ],
+        "cone_all": [
+          "compare-zero"
+        ]
+      },
+      "general": "comparator"
+    },
+    "shifter": {
+      "display": "Shifter",
+      "qualified": "{q} shifter",
+      "short": "Shifter"
+    },
+    "lut": {
+      "display": "Lookup table",
+      "qualified": "{q} lookup table",
+      "short": "LUT"
+    },
+    "rom": {
+      "display": "ROM",
+      "qualified": "{q} ROM",
+      "short": "ROM"
+    },
+    "encoder": {
+      "display": "Encoder",
+      "qualified": "{q} encoder",
+      "short": "Encoder"
+    },
+    "decoder": {
+      "display": "Decoder",
+      "qualified": "{q} decoder",
+      "short": "Decoder"
+    },
+    "syndrome": {
+      "display": "Syndrome calculator",
+      "stage_display": "Syndrome calculator",
+      "short": "Syndromes",
+      "evidence": {
+        "description": "evaluation of the received word as a polynomial at the code's roots (e.g. Horner steps: multiply by a constant root, add the next symbol)",
+        "source_all": [
+          "mul|\\*",
+          "\\^|add|xor"
+        ],
+        "cone_all": [
+          "multiply-by-constant",
+          "gf-add"
+        ]
+      },
+      "general": "gf_poly_eval"
+    },
+    "error_locator": {
+      "display": "Error locator",
+      "short": "Locator",
+      "evidence": {
+        "description": "error-locator computation from the syndromes: a key-equation solver (Berlekamp-Massey, RiBM, Euclid) or a direct GF division/multiplication for small t",
+        "source_all": [
+          "inv|div|mul|\\*|/"
+        ],
+        "cone_all": [
+          "multiply"
+        ]
+      },
+      "general": "gf_div"
+    },
+    "chien_search": {
+      "display": "Chien search",
+      "short": "Chien search",
+      "evidence": {
+        "description": "per-position evaluation of the error-locator polynomial (iterative or parallel), each result compared with zero",
+        "source_all": [
+          "mul|\\*",
+          "==\\s*[\\w']*0\\b|!=\\s*[\\w']*0\\b|~\\s*\\|"
+        ],
+        "cone_all": [
+          "multiply-by-constant",
+          "compare-zero"
+        ]
+      },
+      "general": "comparator"
+    },
+    "position_match": {
+      "display": "Position match",
+      "short": "Position match",
+      "evidence": {
+        "description": "equality compares of a value against a constant table of field powers, one compare per position",
+        "source_all": [
+          "==|!=",
+          "\\w+\\s*\\[[^\\]]+\\]"
+        ],
+        "cone_all": [
+          "compare-eq"
+        ]
+      },
+      "general": "comparator"
+    },
+    "error_evaluator": {
+      "display": "Error evaluator",
+      "qualified": "{q} error evaluator",
+      "short": "Evaluator",
+      "evidence": {
+        "description": "error-magnitude computation (Forney formula, or a GF division by a position power for small t)",
+        "source_all": [
+          "inv|div|mul|\\*|/"
+        ],
+        "cone_all": [
+          "multiply"
+        ]
+      },
+      "general": "gf_div"
+    },
+    "corrector": {
+      "display": "Corrector",
+      "short": "Corrector"
+    },
+    "classifier": {
+      "display": "Error classifier",
+      "short": "Classifier"
+    },
+    "correction_enable": {
+      "display": "Correction enable",
+      "short": "Enable"
+    },
+    "controller": {
+      "display": "Controller",
+      "qualified": "{q} controller",
+      "short": "Controller"
+    },
+    "fsm": {
+      "display": "FSM",
+      "qualified": "{q} FSM",
+      "short": "FSM"
+    },
+    "csr_bank": {
+      "display": "CSR bank",
+      "short": "CSRs"
+    },
+    "bus_slave": {
+      "display": "Bus slave",
+      "qualified": "{q} slave",
+      "short": "Bus slave"
+    },
+    "memory": {
+      "display": "Memory",
+      "qualified": "{q} memory",
+      "short": "Memory"
+    },
+    "error_injector": {
+      "display": "Error injector",
+      "short": "Injector"
+    },
+    "custom": {
+      "display": null,
+      "short": null
+    }
+  },
+  "well_known_symbols": [
+    "+",
+    "-",
+    "−",
+    "×",
+    "⊕",
+    "⊗",
+    "=",
+    "==",
+    "!=",
+    "<",
+    "<=",
+    ">",
+    ">=",
+    "<<",
+    ">>",
+    ">>>",
+    "&",
+    "|",
+    "^",
+    "~",
+    "{ }",
+    "MUX",
+    "LUT",
+    "ROM",
+    "RAM",
+    "FSM",
+    "CSR",
+    "CPU",
+    "ALU",
+    "DSP",
+    "PLL",
+    "ECC",
+    "IRQ",
+    "AHB",
+    "APB",
+    "AXI",
+    "SoC",
+    "zext",
+    "sext"
+  ]
+}

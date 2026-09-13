@@ -11,10 +11,14 @@
 # Copyright: no figure images are stored in this repo. Open PDFs are cached in
 # references/local/ (gitignored).
 #
-# Count: 40 figures, 35 verified, 5 unverified.
+# Count: 48 figures, 43 verified, 5 unverified.
 # Coverage gaps: no verified ISSCC / VLSI Symp. / CICC / ESSCIRC / DAC-proper
 # circuit figures (no open PDFs found for e.g. Envision, UNPU); no FCCM paper
 # (Zhang et al. is FPGA'15); textbook anchors are unverified.
+#
+# F41-F48 (and notes on F36/F37) were added in a bus-operations pass: the page was
+# rendered locally (scratchpad, not the repo) and the DRAWING itself was inspected
+# for split / truncation / concatenation / extension glyphs.
 
 - id: F01
   title: 'Eyeriss: A Spatial Architecture for Energy-Efficient Dataflow for Convolutional Neural Networks'
@@ -765,9 +769,13 @@
   - processor array (s x s) + data memory + mux blocks (MMUX1/MMUX2 referenced in text)
   - Fig. 10 uses orange to mark components used only in some variants (per caption)
   - Fig. 1 'Layout of the processor array' - cell-array figure analogous to key-equation-solver arrays
+  - 'concatenation and bus split NOT drawn as glyphs: text (p. 13) says data_out ports "are concatenated
+    together to the bus data_mem" and the input bus "is split", figure shows plain wires'
   access: open
   verified: true
-  note: Verified from ePrint 2022/412 PDF; DOI from TCHES article page.
+  note: 'Verified from ePrint 2022/412 PDF; DOI from TCHES article page. | 2026-09-13 bus-ops pass: Opened
+    the open PDF, rendered the page, and inspected the drawing itself (not only the caption) for bus-operation
+    glyphs (split/truncation/concat/extension); no image stored in repo.'
 - id: F37
   title: High-throughput Low-latency Hardware Implementation of BCH Decoders
   authors: Jasper Lagendijk, Wenqing Song, Yunus Can Gultekin, Andreas Burg, Alex Alvarado, Alexios Balatsoukas-Stimming
@@ -782,9 +790,13 @@
   - 'decoder drawn as left-to-right stage chain: syndrome computation, t BM-update iterations, Chien search,
     error correction (per caption)'
   - Fig. 3 companion diagram for direct decoder with same stage-sequence caption style
+  - parallel signal bundles labeled with set braces {S1,...,S3} plus vertical ellipsis; no merge/split
+    symbol
   access: open
   verified: true
-  note: No journal-ref on arXiv; not from a target venue. Included as open BCH exemplar.
+  note: 'No journal-ref on arXiv; not from a target venue. Included as open BCH exemplar. | 2026-09-13
+    bus-ops pass: Opened the open PDF, rendered the page, and inspected the drawing itself (not only the
+    caption) for bus-operation glyphs (split/truncation/concat/extension); no image stored in repo.'
 - id: F38
   title: Pushing the Limits of SHA-3 Hardware Implementations to Fit on RFID
   authors: Peter Pessl, Michael Hutter
@@ -839,3 +851,211 @@
   note: Canonical RiBM/systolic key-equation-solver cell-array paper. No open PDF found; figure numbers
     and captions not checked. DOI taken from ACM DL URL in search results. Before citing, look up the
     processor-element and array figures via IEEE Xplore.
+- id: F41
+  title: A Better Kyber Butterfly for FPGAs
+  authors:
+  - Jonas Bertels
+  - Quinten Norga
+  - Ingrid Verbauwhede
+  venue: FPL 2024 (IACR ePrint 2024/1367)
+  year: 2024
+  doi: null
+  url: https://eprint.iacr.org/2024/1367
+  figure: Fig. 3
+  caption_excerpt: Nguyen et al.'s modular reduction, taken from [NPH23] and used under provisions of
+    fair use.
+  figure_type: datapath
+  conventions_demonstrated:
+  - concatenation drawn as a small outlined box containing "{ }", defined in the legend as "Concatenation"
+    (inputs 6 and 12 bits, output 18)
+  - 'legend row of operator glyphs: circled x multiplier, circled + adder, circled - subtractor, striped
+    LUT box'
+  - slash-N width marks on every bus (6, 12, 13, 14, 18, 19, 20)
+  - registers as small boxes with clock wedge
+  - dashed frame groups the K-RED unit
+  access: open
+  verified: true
+  note: Opened the open PDF, rendered the page, and inspected the drawing itself (not only the caption)
+    for bus-operation glyphs (split/truncation/concat/extension); no image stored in repo. Page 4 of the
+    ePrint PDF. The figure is a redrawing of Nguyen et al. [NPH23] per its caption; venue FPL 2024 per
+    the ePrint page. DOI not shown on the ePrint page.
+- id: F42
+  title: A Better Kyber Butterfly for FPGAs
+  authors:
+  - Jonas Bertels
+  - Quinten Norga
+  - Ingrid Verbauwhede
+  venue: FPL 2024 (IACR ePrint 2024/1367)
+  year: 2024
+  doi: null
+  url: https://eprint.iacr.org/2024/1367
+  figure: Fig. 2
+  caption_excerpt: We based one of our implementations on Ni et al.'s modular reduction, taken from [NKLO23]
+  figure_type: datapath
+  conventions_demonstrated:
+  - bus split drawn as plain orthogonal branches off a 24-bit register output, each branch carrying its
+    own slash width (12, 8, 4) and field name (C_h, C_l, x_l); no split symbol
+  - truncation shown only by a changed width label (14 -> 12), no symbol
+  - constant shifts written as wire labels "<<3", "<<1" instead of blocks
+  - trapezoid mux with input codes inside (00, 01, 1(0/1)) and constant input labels (0, 12'hd01, 13'h12ff);
+    2-bit select entering from below
+  - gray registers with clock wedge; circled +/- operators
+  access: open
+  verified: true
+  note: Opened the open PDF, rendered the page, and inspected the drawing itself (not only the caption)
+    for bus-operation glyphs (split/truncation/concat/extension); no image stored in repo. Page 4 of the
+    ePrint PDF. Redrawn from Ni et al. [NKLO23] per caption.
+- id: F43
+  title: A near-threshold RISC-V core with DSP extensions for scalable IoT Endpoint Devices
+  authors:
+  - Michael Gautschi
+  - Pasquale Davide Schiavone
+  - Andreas Traber
+  - Igor Loi
+  - Antonio Pullini
+  - Davide Rossi
+  - Eric Flamand
+  - Frank K. Gurkaynak
+  - Luca Benini
+  venue: IEEE TVLSI (arXiv preprint version)
+  year: 2017
+  doi: null
+  url: https://arxiv.org/abs/1608.08376
+  figure: Fig. 8
+  caption_excerpt: Simplified block diagram of the Multiplier in the RISC-V core implementation.
+  figure_type: datapath
+  conventions_demonstrated:
+  - 32-bit operands split to 16/16 by plain branches with slash-N labels; no split glyph
+  - 'sign extension not drawn: text says 16b/8b elements are sign extended to 17b/9b, absorbed into "17x17"
+    and "9x9" multiplier block names'
+  - shifters as parallelogram blocks "<<" and ">>"; constant "00000001" as a wire label
+  - unlabeled trapezoid muxes; colored numbered regions keyed to text
+  access: open
+  verified: true
+  note: Opened the open PDF, rendered the page, and inspected the drawing itself (not only the caption)
+    for bus-operation glyphs (split/truncation/concat/extension); no image stored in repo. arXiv preprint
+    p. 8; figure numbering may differ in the TVLSI version (see F21).
+- id: F44
+  title: 'Spatz: A Compact Vector Processing Unit for High-Performance and Energy-Efficient Shared-L1
+    Clusters'
+  authors:
+  - Matheus Cavalcante
+  - Domenic Wüthrich
+  - Matteo Perotti
+  - Samuel Riedel
+  - Luca Benini
+  venue: ICCAD 2022
+  year: 2022
+  doi: null
+  url: https://arxiv.org/abs/2207.07970
+  figure: Figure 2
+  caption_excerpt: Architecture of Spatz' MACU.
+  figure_type: datapath
+  conventions_demonstrated:
+  - 'CAUTIONARY: unlabeled flat horizontal bar-shaped trapezoids distribute three 32-bit buses to four
+    lanes (32b/16b/8b/8b) and merge lane outputs back to a 32-bit bus'
+  - the split/merge bars carry no select pin and no slice labels, so they are visually identical to a
+    mux silhouette
+  - slash-N widths (32) on external buses only
+  access: open
+  verified: true
+  note: Opened the open PDF, rendered the page, and inspected the drawing itself (not only the caption)
+    for bus-operation glyphs (split/truncation/concat/extension); no image stored in repo. arXiv p. 3;
+    venue from running header "ICCAD'22". DOI not seen.
+- id: F45
+  title: 'Arrow: A RISC-V Vector Accelerator for Machine Learning Inference'
+  authors:
+  - Imad Al Assir
+  - Mohamad El Iskandarani
+  - Hadi Rayan Al Sandid
+  - Mazen A. R. Saghir
+  venue: CARRV 2021 (workshop co-located with ISCA 2021)
+  year: 2021
+  doi: 10.48550/arXiv.2107.07169
+  url: https://arxiv.org/abs/2107.07169
+  figure: Figure 1
+  caption_excerpt: Arrow Datapath
+  figure_type: pipeline
+  conventions_demonstrated:
+  - pipeline registers as tall thin white bars spanning all crossing nets, clock wedge at top with "clk"
+    pin
+  - muxes as trapezoids with named inputs (Vdata, Xdata, Idata, rs2_data)
+  - slash marks without numbers on buses; "Fields" bundle drawn as a double line
+  - stacked offset outlines for replicated lanes (ALU Lane, MV Block)
+  access: open
+  verified: true
+  note: Opened the open PDF, rendered the page, and inspected the drawing itself (not only the caption)
+    for bus-operation glyphs (split/truncation/concat/extension); no image stored in repo. arXiv p. 2;
+    no split/concat/extension glyphs present (useful as pipeline-bar evidence).
+- id: F46
+  title: 'Wildcat: Educational RISC-V Microprocessors'
+  authors:
+  - Martin Schoeberl
+  venue: arXiv preprint
+  year: 2025
+  doi: 10.48550/arXiv.2502.20197
+  url: https://arxiv.org/abs/2502.20197
+  figure: Fig. 1
+  caption_excerpt: A textbook style 5-stages RISC-V processor pipeline.
+  figure_type: pipeline
+  conventions_demonstrated:
+  - immediate extraction/extension drawn as a labeled cloud "Dec/Imm" (a named block, no extension symbol)
+  - pipeline registers as small tall rectangles with clock wedge
+  - unlabeled trapezoid muxes and adder chevron; junction dots at fanout
+  access: open
+  verified: true
+  note: Opened the open PDF, rendered the page, and inspected the drawing itself (not only the caption)
+    for bus-operation glyphs (split/truncation/concat/extension); no image stored in repo. arXiv p. 3;
+    Fig. 2 (p. 5) uses the same conventions. Not a top-venue paper; kept as a verified textbook-style
+    anchor.
+- id: F47
+  title: 'RVCoreP: An optimized RISC-V soft processor of five-stage pipelining'
+  authors:
+  - Hiromu Miyazaki
+  - Takuto Kanamori
+  - Md Ashraful Islam
+  - Kenji Kise
+  venue: IEICE Transactions on Information and Systems (arXiv version)
+  year: 2020
+  doi: null
+  url: https://arxiv.org/abs/2002.03568
+  figure: Fig. 1
+  caption_excerpt: A block diagram of typical five-stage pipelined processor (baseline).
+  figure_type: pipeline
+  conventions_demonstrated:
+  - load sign/zero extension drawn as a labeled block "align/extend"; immediate decode as "decoder_imm";
+    "shift left 1" as a named block
+  - pipeline registers IfId/IdEx/ExMa/MaWb as tall thin green bars spanning every crossing net, named
+    above
+  - muxes drawn as rounded pills labeled "Mux" (visually distinct from the pipeline bars)
+  - color legend given in body text (green = registers, yellow = memory modules, red = ALU/adders, blue
+    = combinational)
+  access: open
+  verified: true
+  note: Opened the open PDF, rendered the page, and inspected the drawing itself (not only the caption)
+    for bus-operation glyphs (split/truncation/concat/extension); no image stored in repo. arXiv p. 2.
+    IEICE Trans. is outside the target venue list; kept because it is the clearest verified extension-block
+    example.
+- id: F48
+  title: The Hwacha Vector-Fetch Architecture Manual, Version 3.8.1
+  authors:
+  - Yunsup Lee
+  - Colin Schmidt
+  - Albert Ou
+  - Andrew Waterman
+  - Krste Asanović
+  venue: UC Berkeley EECS Technical Report UCB/EECS-2015-262
+  year: 2015
+  doi: null
+  url: http://www.eecs.berkeley.edu/Pubs/TechRpts/2015/EECS-2015-262.html
+  figure: Figure 7
+  caption_excerpt: Hwacha instruction formats.
+  figure_type: datapath
+  conventions_demonstrated:
+  - word layout as a strip of labeled cells with bit indices above (63 ... 0)
+  - 'slice notation inside field names: imm[31:3], imm[31:0]'
+  access: open
+  verified: true
+  note: Opened the open PDF, rendered the page, and inspected the drawing itself (not only the caption)
+    for bus-operation glyphs (split/truncation/concat/extension); no image stored in repo. PDF p. 17 (manual
+    p. 15). Bitfield diagram, not a datapath; evidence for [msb:lsb] slice syntax.

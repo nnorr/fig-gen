@@ -12,7 +12,7 @@ const fixture = path.join(here, 'fixtures', 'rtl', 'tiny');
 const detected = await verilator.detect();
 
 test('verilator adapter extracts the tiny fixture with an auto blackbox', { skip: !detected.available && 'verilator not installed' }, async () => {
-  const workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rtlfig-test-'));
+  const workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'figgen-test-'));
   const before = fs.readdirSync(fixture).sort();
   try {
     const netlist = await verilator.extract({ files: [path.join(fixture, 'tiny_top.sv')], top: 'tiny_top', work_dir: workDir, source_root: fixture });

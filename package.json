@@ -1,19 +1,19 @@
 {
-  "name": "rtl-figures",
+  "name": "fig-gen",
   "version": "0.1.0-phase1",
   "private": true,
   "type": "module",
   "description": "Paper-quality hardware figures (datapath, FSM, timing, micro-architecture) from typed JSON, with RTL cross-checks.",
   "license": "MIT",
   "bin": {
-    "rtl-figures": "./bin/rtl-figures.mjs"
+    "fig-gen": "./bin/fig-gen.mjs"
   },
   "engines": {
     "node": ">=20"
   },
   "scripts": {
     "test": "node --test \"tests/*.test.mjs\"",
-    "doctor": "node bin/rtl-figures.mjs doctor"
+    "doctor": "node bin/fig-gen.mjs doctor"
   },
   "dependencies": {
     "@fontsource/arimo": "5.3.0",

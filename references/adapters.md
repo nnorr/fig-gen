@@ -1,6 +1,6 @@
 # RTL adapters
 
-rtl-figures ships one adapter, `verilator`, and knows nothing about any other
+fig-gen ships one adapter, `verilator`, and knows nothing about any other
 tool. Anything else — another open-source front-end or a site-licensed tool on
 your own machine — is a plug-in you register locally. Keep site-specific
 paths, hosts and license settings in your own environment or in an untracked
@@ -8,13 +8,13 @@ config, never in this repository.
 
 ## Selection
 
-`--adapter <id>` → `RTLFIG_ADAPTER` → `default_adapter` in
-`rtl-figures.config.json` → `verilator`. List what is visible with
-`node bin/rtl-figures.mjs adapters`.
+`--adapter <id>` → `FIGGEN_ADAPTER` → `default_adapter` in
+`fig-gen.config.json` → `verilator`. List what is visible with
+`node bin/fig-gen.mjs adapters`.
 
 ## Plug-in forms
 
-**Module adapter** (`module` in config, or a path in `RTLFIG_ADAPTER_PATH`):
+**Module adapter** (`module` in config, or a path in `FIGGEN_ADAPTER_PATH`):
 
 ```js
 export default {

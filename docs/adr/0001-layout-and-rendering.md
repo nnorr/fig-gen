@@ -70,3 +70,26 @@ and be repairable by an agent through bounded hints.
   build input and part of the receipt hash.
 - ELK's Java-to-JS runtime is heavy (~8 MB); acceptable for a CLI.
 - The EPL-2.0 dependency must be listed in THIRD_PARTY_NOTICES when bundled.
+
+## Phase 2 results (2026-09-13)
+
+- **PDF spike: accepted.** opentype.js outlines the bundled WOFF fonts
+  (Arimo/Tinos/Libertinus, OFL) with the same metrics used for layout; pdfkit +
+  svg-to-pdfkit convert the outlined SVG. Verified: no font resources in the
+  PDF, byte-identical output across runs (fixed metadata dates), dashes and
+  explicit hatch lines preserved. The spike also exposed that the bundled Latin
+  subsets lack glyphs such as U+2192, so `text/glyph-missing` is checked on
+  every label. rsvg-convert is not used; headless Chrome remains optional for
+  previews only.
+- **Datapath layout: ELK Layered confirmed** with FIXED_POS pins from the skin,
+  stage partitions, and per-variant spacing. ELK wrapping was tried as a
+  narrow-column fallback and rejected: the return loops read worse than
+  skipping 1col (see SPEC §9.5 variant policy).
+- **Microarch/SoC layout: ELK replaced by a deterministic row/bus layout.**
+  ELK DOWN with fabric nodes produced bars sized by attachment count, off-chip
+  blocks inside chip boxes and colliding domain labels. The custom layout
+  places managers above and subordinates below each bus bar, chains fabrics
+  through bridges, routes links in inter-row channels and a right gutter, and
+  draws only discriminating domain boundaries, naming them in a legend.
+- **Label placement** uses a collision-aware placer (symbols, wires, labels,
+  boundaries) instead of fixed offsets; geometry checks still verify the result.

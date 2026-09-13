@@ -1,198 +1,691 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://rtl-figures.local/schemas/microarch.schema.json",
-  "title": "rtl-figures micro-architecture / SoC IR (schema_version 1, skeleton)",
+  "$id": "https://fig-gen.local/schemas/microarch.schema.json",
+  "title": "fig-gen micro-architecture / SoC IR (schema_version 1, skeleton)",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "figure_type", "meta", "blocks"],
+  "required": [
+    "schema_version",
+    "figure_type",
+    "meta",
+    "blocks"
+  ],
   "properties": {
-    "schema_version": { "const": 1 },
-    "figure_type": { "const": "microarch" },
-    "meta": { "$ref": "common.schema.json#/$defs/meta" },
-    "params": { "$ref": "common.schema.json#/$defs/params" },
-    "blocks": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/block" } },
-    "fabrics": { "type": "array", "items": { "$ref": "#/$defs/fabric" } },
-    "attachments": { "type": "array", "items": { "$ref": "#/$defs/attachment" } },
-    "links": { "type": "array", "items": { "$ref": "#/$defs/link" } },
-    "domains": { "type": "array", "items": { "$ref": "#/$defs/domain" } },
-    "crossings": { "type": "array", "items": { "$ref": "#/$defs/crossing" } },
-    "groups": { "type": "array", "items": { "$ref": "#/$defs/group" } },
-    "stages": { "type": "array", "items": { "$ref": "#/$defs/group" } },
-    "annotations": { "type": "array", "items": { "$ref": "#/$defs/annotation" } },
+    "schema_version": {
+      "const": 1
+    },
+    "figure_type": {
+      "const": "microarch"
+    },
+    "meta": {
+      "$ref": "common.schema.json#/$defs/meta"
+    },
+    "params": {
+      "$ref": "common.schema.json#/$defs/params"
+    },
+    "blocks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/block"
+      }
+    },
+    "fabrics": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/fabric"
+      }
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/attachment"
+      }
+    },
+    "links": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/link"
+      }
+    },
+    "domains": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/domain"
+      }
+    },
+    "crossings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/crossing"
+      }
+    },
+    "groups": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/group"
+      }
+    },
+    "stages": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/group"
+      }
+    },
+    "annotations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/annotation"
+      }
+    },
     "address_map": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "table": { "type": "boolean" },
-        "alignment": { "$ref": "#/$defs/hex" }
+        "table": {
+          "type": "boolean"
+        },
+        "alignment": {
+          "$ref": "#/$defs/hex"
+        }
       }
     }
   },
   "$defs": {
-    "hex": { "type": "string", "pattern": "^0[xX][0-9a-fA-F][0-9a-fA-F_]*$" },
+    "hex": {
+      "type": "string",
+      "pattern": "^0[xX][0-9a-fA-F][0-9a-fA-F_]*$"
+    },
     "labels": {
       "type": "object",
       "properties": {
-        "label": { "type": "string", "maxLength": 60 },
-        "short_label": { "$ref": "common.schema.json#/$defs/short_label" },
-        "labels": { "$ref": "common.schema.json#/$defs/label_by_variant" }
+        "label": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "short_label": {
+          "$ref": "common.schema.json#/$defs/short_label"
+        },
+        "labels": {
+          "$ref": "common.schema.json#/$defs/label_by_variant"
+        }
       }
     },
     "rtl_soc": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "instance": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_\\[\\]]*(/[A-Za-z_][A-Za-z0-9_\\[\\]]*)*$" },
-        "module": { "type": "string" },
-        "port": { "type": "string" },
-        "base_param": { "type": "string" },
-        "size_param": { "type": "string" },
-        "params": { "type": "object", "additionalProperties": { "oneOf": [{ "type": "integer" }, { "type": "string" }] } },
-        "signal": { "type": "string" }
+        "instance": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_\\[\\]]*(/[A-Za-z_][A-Za-z0-9_\\[\\]]*)*$"
+        },
+        "module": {
+          "type": "string"
+        },
+        "port": {
+          "type": "string"
+        },
+        "top": {
+          "type": "boolean",
+          "description": "the RTL instance is the netlist top itself (an IP delivered on its own)"
+        },
+        "addr_port": {
+          "type": "string",
+          "description": "local address port whose width must match the address window size"
+        },
+        "base_param": {
+          "type": "string"
+        },
+        "size_param": {
+          "type": "string"
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "signal": {
+          "type": "string"
+        }
       }
     },
     "block": {
       "type": "object",
-      "required": ["id", "kind", "label"],
-      "allOf": [{ "$ref": "#/$defs/labels" }],
+      "required": [
+        "id",
+        "kind",
+        "label"
+      ],
+      "allOf": [
+        {
+          "$ref": "#/$defs/labels"
+        }
+      ],
       "properties": {
-        "id": { "$ref": "common.schema.json#/$defs/id" },
-        "kind": { "enum": ["core", "accelerator", "memory", "bridge", "router", "interrupt_controller", "peripheral", "fifo", "cache", "stage", "io", "clock_gen", "reset_gen", "power_ctrl", "offchip", "custom"] },
-        "sublabel": { "type": "string", "maxLength": 60 },
-        "emphasis": { "type": "boolean" },
-        "orientation": { "enum": ["horizontal", "vertical"] },
-        "depth": { "$ref": "common.schema.json#/$defs/width" },
-        "width": { "$ref": "common.schema.json#/$defs/width" },
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "kind": {
+          "enum": [
+            "core",
+            "accelerator",
+            "memory",
+            "bridge",
+            "router",
+            "interrupt_controller",
+            "peripheral",
+            "fifo",
+            "cache",
+            "stage",
+            "io",
+            "clock_gen",
+            "reset_gen",
+            "power_ctrl",
+            "offchip",
+            "custom"
+          ]
+        },
+        "sublabel": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "emphasis": {
+          "type": "boolean"
+        },
+        "orientation": {
+          "enum": [
+            "horizontal",
+            "vertical"
+          ]
+        },
+        "depth": {
+          "$ref": "common.schema.json#/$defs/width"
+        },
+        "width": {
+          "$ref": "common.schema.json#/$defs/width"
+        },
         "replicate": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["count"],
+          "required": [
+            "count"
+          ],
           "properties": {
-            "count": { "oneOf": [{ "type": "integer", "minimum": 2 }, { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$" }] },
-            "style": { "enum": ["stack", "grid"] }
+            "count": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "minimum": 2
+                },
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                }
+              ]
+            },
+            "style": {
+              "enum": [
+                "stack",
+                "grid"
+              ]
+            }
           }
         },
-        "detail_ref": { "$ref": "#/$defs/figure_ref" },
-        "source": { "$ref": "common.schema.json#/$defs/source_pin" },
-        "rtl": { "$ref": "#/$defs/rtl_soc" }
+        "detail_ref": {
+          "$ref": "#/$defs/figure_ref"
+        },
+        "ports": {
+          "description": "Exposed ports of the block; with rtl mapping they must equal the RTL module's ports (boundary check).",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "dir",
+              "width"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+              },
+              "dir": {
+                "enum": [
+                  "in",
+                  "out",
+                  "inout"
+                ]
+              },
+              "width": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/source_pin"
+        },
+        "rtl": {
+          "$ref": "#/$defs/rtl_soc"
+        },
+        "slot": {
+          "description": "Documented integration slot name (a doc fact, checked against all documents).",
+          "type": "string"
+        },
+        "instance": {
+          "description": "Documented instance name in the SoC top (a doc fact).",
+          "type": "string"
+        },
+        "doc_terms": {
+          "description": "Names the documents use for this block; used to find every statement of its doc facts.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 2
+          }
+        },
+        "authority": {
+          "$ref": "#/$defs/authority"
+        }
       },
       "unevaluatedProperties": false
     },
     "figure_ref": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["figure"],
+      "required": [
+        "figure"
+      ],
       "properties": {
-        "figure": { "type": "string", "pattern": "^(?!/)[^\\\\]+\\.json$" },
-        "id": { "$ref": "common.schema.json#/$defs/id" }
+        "figure": {
+          "type": "string",
+          "pattern": "^(?!/)[^\\\\]+\\.json$"
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        }
       }
     },
     "fabric": {
       "type": "object",
-      "required": ["id", "protocol"],
-      "allOf": [{ "$ref": "#/$defs/labels" }],
+      "required": [
+        "id",
+        "protocol"
+      ],
+      "allOf": [
+        {
+          "$ref": "#/$defs/labels"
+        }
+      ],
       "properties": {
-        "id": { "$ref": "common.schema.json#/$defs/id" },
-        "protocol": { "enum": ["AXI4", "AXI4-Lite", "AXI4-Stream", "AHB", "AHB-Lite", "APB", "TileLink", "Wishbone", "custom"] },
-        "addr_width": { "type": "integer", "minimum": 1, "maximum": 64 },
-        "data_width": { "type": "integer", "minimum": 1, "maximum": 4096 },
-        "topology": { "enum": ["bus", "crossbar", "mesh", "ring", "point_to_point"] },
-        "grid": { "type": "array", "prefixItems": [{ "type": "integer", "minimum": 1 }, { "type": "integer", "minimum": 1 }], "minItems": 2, "maxItems": 2 },
-        "memory_mapped": { "type": "boolean" },
-        "rtl": { "$ref": "#/$defs/rtl_soc" }
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "protocol": {
+          "enum": [
+            "AXI4",
+            "AXI4-Lite",
+            "AXI4-Stream",
+            "AHB",
+            "AHB-Lite",
+            "APB",
+            "TileLink",
+            "Wishbone",
+            "custom"
+          ]
+        },
+        "addr_width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "data_width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096
+        },
+        "topology": {
+          "enum": [
+            "bus",
+            "crossbar",
+            "mesh",
+            "ring",
+            "point_to_point"
+          ]
+        },
+        "grid": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "integer",
+              "minimum": 1
+            }
+          ],
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "memory_mapped": {
+          "type": "boolean"
+        },
+        "rtl": {
+          "$ref": "#/$defs/rtl_soc"
+        }
       },
       "unevaluatedProperties": false
     },
     "attachment": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "fabric", "block", "role"],
+      "required": [
+        "id",
+        "fabric",
+        "block",
+        "role"
+      ],
       "properties": {
-        "id": { "$ref": "common.schema.json#/$defs/id" },
-        "fabric": { "$ref": "common.schema.json#/$defs/id" },
-        "block": { "$ref": "common.schema.json#/$defs/id" },
-        "role": { "enum": ["manager", "subordinate"] },
-        "label": { "type": "string", "maxLength": 40 },
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "fabric": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "block": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "role": {
+          "enum": [
+            "manager",
+            "subordinate"
+          ]
+        },
+        "address_unknown": {
+          "type": "boolean",
+          "description": "subordinate shown for context whose address window is not documented"
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 40
+        },
         "address": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["base"],
-          "oneOf": [{ "required": ["size"] }, { "required": ["end"] }],
+          "required": [
+            "base"
+          ],
+          "oneOf": [
+            {
+              "required": [
+                "size"
+              ]
+            },
+            {
+              "required": [
+                "end"
+              ]
+            }
+          ],
           "properties": {
-            "base": { "$ref": "#/$defs/hex" },
-            "size": { "$ref": "#/$defs/hex" },
-            "end": { "$ref": "#/$defs/hex" },
-            "offset": { "$ref": "#/$defs/hex" },
-            "label": { "type": "string", "maxLength": 40 }
+            "base": {
+              "$ref": "#/$defs/hex"
+            },
+            "size": {
+              "$ref": "#/$defs/hex"
+            },
+            "end": {
+              "$ref": "#/$defs/hex"
+            },
+            "offset": {
+              "$ref": "#/$defs/hex"
+            },
+            "label": {
+              "type": "string",
+              "maxLength": 40
+            }
           }
         },
-        "rtl": { "$ref": "#/$defs/rtl_soc" }
+        "source": {
+          "$ref": "common.schema.json#/$defs/source_pin"
+        },
+        "rtl": {
+          "$ref": "#/$defs/rtl_soc"
+        },
+        "authority": {
+          "$ref": "#/$defs/authority"
+        }
       }
     },
     "link": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "from", "to", "class"],
+      "required": [
+        "id",
+        "from",
+        "to",
+        "class"
+      ],
       "properties": {
-        "id": { "$ref": "common.schema.json#/$defs/id" },
-        "from": { "$ref": "common.schema.json#/$defs/id" },
-        "to": { "$ref": "common.schema.json#/$defs/id" },
-        "class": { "enum": ["data", "control", "interrupt", "dma", "sideband", "clock", "reset", "power"] },
-        "width": { "$ref": "common.schema.json#/$defs/width" },
-        "irq": { "type": "integer", "minimum": 0 },
-        "label": { "type": "string", "maxLength": 40 },
-        "short_label": { "$ref": "common.schema.json#/$defs/short_label" },
-        "bidir": { "type": "boolean" },
-        "rtl": { "$ref": "#/$defs/rtl_soc" }
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "from": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "to": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "class": {
+          "enum": [
+            "data",
+            "control",
+            "interrupt",
+            "dma",
+            "sideband",
+            "clock",
+            "reset",
+            "power"
+          ]
+        },
+        "width": {
+          "$ref": "common.schema.json#/$defs/width"
+        },
+        "irq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "short_label": {
+          "$ref": "common.schema.json#/$defs/short_label"
+        },
+        "bidir": {
+          "type": "boolean"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/source_pin"
+        },
+        "rtl": {
+          "$ref": "#/$defs/rtl_soc"
+        },
+        "authority": {
+          "$ref": "#/$defs/authority"
+        }
       }
     },
     "domain": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "kind", "members"],
+      "required": [
+        "id",
+        "kind",
+        "members"
+      ],
       "properties": {
-        "id": { "$ref": "common.schema.json#/$defs/id" },
-        "kind": { "enum": ["clock", "reset", "power"] },
-        "label": { "type": "string", "maxLength": 40 },
-        "members": { "type": "array", "minItems": 1, "items": { "$ref": "common.schema.json#/$defs/id" } },
-        "freq_mhz": { "type": "number", "exclusiveMinimum": 0 },
-        "always_on": { "type": "boolean" }
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "kind": {
+          "enum": [
+            "clock",
+            "reset",
+            "power"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "members": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "common.schema.json#/$defs/id"
+          }
+        },
+        "freq_mhz": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "always_on": {
+          "type": "boolean"
+        }
       }
     },
     "crossing": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["from", "to", "via"],
-      "oneOf": [{ "required": ["link"] }, { "required": ["attachment"] }],
+      "required": [
+        "from",
+        "to",
+        "via"
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "link"
+          ]
+        },
+        {
+          "required": [
+            "attachment"
+          ]
+        }
+      ],
       "properties": {
-        "link": { "$ref": "common.schema.json#/$defs/id" },
-        "attachment": { "$ref": "common.schema.json#/$defs/id" },
-        "from": { "$ref": "common.schema.json#/$defs/id" },
-        "to": { "$ref": "common.schema.json#/$defs/id" },
-        "via": { "type": "string", "pattern": "^(sync|async_bridge|isolation|level_shifter|reset_sync|[A-Za-z_][A-Za-z0-9_]*)$" }
+        "link": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "attachment": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "from": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "to": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "via": {
+          "type": "string",
+          "pattern": "^(sync|async_bridge|isolation|level_shifter|reset_sync|[A-Za-z_][A-Za-z0-9_]*)$"
+        }
       }
     },
     "group": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "members"],
+      "required": [
+        "id",
+        "members"
+      ],
       "properties": {
-        "id": { "$ref": "common.schema.json#/$defs/id" },
-        "label": { "type": "string" },
-        "members": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/id" }, "minItems": 1 },
-        "style": { "enum": ["boundary", "chip", "subsystem", "subtle", "offchip"] }
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "label": {
+          "type": "string"
+        },
+        "members": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/id"
+          },
+          "minItems": 1
+        },
+        "style": {
+          "enum": [
+            "boundary",
+            "chip",
+            "subsystem",
+            "subtle",
+            "offchip"
+          ]
+        }
       }
     },
     "annotation": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind"],
+      "required": [
+        "kind"
+      ],
       "properties": {
-        "id": { "$ref": "common.schema.json#/$defs/id" },
-        "kind": { "enum": ["callout", "label", "legend"] },
-        "block": { "$ref": "common.schema.json#/$defs/id" },
-        "target": { "$ref": "#/$defs/figure_ref" },
-        "text": { "type": "string", "maxLength": 120 }
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "kind": {
+          "enum": [
+            "callout",
+            "label",
+            "legend"
+          ]
+        },
+        "block": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "target": {
+          "$ref": "#/$defs/figure_ref"
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 120
+        }
+      }
+    },
+    "authority": {
+      "description": "The document the user chose as authoritative for a conflicting documented fact (doc/conflict). Recorded in the receipt together with the overridden sources.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file",
+        "reason"
+      ],
+      "properties": {
+        "file": {
+          "type": "string"
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 200
+        }
       }
     }
   }

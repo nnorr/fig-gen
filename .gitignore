@@ -1,6 +1,6 @@
 references/local/
 node_modules/
-.rtlfig-work/
+.figgen-work/
 out/
 *.tmp-*
 .DS_Store
