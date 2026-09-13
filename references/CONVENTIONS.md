@@ -169,6 +169,14 @@ with the wire.
 - **[house]** Put the label **inside** the block when it fits at 8 pt. Otherwise put
   it directly above the block. Do not use leader lines unless the block is too small
   (for example a 2-flop synchronizer).
+- **[house] Generated text is readable too.** Stage notes, connector tags and
+  draft names are written in words derived from labels or RTL signals, never
+  as ids (`o_u_client_start_ready_o`, `n_u_owner_c_outstanding`). A block
+  prints at most two note lines: output latencies grouped by latency when
+  short, else their range; the full list belongs in the receipt or, in a study
+  figure, in a table below the drawing. Repeated names are qualified by whose
+  they are ("Owner controller"), not numbered ("Controller 3"). *Why:* a
+  number or an id tells the reader nothing about which block it is.
 - **[house] No pin names inside boxes by default.** A block shows its function
   name; the nets outside say what flows. Print pin names only where the reader
   cannot tell the pins apart otherwise (`pin_labels: true` on that element):

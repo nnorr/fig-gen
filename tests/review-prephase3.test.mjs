@@ -92,7 +92,7 @@ test('width/bundle-sum: a heterogeneous bundle is named and drawn without a summ
   assert.match(r.svg, /id="net-n_q-width"/, 'a homogeneous bus keeps its width');
 });
 
-test('stage notes name each path when registered outputs differ in latency', async () => {
+test('stage notes group registered outputs by latency when their latencies differ', async () => {
   const doc = {
     schema_version: 1, figure_type: 'datapath', meta: { title: 'notes', print: { profile: 'ieee' } }, clock_domains: [],
     elements: [
@@ -105,8 +105,8 @@ test('stage notes name each path when registered outputs differ in latency', asy
   };
   const r = await renderDatapath(doc, { variant: '2col', widthPt: 515.5, name: 'notes' });
   assert.deepEqual(errors(r.diagnostics), []);
-  assert.match(r.svg, />read: 1 stage</);
-  assert.match(r.svg, />IRQ: 2 stages</);
+  assert.match(r.svg, />1 stage: read</);
+  assert.match(r.svg, />2 stages: IRQ</);
   assert.doesNotMatch(r.svg, />2 stages</);
 });
 

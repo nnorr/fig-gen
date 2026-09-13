@@ -611,6 +611,27 @@ What the draft draws:
   whose combinational inputs are fewer than all inputs; in study drafts each
   stage's other state (registers with their next-state logic) is a block of its
   own, so outputs are either registered or combinational.
+- **Names and notes (review round 2, every format).**
+  - Draft names say whose block it is: blocks that would print the same name
+    are qualified with the shortest distinguishing instance name ("Owner
+    controller", "Nonce client controller"), numbered only if that cannot tell
+    them apart.
+  - A vocabulary name is proposed only if every output's cone carries its
+    structure; otherwise a local lump is "<instance> logic".
+  - A controller output that no input reaches is a state output
+    (`latency: "state"`); `rtl/no-structural-path` does not apply to it.
+  - Stage notes use readable output names and at most two lines.
+- **Study layout (review round 2).**
+  - Each expanded instance is a framed region (level `block`, nested like the
+    hierarchy) holding its blocks, pipeline bars and collapsed children.
+  - A stage lump with more than four outputs is split into its independent
+    output cones, each named after the output it drives.
+  - Outermost frames and top-level elements are ranked along the flow
+    (feedback found depth-first from the inputs). The ranks are not imposed on
+    the layout (ELK's layered flow already orders the frames left to right, and
+    forcing them added crossings); they find nets that skip a flow layer.
+  - A net between frames that crosses or passes a third frame, or skips a flow
+    layer, becomes a named connector pair.
 - **Connectors on final routes.** Connectors are chosen on a probe layout; a
   branch that is still long on the final routes gets connectors in one more
   pass, kept when it has fewer errors.
@@ -1112,6 +1133,10 @@ render; warnings are reported and allowed only under `--quality draft`.
 | `format/unknown` (error), `format/variants-ignored` (info), `format/pdf-required` (info) | all | unknown `--format` / `meta.print.format`; study ignores `--variants`; `--no-pdf` ignored for paper |
 | `comb/unknown-input` | datapath | a `comb_from` entry is not an input pin of its element, or `comb_from` sits on an input pin (error) |
 | `latency/comb-from` | datapath (netlist) | an output's `comb_from` omits an input that the RTL reaches the output from with no register on the way (error); checked also on nets drawn unmapped for latency when they keep `rtl_unmapped.rtl` |
+| `label/unreadable` (generated text) | datapath, per variant, every format | a string the renderer generates (a stage-note output name, a connector tag) is not a readable name; generated names come from the pin label, the net label or the RTL signal made readable, never an id; never relaxed by the study format (error, `evidence.generated: true`) |
+| `label/stage-note-clutter` | datapath, per variant | a block prints more than 2 note lines inside its box (function detail plus stage notes); the renderer groups output latencies ("2 stages: ready, done") or gives the range ("outputs: 1–4 stages") and lists every output in `route.stage_notes` and, in a study figure, in an output latency table below the drawing (error) |
+| `label/function-justification` (whole block) | datapath, netlist | a vocabulary name whose required structure is in the RTL cone of only some of the block's outputs (a hub where one output compares against zero is not a zero detector) (warning, error with `--quality paper`) |
+| `route/readability` (warning) | datapath, study format | the final SVG has more crossings per drawn net than skin `route.readability.max_crossings_per_net` (1) or routed wire length above `max_wire_length_ratio` (1.6) × the direct distance; both numbers are in every receipt as `route.readability` |
 | `route/straighten-budget` (info) | datapath, per variant | the straightening search scored `route.straighten_max_evaluations` (skin, default 50 000) candidate layouts and stopped; the best route found is kept and every route check still runs; the counts are in `route.layout_plans[].evaluations` |
 | `draft/budget-exceeded` | draft | the draft did not finish within its time budget (`--budget-seconds`, default 120 s) or its scope holds more signals than the size budget (50 000); names the phase it stopped in, the expanded instances and the largest children, and suggests a narrower `--scope`, a lower `--depth` or a `--blackbox` (error, exit 1, no draft written) |
 | `region/wire-hugs-frame` | datapath, per variant | a wire runs parallel to a region frame edge closer than `route.frame_gap_pt` (default 6 pt; 1.5 × for a dashed wire beside the dashed frame) over more than 3 pt (error). The renderer first moves the edge past the wire: outward if the frame then covers no foreign block, else inward if it still holds its members |

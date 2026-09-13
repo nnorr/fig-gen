@@ -116,6 +116,11 @@
       "dot_arrow_clearance": 8,
       "arrow_min_shaft_pt": 0,
       "straighten_max_evaluations": 50000,
+      "readability": {
+        "max_crossings_per_net": 1,
+        "max_wire_length_ratio": 1.6,
+        "description": "Study figures warn (route/readability) when wires cross more than max_crossings_per_net times per drawn net, or run longer than max_wire_length_ratio × the direct distance between their ends. Both are reported for every figure in the receipt (route.readability)."
+      },
       "straighten_budget_description": "straighten_max_evaluations: the straightening search stops after scoring this many candidate layouts per layout plan and keeps the best route found (route/straighten-budget, info). Paper figures need at most about 12 000; large study figures would otherwise take minutes. Deterministic, so a figure always renders the same.",
       "arrow_min_shaft_description": "arrow_min_shaft_pt: a sink's last run must hold the full arrowhead plus this shaft (0: a head may exactly fill its run, never shortened); the layout moves the riser back (without hugging the upstream block) first, else arrow/no-room.",
       "dot_arrow_description": "dot_arrow_clearance: minimum distance (pt) from a junction dot center to the base of any arrowhead of the same net and to any pin anchor of the net (route/dot-near-arrow).",

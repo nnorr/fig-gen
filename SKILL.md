@@ -129,6 +129,11 @@ study, analyse or explore RTL rather than to make a paper figure.
   controller (enumerated state register) drawn apart from its datapath and
   every signal as its own net. Go deeper one instance at a time
   (`--view detail --scope u_x --depth 2`).
+- A study draft frames each expanded instance, splits hub-like lumps by output
+  cone, lays frames out along the flow and turns nets that skip a frame into
+  connectors. The receipt's `route.readability` (crossings per net, wire length
+  ratio) says how readable the result is; a `route/readability` warning means
+  narrow the scope rather than read spaghetti.
 - Never hand a study figure over as a paper figure: re-deliver in paper
   format for the paper.
 
@@ -181,6 +186,13 @@ study, analyse or explore RTL rather than to make a paper figure.
   not support.
 - **No duplicate names.** Split stages of one function get `function.stage`
   ("1/2", "2/2"); otherwise give each block its own name.
+- **Generated text is held to the same rule.** Stage notes and connector tags
+  print readable names derived from labels or RTL signals, never ids
+  (`label/unreadable` with `evidence.generated`, an error in every format).
+  Stage notes stay within two lines (`label/stage-note-clutter`); the full
+  per-output latency list is in the receipt (`route.stage_notes`). When a
+  draft qualifies duplicates ("Owner controller"), keep or improve that
+  context; never go back to numbers.
 - **No pin names inside boxes.** Blocks print their function name only; the
   nets outside say what flows. Set `pin_labels: true` on an element only when
   the reader cannot tell its pins apart otherwise: at most 4 readable pin
