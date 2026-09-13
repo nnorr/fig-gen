@@ -222,6 +222,22 @@
                   },
                   "bubble_detached": {
                     "const": 0
+                  },
+                  "dots_checked": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "dot_near_arrow": {
+                    "description": "route/dot-near-arrow: junction dots closer than route.dot_arrow_clearance to an arrowhead base or pin anchor.",
+                    "const": 0
+                  },
+                  "strokes_checked": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "stroke_nonuniform": {
+                    "description": "net/stroke-uniform: net paths or wire stubs not drawn at stroke.wire.",
+                    "const": 0
                   }
                 }
               }

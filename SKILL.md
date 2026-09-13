@@ -128,8 +128,11 @@ the JSON and re-run, so the fix survives the next render.
   out and let the block wrap. `label/unreadable` flags them (an error with
   `--quality paper`).
 - XOR/GF add, GF multiply and arithmetic draw as circle glyphs with no text;
-  concatenation is a `{ }` box, a split is ripper taps, a single slice is a
-  `[msb:lsb]` label on the wire, extension is `sext`/`zext`.
+  concatenation is a `concat` box, a split is ripper taps, a single slice is a
+  `[msb:lsb]` label on the wire, extension is `sext`/`zext`, replication is
+  `repl ×N`. Every net has one stroke weight; widths appear only in slash-N
+  labels (`net/stroke-uniform`). Junction dots keep 8 pt from arrowheads and
+  pins (`route/dot-near-arrow`).
 - **Justify every algorithm name.** Put the RTL lines that show the structure in
   `function.basis {source, structure}`. If the RTL does not show the structure
   the vocabulary entry requires (e.g. per-position polynomial evaluation for a

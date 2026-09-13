@@ -1,6 +1,6 @@
 {
   "skin": "netlist-mono",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Default datapath theme: clean monochrome schematic in the spirit of netlistsvg (idea only; geometry drawn fresh for fig-gen). Tokens follow references/CONVENTIONS.md §12. All units are print points. Override per figure (meta.style) or per lab theme (a skin file with the same shape; unspecified keys inherit).",
   "tokens": {
     "background": "#FFFFFF",
@@ -20,11 +20,11 @@
     },
     "stroke": {
       "wire": 0.6,
-      "bus": 1.2,
       "control": 0.6,
       "outline": {
         "default": 0.8
-      }
+      },
+      "description": "wire: the one stroke weight of every net (data of any bit width, control dashed at the same weight, clock, reset); bit width is shown only by slash-N labels (CONVENTIONS §1, §2.1; net/stroke-uniform). outline: symbol outlines."
     },
     "dash": {
       "control": [
@@ -41,8 +41,7 @@
       "length": 4.5,
       "width": 3.2,
       "at": [
-        "bus",
-        "wire",
+        "data",
         "control",
         "clock",
         "reset"
@@ -70,6 +69,8 @@
       "min_parallel_gap_pt": 4,
       "long_feedback_ratio": 0.5,
       "frame_gap_pt": 6,
+      "dot_arrow_clearance": 8,
+      "dot_arrow_description": "dot_arrow_clearance: minimum distance (pt) from a junction dot center to the base of any arrowhead of the same net and to any pin anchor of the net (route/dot-near-arrow).",
       "long_feedback_description": "long_feedback_ratio: a returning (backward) branch spanning more than this fraction of the figure width is drawn with named connectors (route/long-feedback). frame_gap_pt: minimum distance of a wire running parallel to a region frame (region/wire-hugs-frame)."
     }
   },
@@ -141,11 +142,11 @@
     },
     "join": {
       "parametric": "concat-box",
-      "description": "Concatenation (CONVENTIONS §2.3.3): hollow outlined box with { } inside; inputs enter on the left, MSB field on top, each labeled with its destination bit range in the result.",
+      "description": "Concatenation (CONVENTIONS §2.3.3): hollow outlined box with the word concat inside on its own middle row; inputs enter on the left, MSB field on top, each labeled just inside the box with its destination bit range in the result.",
       "min_width": 14,
       "pin_pitch": 12,
       "fill": "logic",
-      "label": "{ }",
+      "label": "concat",
       "label_font": "secondary",
       "label_gap": 1.5,
       "input_range_labels": true
@@ -421,8 +422,9 @@
     },
     "replicate": {
       "parametric": "box",
-      "description": "Replication (CONVENTIONS §2.3.5): hollow outlined box with {N{ }}, one input, output N x input width.",
+      "description": "Replication (CONVENTIONS §2.3.5): hollow outlined box with the words repl ×N ({N} is the count), one input, output N x input width.",
       "fill": "logic",
+      "label": "repl ×{N}",
       "label_font": "secondary"
     },
     "connector": {

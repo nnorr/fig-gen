@@ -14,6 +14,9 @@ const TEXT_EXT = new Set(['.mjs', '.js', '.json', '.md', '.sv', '.v', '.svg', '.
 
 function* walk(dir) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    // Skipped names whatever their type: in a git worktree `.git` is a file and
+    // node_modules may be a symlink; neither is a shipped file.
+    if (SKIP_DIRS.has(entry.name) || entry.isSymbolicLink()) continue;
     if (entry.isDirectory()) {
       if (!SKIP_DIRS.has(entry.name)) yield* walk(path.join(dir, entry.name));
     } else if (TEXT_EXT.has(path.extname(entry.name))) {

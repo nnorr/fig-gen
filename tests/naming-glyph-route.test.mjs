@@ -92,14 +92,15 @@ function glyphFigure() {
   };
 }
 
-test('concat is a hollow { } box, split is ripper taps, extension a sext box, XOR a ⊕ circle; only the mux is a solid bar', async () => {
+test('concat is a hollow box with the word concat, split is ripper taps, extension a sext box, XOR a ⊕ circle; only the mux is a solid bar', async () => {
   const doc = glyphFigure();
   assert.deepEqual(await validateSchema('datapath', doc), []);
   const r = await renderDatapath(doc, { variant: '2col', widthPt: 515.5, name: 'glyphs' });
   assert.deepEqual(errors(r.diagnostics), []);
   assert.deepEqual(lintFigmaSafe(r.svg), []);
   assert.match(r.svg, /<rect id="concat-cat-body"[^>]*fill="#FFFFFF"[^>]*stroke="#000000"/);
-  assert.match(r.svg, /id="concat-cat-brace"[^>]*>\{ \}</);
+  assert.match(r.svg, /id="concat-cat-title"[^>]*>concat</);
+  assert.doesNotMatch(r.svg, />\{ \}</, 'no Verilog braces on a bus-operation box');
   assert.match(r.svg, />\[15:8\]</);
   assert.match(r.svg, />\[7:0\]</);
   assert.match(r.svg, /id="split-sp-tap0-stub"/);

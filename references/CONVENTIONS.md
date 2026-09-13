@@ -89,17 +89,18 @@ Rules:
 | Element | Stroke (pt, at print) | Tag |
 |---------|-----------------------|-----|
 | Absolute minimum anywhere | 0.5 | [ext] SWST: lines under 0.5 pt drop out; Cell Press range 0.5–1.5 pt |
-| Single-bit wire (data or control) | 0.6 | [house] |
-| Multi-bit bus | 1.2 | [house] |
+| Every net: data of any bit width, control (dashed), clock, reset | 0.6 | [house] |
 | Block outline (logic block, register, memory) | 0.8 | [house] |
 | Emphasis outline (the "new" block the paper proposes) | 1.4 | [house] |
 | Group / domain / chip boundary | 0.6, dashed 3–2 | [house] |
 | Pipeline register bar | 0.8 outline + gray fill | [house] |
-| Arrowheads | filled triangle, length about 4× bus stroke, width about 3× | [house] |
+| Arrowheads | filled triangle, 4.5 pt long, 3.2 pt wide | [house] |
 
-- **Why a bus looks different from a wire:** readers expect a bus to be heavier, as in
-  Harris & Harris and Patterson & Hennessy datapaths. Using weight for this keeps color
-  free for data vs control (§1). It also still reads in grayscale.
+- **Why every net has one weight:** at print size a 1.2 pt bus beside 0.6 pt wires
+  reads as emphasis, crowds dense datapaths, and makes junction dots and arrowheads
+  look mismatched. The bit width is already stated by the slash-N label (§2.1), so a
+  second, heavier channel for it adds clutter, not information. Uniform weight reads
+  cleaner; control stays distinguishable by its dash (§1), also in grayscale.
 - **[house]** Do not use more than **three** distinct stroke weights in one figure.
 
 ### 0.4 Color and grayscale safety
@@ -183,11 +184,19 @@ Rules:
 
 | Net class | Stroke | Color | Dash | Arrowhead | Tag |
 |-----------|--------|-------|------|-----------|-----|
-| Data, 1 bit (computed flags, status outputs, compare / zero-detect / match results, classifier outputs) | 0.6 pt | `ink` | solid | at sink | [house] |
-| Data bus | 1.2 pt | `ink` | solid | at sink | [house] |
+| Data, any bit width (buses, computed flags, status outputs, compare / zero-detect / match results, classifier outputs) | 0.6 pt; the width is shown only by the slash-N label (§2.1) | `ink` | solid | at sink | [house] |
 | Control (mux select, register/memory enable, write/chip enable, valid/ready handshake, controller strobes such as start/clear) | 0.6 pt | `ctrl` | solid (color mode) / dashed 2–1.5 (grayscale mode) | at sink | [house] |
 | Clock (when drawn) | 0.6 pt | `ink` | solid | at sink | [house] |
 | Reset (when drawn) | 0.6 pt | `ink` | dotted 0.8–1.2 | at sink | [house] |
+
+**One stroke weight [house].** Every net is drawn at the one wire stroke
+(skin `stroke.wire`, 0.6 pt): a 48-bit bus and a 1-bit flag look the same, and
+the bus says its width with a slash-N label. Control keeps that weight and is
+dashed; clock and reset follow the rows above; symbol outlines (0.8 pt) and the
+solid mux bar are unchanged. The final SVG is checked: any net path or symbol
+wire stub at another weight, or a skin whose `stroke.bus`/`stroke.control`
+differs from `stroke.wire`, is `net/stroke-uniform` (error). *Why:* uniform
+weight reads cleaner at print size; the width is in the label.
 
 **Arrowheads [house].** Every net that ends at a block input pin or a figure
 output port gets an arrowhead, whatever its width or class. One exception: the
@@ -315,6 +324,13 @@ and a wire that touches another reads as a junction.
   miter or round joins, never with butt caps that leave notches at bends.
 - **T-junctions:** a branch leaves exactly on the trunk, with a junction dot
   centered on the branch point. Every dot lies on the trunk.
+- **Junction dots keep clear of arrowheads and pins:** a dot's center is at least
+  8 pt (skin `route.dot_arrow_clearance`) from the base of every arrowhead of its
+  net, on the same or a branching segment, and from every pin anchor of the net.
+  The renderer moves the branch point along the trunk (upstream, or downstream
+  away from a driver pin) to make room; `route/dot-near-arrow` (error) is checked
+  on the final SVG. *Why:* a dot pressed against an arrowhead looks cramped and
+  reads as one blob at print size.
 - **Pipeline-register bars:** a lane is continuous on both sides of the bar at
   identical y and touches the bar outline.
 - **Crossings without a dot never touch:** no bend, end or short run of one
@@ -376,6 +392,9 @@ and a wire that touches another reads as a junction.
   lint error `width/product-notation`). Structure such as "N symbols of W bits" goes
   in the caption or a block's `function.detail`, never on a net or a mux.
 - Say what symbolic widths mean in the caption.
+- **The width lives in the label only.** Buses are drawn at the same stroke weight
+  as 1-bit wires (§1), so a multi-bit net without its slash-N label gives the reader
+  no way to see its width; that is why `width/missing` is an error.
 - *Why:* this notation is common in textbooks and circuit papers. It costs almost no
   space and answers the reader's first question, "how wide is that?".
 
@@ -426,8 +445,8 @@ block**. So the encoding below keeps "solid bar" for the mux alone.
 
 #### 2.3.1 Split: ripper taps [house]
 
-- Draw the source bus as one continuous spine (bus stroke 1.2 pt). Each extracted
-  slice leaves through a **45° ripper stub** (4–6 pt long, bus stroke) and then
+- Draw the source bus as one continuous spine (the wire stroke, like every net). Each
+  extracted slice leaves through a **45° ripper stub** (4–6 pt long, same stroke) and then
   continues orthogonally. Put the **`[msb:lsb]` label on the stub side**, at 7 pt.
   The spine may continue past the last tap or end in the last stub.
 - **No junction dot at a tap. No symbol body.** Taps are spaced by at least the pin
@@ -452,14 +471,17 @@ block**. So the encoding below keeps "solid bar" for the mux alone.
   width label. A label that starts with `[` is never a net name in this guide
   (§3.5 rule D3), so it reads as a slice even in grayscale.
 
-#### 2.3.3 Concatenation: outlined `{ }` box [house]
+#### 2.3.3 Concatenation: outlined `concat` box [house]
 
 - Draw a **hollow outlined box**: outline 0.8 pt, fill `fill-logic` (white/`fill-1`),
-  at least 14 pt wide, height = inputs × pin pitch. Put `{ }` centered inside at 7 pt.
+  at least 14 pt wide, height = inputs × pin pitch. Put the word `concat` centered
+  inside at 7 pt.
 - Inputs enter on the **left**, **MSB field at the top**. Label each input just
-  outside the box with the **destination bit range in the result** (`[15:8]`,
-  `[7:0]`). The output leaves on the right with the summed width slash. You may add
-  the field list `{a, b}` next to the output.
+  **inside** the box, on its row, with the **destination bit range in the result**
+  (`[15:8]`, `[7:0]`). The word `concat` has its own row between the fields, and the
+  output leaves on the right from that row with the summed width slash. The box is
+  as wide as its longest text; nothing stands in front of it, so the word costs no
+  extra width. You may add the field list `{a, b}` next to the output.
 - A constant field (`4'b0000`) is an input with a constant source label, not a
   separate glyph. The whole pattern `{K'b0, x}` is zero extension (§2.3.4).
 - *Considered and rejected:* a **ripper merge** (45° entries converging into a bus).
@@ -470,9 +492,11 @@ block**. So the encoding below keeps "solid bar" for the mux alone.
   3. Entries arriving from different directions can't all be 45° into one spine
      without extra bends.
 
-  The `{ }` box is the one concatenation glyph found in a published legend (F41).
-  It shares no visual channel with the mux bar (hollow vs solid, text vs none, no
-  select pin).
+  An outlined box is the one concatenation glyph found in a published legend (F41,
+  which wrote `{ }` inside). fig-gen writes the word `concat` instead: at 7 pt the
+  braces are two thin marks that read as stray brackets, while a word is legible
+  and names the operation. The box shares no visual channel with the mux bar
+  (hollow vs solid, text vs none, no select pin).
 
 #### 2.3.4 Extension: labeled `sext` / `zext` box [house]
 
@@ -489,14 +513,15 @@ block**. So the encoding below keeps "solid bar" for the mux alone.
   F47) and in the textbook anchors. The label says whether bits are sign or zero;
   a shape can't.
 
-#### 2.3.5 Replication: `{N{ }}` box [house]
+#### 2.3.5 Replication: `repl ×N` box [house]
 
-- Draw the same outlined box with `{N{ }}` inside (e.g. `{4{ }}`), one input, output
+- Draw the same outlined box with `repl ×N` inside (e.g. `repl ×4`), one input, output
   width = N × input width. Use it only for replication that is **not** sign
   extension (for example broadcasting a 1-bit enable to a W-bit mask).
-- *Why:* no published convention was found. Reusing the concat box family with
-  Verilog replication syntax is the smallest new glyph, and it is still distinct
-  from `sext`/`zext` by its text.
+- *Why:* no published convention was found. Reusing the concat box family with a
+  short word is the smallest new glyph, and its text sets it apart from `concat`,
+  `sext` and `zext`. Verilog `{N{ }}` braces are not used: at 7 pt they are hard to
+  read and look like a label fragment.
 
 ```
 SPLIT (ripper taps, no dots, no body)       TRUNCATION (label only)
@@ -505,12 +530,12 @@ instr ━━╱32━━━┳━━━━━━━┳━━━━━━━━━
         [31:26]╲       ╲[25:21]    ┃[15:0]    (the ┳ above is a 45° stub
                ┗━━▶ op  ┗━━▶ rs    ┗━━▶ imm    leaving the spine, not a tee+dot)
 
-CONCAT (outlined { } box, MSB on top)       EXTENSION / REPLICATION
-         [15:8] ┌─────┐                      imm ━━╱12━━┥ sext ┝━━╱32━━▶
-  a ━━╱8━━━━━━━┥     │                      d   ━━╱8━━━┥ zext ┝━━╱16━━▶
-                │ { } ┝━━╱16━━▶ {a,b}        en  ───────┥{4{ }}┝━━╱4━━━▶ mask
-  b ━━╱8━━━━━━━┥     │
-          [7:0] └─────┘
+CONCAT (outlined concat box, MSB on top)    EXTENSION / REPLICATION
+                ┌───────┐                   imm ──╱12──┤ sext ├──╱32──▶
+  a ──╱8───────▶│[15:8] │                   d   ──╱8───┤ zext ├──╱16──▶
+                │concat ├──╱16──▶ {a,b}     en  ───────┤repl ×4├──╱4──▶ mask
+  b ──╱8───────▶│[7:0]  │
+                └───────┘                   (one stroke weight for every net)
 ```
 
 ---
@@ -531,8 +556,8 @@ CONCAT (outlined { } box, MSB on top)       EXTENSION / REPLICATION
   (§3.5). Pipeline-register bars are gray, outlined, carry a clock wedge and span
   every net at a stage boundary (§5.3). Splits have **no body** (45° ripper taps with
   `[msb:lsb]` labels). Truncation is a label on the wire. Concatenation, extension
-  and replication are **hollow outlined boxes** with `{ }`, `sext`/`zext` or `{N{ }}`
-  inside (§2.3). There are no join/split bars. A mux bar always shows its select pin.
+  and replication are **hollow outlined boxes** with the words `concat`, `sext`/`zext`
+  or `repl ×N` inside (§2.3). There are no join/split bars. A mux bar always shows its select pin.
 - **[house] Alternative (textbook):** an **isosceles trapezoid**, long side facing
   the inputs, short side facing the output, slope ratio short:long about 0.5, as in
   Patterson & Hennessy / Harris & Harris. Select it per theme or per figure with
@@ -601,7 +626,8 @@ Each pair MUST differ in **at least two independent visual channels** that survi
 grayscale printing at 1-column size:
 - **body/fill:** solid ink, gray + outline, white + outline, or none
 - **mandatory attachment:** select pin, clock wedge, or none
-- **text on the glyph:** none, brackets, braces, or a word
+- **text on the glyph:** none, brackets, or a word (on bus-operation boxes the word
+  is the identifying feature)
 - **arity:** inputs → outputs
 - **extent:** own pins only, or spans every net at a boundary
 
@@ -612,9 +638,9 @@ grayscale printing at 1-column size:
 | Single register (§5.1) | `fill-2` + outline | 16 × 24 pt | clock wedge | optional `D`/`Q` | 1 → 1 | own pins |
 | **Split** (§2.3.1) | **none** (45° stubs off a bus spine) | stub 4–6 pt | none, and **no junction dot** | `[msb:lsb]` per stub | 1 → k | own bus |
 | **Truncation** (§2.3.2) | none | — | none | one `[msb:lsb]` on the wire | 1 → 1 | own wire |
-| **Concatenation** (§2.3.3) | white + 0.8 pt outline | ≥ 14 pt wide | none | `{ }` inside; `[msb:lsb]` destination range at each input | k → 1 | own pins |
-| **Extension** (§2.3.4) | white + 0.8 pt outline | fits text | none | `sext` or `zext` inside | 1 → 1 | own pins |
-| **Replication** (§2.3.5) | white + 0.8 pt outline | fits text | none | `{N{ }}` inside | 1 → 1 | own pins |
+| **Concatenation** (§2.3.3) | white + 0.8 pt outline | fits the word, ≥ 14 pt wide | none | **the word `concat`** inside on its own row; `[msb:lsb]` destination range inside at each input | k → 1 | own pins |
+| **Extension** (§2.3.4) | white + 0.8 pt outline | fits text | none | **the word `sext` or `zext`** inside | 1 → 1 | own pins |
+| **Replication** (§2.3.5) | white + 0.8 pt outline | fits text | none | **the words `repl ×N`** inside | 1 → 1 | own pins |
 | Fanout (§1 rule 4) | junction dot | 2.5 × stroke | — | none | 1 → k (all bits) | — |
 
 Rules:
@@ -629,8 +655,8 @@ Rules:
   attachment (select pin vs clock wedge) and extent (own pins vs whole boundary).
   A pipeline bar never has a select pin, and a mux bar never has a wedge.
 - **D3. Reserved label syntax.** `[msb:lsb]` appears only on slices (split stubs,
-  truncation, concat destination ranges). `{…}` appears only on concatenation and
-  replication boxes and their result names. Bare digits next to a mux input are
+  truncation, concat destination ranges). `{…}` appears only in an optional field
+  list next to a concatenation output (`{a, b}`), never on a box. Bare digits next to a mux input are
   select values. Net names MUST NOT begin with `[` or `{`.
   *Why:* when shapes are tiny, the first character of a label is often the
   distinguishing channel.
@@ -638,10 +664,11 @@ Rules:
   45° ripper stub means a subset. A dot is never drawn at a ripper tap.
 - **D5. Concat vs extension vs replication** share one box family on purpose (all
   are width-changing bus operations). They differ by arity (k → 1 vs 1 → 1) and by
-  their mandatory text. Replication vs extension differ **only** by text. This is
-  allowed because replication is rare and must use the Verilog `{N{ }}` form, which
-  can't be read as a word.
-- **D6. Minimum legibility at 1 column:** ripper stub ≥ 4 pt; slice and brace labels
+  their mandatory text. **The word on the box is the identifying feature**:
+  `concat`, `sext`, `zext`, `repl ×N`. Replication vs extension differ **only** by
+  that word, which is allowed because the words are distinct and legible at 7 pt.
+  The skin lint (`glyph/distinguishable`) fixes these words; braces are rejected.
+- **D6. Minimum legibility at 1 column:** ripper stub ≥ 4 pt; slice labels and box words
   7 pt (never below 6.5 pt); mux bar ≥ 5 pt wide with the select stub visible ≥ 4 pt;
   box outlines 0.8 pt so a white box can't vanish in grayscale.
 - **D7. Trapezoid theme:** with `mux_style: trapezoid` the mux loses the solid fill.
@@ -652,10 +679,10 @@ Rules:
 mux bar         pipeline bar      split (taps)        concat box    sext box
    sel             IF/ID
     │               ┃▒┃           ━━━━┳━━━━┳━━━      ─┥     │       ┥ sext ┝
- ━━┫█                ┃▒┃               ╲    ╲        │ { } ┝━      (1 → 1)
- ━━┫█━━▶            ┃▒┃             [a:b]  [c:d]   ─┥     │
+ ━━┫█                ┃▒┃               ╲    ╲        │concat┝━     (1 → 1)
+ ━━┫█━━▶            ┃▒┃             [a:b]  [c:d]   ─┥      │
  ━━┫█               ▷┃▒┃                             (k → 1)
-solid+select    gray+wedge+span   no body, brackets  hollow+{ }    hollow+word
+solid+select    gray+wedge+span   no body, brackets  hollow+word   hollow+word
 ```
 
 ---
@@ -1249,8 +1276,7 @@ font:
   serif_math: ["TeX Gyre Termes", "Times New Roman", "serif"]
   size: { label: 8, secondary: 7, min: 6, callout: 8 }
 stroke:
-  wire: 0.6
-  bus: 1.2
+  wire: 0.6               # every net, any bit width; control dashed at the same weight
   outline: 0.8
   emphasis: 1.4
   boundary: { width: 0.6, dash: [3, 2] }
@@ -1273,11 +1299,11 @@ spacing:
 mux: { style: bar, bar_width: 5, bar_fill: ink, indices: false, index_font: 7, index_order: top-down, select_side: north, trapezoid: { taper_ratio: 0.5, end_pad: 8, index_inset: 1 } }
 split: { style: ripper, stub_len: 5, stub_angle: 45, label: slice, dot_at_tap: false }
 truncate: { style: label, offset: [3, 6] }
-concat: { style: box, min_width: 14, fill: logic, outline: 0.8, label: "{ }", input_range_labels: true, msb: top }
+concat: { style: box, min_width: 14, fill: logic, outline: 0.8, label: "concat", input_range_labels: true, msb: top }
 extend: { style: box, fill: logic, outline: 0.8, labels: [sext, zext], recognize: ["{{K{x[msb]}},x}", "{K'b0,x}"] }
-replicate: { style: box, fill: logic, outline: 0.8, label: "{N{ }}" }
+replicate: { style: box, fill: logic, outline: 0.8, label: "repl ×{N}" }
 glyph_lint: { solid_bar_is_mux: true, solid_bar_max_width: 8, mux_requires_select: true, forbid_split_join_bars: true, reserved_label_prefixes: ["[", "{"] }
-route: { jog_min_offset_pt: 12, max_crossings: { data: 2, control: 8, mixed: 6 }, pin_grid: "pitch/2 + k*pitch", detour_min_step: pitch }
+route: { jog_min_offset_pt: 12, max_crossings: { data: 2, control: 8, mixed: 6 }, pin_grid: "pitch/2 + k*pitch", detour_min_step: pitch, dot_arrow_clearance: 8 }
 naming: { vocabulary: schemas/function-vocabulary.json, primary: function name, secondary: algorithm detail, short: readable word, lint: label/unreadable }
 region_frame: { stroke: 0.5, dash: [2, 2], pad: 5, label: inside top edge, encloses: exactly members, blackbox_framed: false }
 register: { width: 10, wedge_base: 4, fill: fill-2 }
@@ -1295,7 +1321,8 @@ max_font_sizes: 2
 
 1. Canvas width equals a preset (§0.1); nothing scaled afterwards.
 2. No text below 6 pt; at most 2 font sizes; fonts embedded or outlined.
-3. No stroke below 0.5 pt; at most 3 weights; buses heavier than wires.
+3. No stroke below 0.5 pt; at most 3 weights; every net at the one wire weight, bit
+   widths only in slash-N labels (§1).
 4. Figure reads in grayscale (renderer SHOULD produce a `_gray` preview); control
    differs from data in two ways.
 5. Every mux shows its select pin; inputs are in fixed order (0 at top); index labels
@@ -1347,6 +1374,9 @@ max_font_sizes: 2
     named without a summed width, a stage note names each path when latencies
     differ ("IRQ: 2 stages, read: 1"), and no wire steps just before a pin
     (§1.6, §2.1, §5.5).
+25. Every net has one stroke weight (`net/stroke-uniform`); junction dots stay 8 pt
+    from arrowheads and pins (`route/dot-near-arrow`); bus-operation boxes carry
+    words (`concat`, `sext`, `zext`, `repl ×N`), never braces (§1, §1.5, §2.3, §3.5).
 
 ---
 

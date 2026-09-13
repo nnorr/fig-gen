@@ -348,12 +348,13 @@ with `cycles`; checked against register count on the path), `legend`.
   with no text; gates in gate regions keep their shapes. Ports print
   `label` (readable) while `rtl.signal` keeps the exact RTL name.
 - **Bus operations** (CONVENTIONS §2.3, §3.5): `concat` renders as a hollow
-  `{ }` box with destination bit ranges on its inputs; `split` as 45° ripper
+  `concat` box (the word, no braces) with destination bit ranges on its inputs; `split` as 45° ripper
   taps with `[msb:lsb]` labels and no body; a single-slice split whose input
   has no other sink is drawn as a truncation label on the wire (render-only
   merge; checks use the IR as written); `extend` (`extend: zero|sign`,
-  `out_width`) as a `zext`/`sext` box; `replicate` (`count`) as a `{N{ }}`
-  box. `expand-cone` emits `extend` for zero extension.
+  `out_width`) as a `zext`/`sext` box; `replicate` (`count`) as a `repl ×N`
+  box. The word on the box is its identifying feature (skin `symbols.join.label`,
+  `symbols.replicate.label`, `symbols.extend.labels`; `glyph/distinguishable`). `expand-cone` emits `extend` for zero extension.
 - **Width labels are single integers or symbols** (CONVENTIONS §2.1). A mux
   with `lanes` sizes its select, but no lane caption or `N×W` label is ever
   printed (`width/product-notation`). Every multi-bit data net shows its width
@@ -989,6 +990,8 @@ render; warnings are reported and allowed only under `--quality draft`.
 | `wire/detached` | datapath, per variant (final SVG) | a wire end more than 0.1 pt from its pin anchor, an anchor off the symbol outline, an arrow shaft not meeting its base, a divergence without a junction dot, a dot off the trunk, a lane changing level through a bar, or notched joins |
 | `wire/touching` | datapath, per variant (final SVG) | a vertex of one net lies on another net's wire |
 | `symbol/bubble-detached` | datapath, per variant (final SVG) | an inversion bubble is not tangent to its body (gap or overlap > 0.25 pt) or its wire does not meet it |
+| `net/stroke-uniform` | skin + datapath, per variant (final SVG) | a net path or symbol wire stub (concat input, split spine/tap, truncation) is drawn at a stroke weight other than `stroke.wire`, or the skin's `stroke.bus`/`stroke.control` differs from `stroke.wire`; bit width is shown only by slash-N labels (error) |
+| `route/dot-near-arrow` | datapath, per variant (final SVG) | a junction dot center is closer than `route.dot_arrow_clearance` (skin, default 8 pt) to the base of an arrowhead of its net or to a pin anchor of its net; the renderer first moves the branch point along the trunk (error) |
 | `route/long-feedback` | datapath, per variant | a back edge spans more than `route.long_feedback_ratio` (skin, default 0.5) of the content width and is drawn as a loop; the renderer draws such nets as a pair of named off-page connectors unless `meta.style.connectors: false` (error) |
 | `region/wire-hugs-frame` | datapath, per variant | a wire runs parallel to a region frame edge closer than `route.frame_gap_pt` (default 6 pt; 1.5 × for a dashed wire beside the dashed frame) over more than 3 pt (error). The renderer first moves the edge past the wire: outward if the frame then covers no foreign block, else inward if it still holds its members |
 | `width/bundle-sum` | datapath | a heterogeneous bundle (`bundle_of`, or a pin `bundle`) has neither a net label nor a port label; bundles are named by protocol or function and never get a summed width slash (error) |
@@ -1214,7 +1217,7 @@ for size-sensitive venues; it is never the default and still keeps real text.
 The default look for datapath (and microarch) figures is a clean monochrome
 schematic in the style of netlistsvg: real symbol shapes (trapezoid mux, DFF
 box with clock wedge, distinctive gates, adder chevron), thin orthogonal wires
-routed by ELK Layered with fixed pins, buses heavier than 1-bit wires,
+routed by ELK Layered with fixed pins, one stroke weight for every net,
 junction dots, compact labels, white background, minimal decoration.
 
 Architecture borrowed as an idea (netlistsvg, MIT; no code or geometry copied —
@@ -1230,8 +1233,9 @@ it is stale on elkjs 0.3 and not a dependency):
 - Selection: `meta.style.skin` per figure, or a lab theme file passed with
   `--skin`; unspecified keys inherit from `netlist-mono`. Skins are validated
   and hashed into the receipt.
-- Width-dependent styling is resolved by the renderer into inline attributes
-  (`stroke-width` 1.2 for buses, 0.6 for wires); there are no CSS classes in
+- Net styling is resolved by the renderer into inline attributes (one
+  `stroke-width`, `stroke.wire`, for every net of any bit width; control is
+  dashed at the same weight; `net/stroke-uniform`); there are no CSS classes in
   the output (§10.1).
 
 fig-gen differences kept on top of the netlistsvg look:
@@ -1246,7 +1250,7 @@ fig-gen differences kept on top of the netlistsvg look:
   `geometry/label-on-wire`, `geometry/label-overlap`). A mux always shows its
   select (`symbol/mux-sel-missing`). Bar kinds stay distinct
   (`skin/bar-kinds-indistinct`): mux bar 5 pt black; join/split 2.5 pt black
-  with `{ }` / slice labels and no select; pipeline bar gray, outlined, clock
+  with slice labels and no select (concatenation is a hollow `concat` box); pipeline bar gray, outlined, clock
   wedge, spanning lanes.
 - Outline weights are per-symbol tokens (`stroke.outline.default` plus
   optional per-kind keys).
@@ -1472,7 +1476,7 @@ leaves it out.
   frame/wire/text collision checks and crossing counts (§8, §9.4); (S)
   straight data trunks: shared pin grid, straightening pass and
   `route/data-jog` (§9.4, CONVENTIONS §1.4); (T) distinguishable bus-operation
-  glyphs (`{ }` box, ripper taps, truncation label, `sext`/`zext`, `{N{ }}`)
+  glyphs (`concat` box, ripper taps, truncation label, `sext`/`zext`, `repl ×N`)
   and `glyph/distinguishable` (§4.5, CONVENTIONS §2.3, §3.5).
 - Phase 3: WaveDrom integration (fitting + figma-safe post-process + golden
   test); `vcd2wavejson`; sim-compare; BFM helper; FSM checks + renderer;
