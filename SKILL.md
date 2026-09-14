@@ -278,6 +278,11 @@ study, analyse or explore RTL rather than to make a paper figure.
   (its own FSM figure, `detail_ref`) and any duplicate operator names; allow a
   taller figure with `meta.print.max_height_in` when banks and wide selects need
   it. Never collapse the registers back into a block to save space.
+  The draft orders bank lanes for the fewest crossings into the muxes (mux
+  inputs keep their select order) and draws valid lanes of pipeline bars
+  dashed. When whole banks still cross, split a bank into the groups the
+  selects read (x / y / s pairs) and list them in that order; record the split
+  as an authoring edit.
   Handshake wires between the controller and a shared operator may be left out
   only by declaration (`view.abstract: {handshakes: true, reason}`), with
   "handshake signals omitted" in the caption; data nets are never omitted.

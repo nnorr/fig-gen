@@ -1358,9 +1358,19 @@ The textbook multicycle / microprogrammed datapath layout (Patterson & Hennessy)
 - **Write-back:** the operator result returns to the banks it loads as one result bus
   with taps (or a named connector pair when the return is long, §1.6), each register
   loaded through its enable; never one loop per register.
-- **Controller on top** of the operator side: its selects and load enables are dashed
-  control nets running down to the muxes and banks; its handshake and status wires
-  meet the operator. The state machine itself is its own FSM figure (detail_ref).
+- **Controller on top** of the operator side, in the column just before the operator
+  and above the selects: its selects and load enables are dashed control nets
+  running down to the muxes and banks; its handshake and status wires meet the
+  operator. The output registers sit in the column after the operator, beside its
+  result. The state machine itself is its own FSM figure (detail_ref).
+- **Fan-in order:** bank lanes, the bank order and the mux stacking follow the order
+  the muxes read them, so lane outputs cross the mux inputs as little as possible;
+  a mux's inputs stay in select order. When whole banks still cross, the author may
+  split a bank into groups (x / y / s pairs, one intermediate register) placed
+  between the groups its selects read; the load of a split bank fans out or is
+  split per group.
+- **Valid lanes are control:** a valid or ready bit carried through pipeline bars is
+  dashed on both sides of every bar, like any handshake.
 - **The loop is cut at the banks:** the layout treats an edge into a register bank
   from anything the bank reaches as feedback, so the flow reads left to right.
 - **Long control returns are connectors:** a load, select or enable that would loop

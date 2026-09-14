@@ -703,7 +703,18 @@ records and signal widths, never from names (`lib/draft-rtl.mjs`):
 - **Pipeline registers.** A register loaded every cycle from one source (no hold,
   no load condition), data or a valid bit, is a pipeline-bar lane; bars are
   grouped by register stages from the inputs. Array registers copied as a whole
-  are lanes too.
+  are lanes too. A 1-bit valid or ready lane carries the handshake, not a value:
+  it is a control lane (`class: control`), so its wires into and out of the bar
+  are control and drawn dashed through the bar.
+- **Mux fan-in order.** Bank lanes that feed stacked muxes are ordered for the
+  fewest crossings between the lane outputs and the mux inputs
+  (`lib/lane-order.mjs`): lanes within each bank, the bank order and the mux
+  stacking order are permuted (exactly when small, otherwise barycentre order
+  refined by swaps), and the figure inputs loading the lanes follow. A mux's
+  input order is its select order and never changes. The draft notes give the
+  crossing count before and after; with each bank drawn whole the count may
+  already be the minimum, and fewer crossings then need the author to split a
+  bank (§10.1 of CONVENTIONS).
 - **Selects.** A data signal chosen among two or more registers, ports or
   computed signals under control is a mux: a 2:1 choice on one bit takes that
   bit as its select, with the input order from the netlist's conditional
@@ -742,9 +753,14 @@ registers.
 **Layout.** In a figure with register banks, `partitions()` cuts every loop at
 its banks (an edge into a bank from anything the bank reaches is feedback), gives
 each element its longest-path layer, keeps nets that land only on select or
-enable pins from ranking their sinks, and places an element that selects muxes
-one layer after the last element it drives through data pins (the controller
-above the operator side). Figures without banks are laid out as before.
+enable pins from ranking their sinks, and gives an element that selects muxes
+the partition of the last element it drives through data pins. The layout then
+draws the controller in the column just before the operator, above the selects:
+its selects and enables run down to the muxes and banks, and the column after the
+operator stays free for the registers the operator loads, beside its result
+(FFT butterfly draft: 377 → 287 pt tall at 2col; one layer after the operator
+left an empty band above the banks). An authored `layout.layer` still wins.
+Figures without banks are laid out as before.
 
 ### 4.11 Declared abstraction and control returns
 
@@ -1417,6 +1433,8 @@ render; warnings are reported and allowed only under `--quality draft`.
 | `symbol/bubble-detached` | datapath, per variant (final SVG) | an inversion bubble is not tangent to its body (gap or overlap > 0.25 pt) or its wire does not meet it |
 | `net/stroke-uniform` | skin + datapath, per variant (final SVG) | a net path or symbol wire stub (concat input, split spine/tap, truncation) is drawn at a stroke weight other than `stroke.wire`, or the skin's `stroke.bus`/`stroke.control` differs from `stroke.wire`; bit width is shown only by slash-N labels (error) |
 | `route/dot-near-arrow` | datapath, per variant (final SVG) | a junction dot center is closer than `route.dot_arrow_clearance` (skin, default 8 pt) to the base of an arrowhead of its net or to a pin anchor of its net; the renderer first moves the branch point along the trunk (error) |
+| `route/tag-nudge` | datapath, per variant | a connector source tag packed against its driver's column slid right into free space so the junction before it keeps `route.dot_arrow_clearance` from its arrowhead (info; `nudgeConnectorTags`, only when no node, foreign wire or figure edge is in the swept area) |
+| `route/terminal-runs` | datapath, per variant | two runs of different nets that end on pins lay closer than `route.min_parallel_gap_pt`; the riser bounding one run slid toward that run's pin, past the other run, keeping the junction clearance and the arrowhead run (info; `unstackTerminalRuns`) |
 | `route/long-feedback` | datapath, per variant | a back edge whose **routed** length exceeds `route.long_feedback_ratio` (skin, default 0.5) × the content width is drawn as a loop; the renderer draws such nets as a pair of named off-page connectors unless `meta.style.connectors: false` (error) |
 | `route/long-loop` | datapath, per variant | a forward branch whose route is longer than its direct distance by more than the ratio × width (a wrap around the figure) is drawn as a loop; connectors by default (error) |
 | `label/ambiguous-anchor` | datapath, per variant | a net label lies no closer to its own wire than to another net's wire (0.5 pt margin); the placer only uses spots anchored to the own wire (error) |
