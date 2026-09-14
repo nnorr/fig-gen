@@ -15,7 +15,7 @@ simulation-grounded waveforms. Drafts can be generated from a netlist
 
 ## Sample figures
 
-Datapath, SoC and FSM figures rendered by fig-gen and checked against real RTL
+Datapath figures rendered by fig-gen and checked against real RTL
 (Verilator netlist, coverage, latency, connectivity). Names only in boxes, uniform strokes, bold
 bar muxes, compact registers, slash-N widths, dashed control.
 
@@ -49,22 +49,6 @@ divide/square-root iteration engine, response registers, request/response contro
 controller with named request/response nets)
 
 ![Falcon SHAKE engine](docs/gallery/falcon-shake-engine.png)
-
-**Falcon U280 accelerator kernel — SoC view** (host and card memory off-chip,
-AXI4-Lite control and AXI4 global-memory fabrics on their own rows, AXI4-Stream
-interfaces; block names only, addresses on the address-map table)
-
-![Falcon U280 accelerator kernel](docs/gallery/falcon-u280-kernel-soc.png)
-
-**RS engine controller — FSM** (states and encodings, guards in words, reset,
-soft-reset override from any state, default recovery; cross-checked against the RTL)
-
-![RS engine controller FSM](docs/gallery/rs-engine-fsm.png)
-
-**Falcon SHAKE owner controller — FSM** (11 states on serpentine rows: metadata
-prefix, absorb, squeeze, zeroize before release; Moore outputs checked)
-
-![Falcon SHAKE owner controller FSM](docs/gallery/falcon-shake-owner-fsm.png)
 
 ## INSTALL
 
