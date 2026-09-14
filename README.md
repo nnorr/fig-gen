@@ -11,6 +11,59 @@ verification, the evidence guard, structural RTL cross-checks and gate-level
 equivalence for mixed-abstraction regions. FSM and timing rendering are Phase 3
 (schemas and specs exist). See `docs/PHASE2_SUMMARY.md`.
 
+## Sample figures
+
+Datapath, SoC and FSM figures rendered by fig-gen and checked against real RTL
+(Verilator netlist, coverage, latency, connectivity). Names only in boxes, uniform strokes, bold
+bar muxes, compact registers, slash-N widths, dashed control.
+
+**RS(6,4) ECC accelerator — overview** (whole engine: AHB-Lite slave, memories as
+black boxes, injector, pipelined decoder with S0|S1 and S1|S2 bars)
+
+![RS ECC accelerator overview](docs/gallery/rs-overview.png)
+
+**RS decoder — block view** (syndrome stages, locator, position match, zero
+detect, classifier, correction enable, evaluator, ⊕ and correction mux)
+
+![RS decoder block view](docs/gallery/rs-decoder-block.png)
+
+**RS decoder — mixed abstraction** (study format: memories as black boxes, RTL
+decoder, error classifier drawn as gates and equivalence-checked against the RTL)
+
+![RS decoder mixed abstraction](docs/gallery/rs-decoder-mixed.png)
+
+**Falcon FFT butterfly — register-transfer view** (input/intermediate/output
+register banks, operand A/B selects, shared FP64 arithmetic unit, write-back,
+micro-operation controller; handshake signals omitted by declaration)
+
+![Falcon FFT butterfly](docs/gallery/falcon-fft-butterfly.png)
+
+**Falcon FP64 arithmetic unit — internal view** (calculators, operation select,
+divide/square-root iteration engine, response registers, request/response control)
+
+![Falcon FP64 arithmetic unit](docs/gallery/falcon-fp64-arithmetic-unit.png)
+
+**Falcon SHAKE engine — block view** (owner controller and engine adapter
+controller with named request/response nets)
+
+![Falcon SHAKE engine](docs/gallery/falcon-shake-engine.png)
+
+**Falcon U280 accelerator kernel — SoC view** (host and card memory off-chip,
+AXI4-Lite control and AXI4 global-memory fabrics on their own rows, AXI4-Stream
+interfaces; block names only, addresses on the address-map table)
+
+![Falcon U280 accelerator kernel](docs/gallery/falcon-u280-kernel-soc.png)
+
+**RS engine controller — FSM** (states and encodings, guards in words, reset,
+soft-reset override from any state, default recovery; cross-checked against the RTL)
+
+![RS engine controller FSM](docs/gallery/rs-engine-fsm.png)
+
+**Falcon SHAKE owner controller — FSM** (11 states on serpentine rows: metadata
+prefix, absorb, squeeze, zeroize before release; Moore outputs checked)
+
+![Falcon SHAKE owner controller FSM](docs/gallery/falcon-shake-owner-fsm.png)
+
 ## INSTALL
 
 Requirements: Node.js ≥ 20, Git. Optional: Verilator 5.x (RTL extraction and
