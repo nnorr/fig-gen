@@ -278,6 +278,9 @@ study, analyse or explore RTL rather than to make a paper figure.
   (its own FSM figure, `detail_ref`) and any duplicate operator names; allow a
   taller figure with `meta.print.max_height_in` when banks and wide selects need
   it. Never collapse the registers back into a block to save space.
+  Handshake wires between the controller and a shared operator may be left out
+  only by declaration (`view.abstract: {handshakes: true, reason}`), with
+  "handshake signals omitted" in the caption; data nets are never omitted.
 - **Drafting.** Read both residual lists: `residual:` for semantic checks and
   `residual (layout):` for layout, fit and connectors; a "layout not run" note
   means layout failures may still come at delivery. For overviews with many

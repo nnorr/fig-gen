@@ -115,6 +115,11 @@ test('draft --style rtl-datapath: banks by role, operand selects, operator, cont
     const controller = byId.get('controller');
     assert.equal(controller?.function.kind, 'controller');
     assert.ok(controller.rtl.covers.includes('c_step') && controller.rtl.covers.includes('c_busy'));
+    // port short labels drop a shared leading word only when no two ports would read the same
+    const portTexts = doc.elements.filter((e) => e.kind === 'port').flatMap((e) => [e.label, e.short_label].filter(Boolean));
+    const printedShort = doc.elements.filter((e) => e.kind === 'port').map((e) => e.short_label ?? e.label);
+    assert.equal(new Set(printedShort).size, printedShort.length, `short-mode port names are distinct: ${printedShort.join(', ')}`);
+    assert.ok(portTexts.every((t) => t.length > 1));
     // selects and loads are drawn from the controller, never hidden
     assert.ok(doc.nets.some((n) => n.driver.startsWith('controller.') && n.sinks.some((s) => /\.sel$/.test(s))));
     assert.ok(doc.nets.some((n) => n.driver.startsWith('controller.') && n.sinks.some((s) => /\.en$/.test(s))));

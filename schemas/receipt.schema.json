@@ -900,6 +900,35 @@
         },
         "overrides": {
           "type": "object"
+        },
+        "abstract": {
+          "description": "The declared abstraction of the figure (view.abstract).",
+          "type": "object"
+        },
+        "abstracted_handshakes": {
+          "description": "Nets left out of the drawing by declaration, with the reason (SPEC §4.11).",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "net",
+              "reason"
+            ],
+            "properties": {
+              "net": {
+                "type": "string"
+              },
+              "signal": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          }
         }
       }
     },

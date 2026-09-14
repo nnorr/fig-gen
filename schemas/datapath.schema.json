@@ -193,6 +193,25 @@
             "minLength": 1
           },
           "uniqueItems": true
+        },
+        "abstract": {
+          "description": "Declared abstraction (SPEC §4.11): handshakes true omits every 1-bit handshake net between two drawn blocks from the drawing, with the reason. The nets stay checked; the receipt lists them (coverage.excluded.abstracted_handshakes) and the caption says \"handshake signals omitted\".",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "handshakes",
+            "reason"
+          ],
+          "properties": {
+            "handshakes": {
+              "type": "boolean"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 200
+            }
+          }
         }
       }
     }
@@ -1320,6 +1339,21 @@
           "items": {
             "type": "string",
             "minLength": 1
+          }
+        },
+        "omit": {
+          "description": "Leave this 1-bit handshake or control net between two drawn blocks out of the drawing, with the reason (SPEC §4.11). Data nets and nets touching figure ports cannot be omitted.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "reason"
+          ],
+          "properties": {
+            "reason": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 200
+            }
           }
         }
       }

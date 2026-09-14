@@ -722,6 +722,12 @@ records and signal widths, never from names (`lib/draft-rtl.mjs`):
   dashed; wires to an instance whose instance ports share a prefix in one
   direction (`req_valid`, `req_op`) are one named bundle. A module without
   registers gets a combinational Decode block instead.
+- **Port names.** A module-local prefix shared by several ports is dropped when
+  the rest stays readable; RTL abbreviations expand ("err" → "error"). A data
+  port whose label another port's label ends with gets "data" ("corrected
+  data" beside "error corrected"). Ports sharing a leading word get a short
+  label without it ("detected" for "error detected") unless two ports would
+  then read the same.
 - **Names.** Register lanes are named by role (the input that loads them, the
   output they drive, "temporary k"); only parallel nets get labels; internal
   signals no element owns are covered by their reader. The draft passes its own
@@ -739,6 +745,29 @@ each element its longest-path layer, keeps nets that land only on select or
 enable pins from ranking their sinks, and places an element that selects muxes
 one layer after the last element it drives through data pins (the controller
 above the operator side). Figures without banks are laid out as before.
+
+### 4.11 Declared abstraction and control returns
+
+- **Handshake abstraction.** `view.abstract { handshakes: true, reason }` leaves out
+  of the drawing every 1-bit handshake net between two drawn (non-port)
+  elements (a handshake pin role at either end, or a derived handshake sink). A
+  single net may declare `omit { reason }`. Omitted nets stay in the IR: the RTL
+  cross-check, latency and coverage see them, so their transfers are represented
+  by abstraction. The receipt lists them under
+  `coverage.excluded.abstracted_handshakes` (and the view report), each with its
+  reason. Only 1-bit control or handshake nets between drawn blocks qualify; a
+  data net, a wider net or a net at a figure port is `view/abstract-invalid`
+  (error). The caption must say "handshake signals omitted"
+  (`view/abstract-caption`, error).
+- **Control returns.** A control-only net (loads, selects, enables: every sink a
+  select, enable or handshake pin) whose return route is longer than the
+  feedback limit (half the content width) becomes a named connector pair by
+  rule, not only when a retry scores fewer errors (`route/control-connectors`,
+  info). The unique-name and orphan rules apply. Data returns keep the retry.
+- **Tall register-transfer figures.** An iterative datapath with register banks,
+  wide selects and a controller on top may declare `meta.print.max_height_in`
+  up to about 6 in for 2col; 1col is then skipped (best effort). This is an
+  allowed author choice, recorded in the figure.
 
 ## 5. `fsm` IR
 
@@ -1598,6 +1627,15 @@ Layout pipeline for straight data trunks (CONVENTIONS §1.4):
    - `lib/render/connectivity.mjs` then parses the final SVG and runs
      `wire/detached`, `wire/touching` and `symbol/bubble-detached`.
    - The counts are recorded in `variants[].route.connectivity`.
+
+- **Junction room.** A junction dot crowded at its driver pin gets room at
+  the driver (a TAIL reservation of the clearance plus the dot). One crowded
+  before a sink's arrowhead gets the clearance at the driver on the next pass,
+  and at the sink end (HEAD) on the pass after, only on edges into the nearest
+  sink layer. Each pass is kept only when it has fewer errors and does not cost
+  the fit. The spreading pass also trades riser columns with a single-sink
+  riser, and run separation never moves a run so that a junction dot gets
+  closer than the clearance.
 
 Still planned: `geometry/port-crowding`, `print/aspect` hints.
 

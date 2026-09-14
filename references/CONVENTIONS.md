@@ -1363,6 +1363,14 @@ The textbook multicycle / microprogrammed datapath layout (Patterson & Hennessy)
   meet the operator. The state machine itself is its own FSM figure (detail_ref).
 - **The loop is cut at the banks:** the layout treats an edge into a register bank
   from anything the bank reaches as feedback, so the flow reads left to right.
+- **Long control returns are connectors:** a load, select or enable that would loop
+  back more than half the width is drawn as a named connector pair.
+- **Tall figures are allowed:** banks, wide selects and a controller row may need
+  about 6 in of height at 2col (`meta.print.max_height_in`); 1col is skipped.
+- **Handshakes may be abstracted:** the valid/ready wires between the controller and a
+  shared operator can be left out by declaration (`view.abstract`), never
+  silently; the caption says "handshake signals omitted" and the receipt lists
+  the omitted nets.
 
 ---
 
