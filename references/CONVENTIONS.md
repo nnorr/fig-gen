@@ -394,9 +394,17 @@ and a wire that touches another reads as a junction.
   All source tags share one column. Length is the **routed** length, not the
   horizontal span: a back edge whose route is longer than the ratio × width,
   or any branch whose route exceeds its direct distance by that much (a wrap
-  around the figure), gets connectors. `route/long-feedback` and
-  `route/long-loop` fire for such a loop that is still drawn
-  (`meta.style.connectors: false`).
+  around the figure), gets connectors. The same holds for **any long detour on
+  the final routes**, in paper and study, for every net class and for forward
+  nets the layout routes around: a route at least `route.detour_ratio` × its
+  Manhattan distance and longer by `route.detour_min_fraction` × the width, or
+  one that runs in the outer channel around the blocks. Such a branch becomes a
+  named connector pair by rule (data returns too); only a conversion that would
+  break correctness (connector naming, endpoints, RTL checks) keeps the wire.
+  Neighbouring blocks keep a return that loops just around the two of them (its
+  route encloses no other block); a route around further blocks is a detour
+  however close its end blocks are. `route/long-feedback` and `route/long-loop`
+  fire for a detour still drawn (error in paper, warning in study).
 - **A net label anchors to its own wire.** It is placed where its own wire is
   closer than any other net's wire; otherwise the reader may attach it to the
   neighbour (`label/ambiguous-anchor`, error). One name per net: two nets with

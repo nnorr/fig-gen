@@ -286,6 +286,16 @@ study, analyse or explore RTL rather than to make a paper figure.
   Handshake wires between the controller and a shared operator may be left out
   only by declaration (`view.abstract: {handshakes: true, reason}`), with
   "handshake signals omitted" in the caption; data nets are never omitted.
+- **Paper figures are a draft skeleton plus a patch script.** Do not hand-edit
+  the draft JSON or write one-off builder scripts: record each refinement as an
+  op in `edits.json` (rename from the RTL, `split-bank`, `reorder`,
+  `label-placement`, `abstract-handshakes`, `detail-ref`, `collapse`, `bundle`,
+  `insert`, `move-to-region`, … — SPEC §4.12) with a `note` saying why, and apply
+  it with `fig-gen patch draft.json --script edits.json --netlist n.json --out
+  figure.json`. Every patch re-runs the RTL cross-check, coverage and latency and
+  is rejected with nothing written if it adds an error, so a rejected op points
+  at the edit that broke the figure. Re-drafting after an RTL change is then
+  `draft` + the same script; the `.edits.md` log is the edit list to report.
 - **Drafting.** Read both residual lists: `residual:` for semantic checks and
   `residual (layout):` for layout, fit and connectors; a "layout not run" note
   means layout failures may still come at delivery. For overviews with many

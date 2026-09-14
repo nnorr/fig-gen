@@ -785,6 +785,45 @@ Figures without banks are laid out as before.
   up to about 6 in for 2col; 1col is then skipped (best effort). This is an
   allowed author choice, recorded in the figure.
 
+### 4.12 Authoring tools (`fig-gen patch`)
+
+A paper figure is a draft skeleton plus a patch script. `fig-gen patch <figure>
+(--op '<json>'... | --script edits.json) [--netlist n.json] [--out file]
+[--note text] [--author name] [--dry-run]` applies IR edit operations
+(`lib/patch.mjs`):
+
+- **Atomic.** Ops apply in order to a copy of the figure. An op that cannot apply
+  (unknown id, bad arguments) is `patch/invalid-op`, an unknown op is
+  `patch/unknown-op`; the patch stops and nothing is written.
+- **Re-validated.** The result runs every check delivery runs with a netlist:
+  schema, semantics, labels, function evidence, view, RTL cross-check, coverage,
+  latency and detail references. An error the input did not have is
+  `patch/validation` and rejects the patch. Errors the input already had are
+  reported (`patch/remaining`), so a draft is refined step by step.
+- **Logged.** An accepted patch is appended to `<figure>.edits.json` (ops, author,
+  note, applied summaries, fixed and remaining errors, undo records) and
+  `<figure>.edits.md`. The file is written atomically.
+
+Ops (JSON objects `{ "op": …, …, "note"? }`):
+
+| Op | Arguments | Effect |
+|---|---|---|
+| `rename` | `id` (element, net, region, `el.port`, `el.lane`), `label`, `short_label`, `name` | set or remove (`null`) names |
+| `set-meta` | `title`, `caption`, `print`, `style` | figure text and print settings |
+| `set` | `path` (JSON pointer, `@id` selects an array item), `value` | any field; `null` removes |
+| `label-placement` | `net`, `placement` (inline, leader, auto), `leader_max_pt` | net name placement |
+| `abstract-handshakes` / `omit` | `reason` / `net`, `reason` | declared abstraction (§4.11) |
+| `detail-ref` | `id`, `figure`, `element` | drill-down link (`null` removes) |
+| `add-element`, `remove-element`, `replace-element` | `element`, `before` / `id`, `nets: "remove"` / `id`, `element` | structure |
+| `add-net`, `remove-net`, `set-nets`, `connect`, `rewire` | net, endpoints | wiring |
+| `reorder` | `elements` (slots kept), or `id` with `lanes` or `ports` | order |
+| `split-bank` / `merge-banks` | `id`, `groups` [{`id`, `label`, `lanes`}] / `ids`, `id`, `label` | register banks; a split bank shares its 1-bit load, lane d/q endpoints and `rtl.covers` follow |
+| `insert` | `kind` (mux, register, bank), `net`, `sinks`, `id`, `select {from}` / `enable {from}`, `inputs` | cut a net before its sinks |
+| `collapse` / `expand` | `ids`, `id`, `label` / `id` | named block with boundary ports and the members' `rtl.covers`; expand restores from the collapse record |
+| `bundle` / `unbundle` | `nets`, `id`, `label` / `id` | parallel nets between two elements as one `bundle_of` net with bundle ports; unbundle restores from the record |
+| `split-stage` / `merge-stages` | `id`, `stages` [{`id`, `ports`}], `links` / `ids`, `id` | a function as stages k/n linked by nets, or merged back |
+| `move-to-region` | `ids`, `region`, `level`, `label`, `parent` | region membership (a missing region is created) |
+
 ## 5. `fsm` IR
 
 ```json
@@ -1437,7 +1476,9 @@ render; warnings are reported and allowed only under `--quality draft`.
 | `route/tag-nudge` | datapath, per variant | a connector source tag packed against its driver's column slid right into free space so the junction before it keeps `route.dot_arrow_clearance` from its arrowhead (info; `nudgeConnectorTags`, only when no node, foreign wire or figure edge is in the swept area) |
 | `route/terminal-runs` | datapath, per variant | two runs of different nets that end on pins lay closer than `route.min_parallel_gap_pt`; the riser bounding one run slid toward that run's pin, past the other run, keeping the junction clearance and the arrowhead run (info; `unstackTerminalRuns`) |
 | `route/long-feedback` | datapath, per variant | a back edge whose **routed** length exceeds `route.long_feedback_ratio` (skin, default 0.5) × the content width is drawn as a loop; the renderer draws such nets as a pair of named off-page connectors unless `meta.style.connectors: false` (error) |
-| `route/long-loop` | datapath, per variant | a forward branch whose route is longer than its direct distance by more than the ratio × width (a wrap around the figure) is drawn as a loop; connectors by default (error) |
+| `route/long-loop` | datapath, per variant | a branch of any class, forward or returning, measured on the final routes as a long detour and still drawn as a wire: longer than its direct distance by more than the ratio × width (wrap-around), at least `route.detour_ratio` × its Manhattan distance and longer by `route.detour_min_fraction` × width (detour), or running in the outer channel around the blocks and longer by `route.outer_channel_min_fraction` × width (outer-channel); evidence names the kind. Neighbouring blocks (fewer than `route.connector_min_layers` drawn columns apart) keep a return whose route encloses no other block. Error in paper, warning in study |
+| `route/detour-connectors` | datapath, per variant | long detours on the routed figure drawn as named connector pairs by rule, data nets included (info) |
+| `route/detour-kept` | datapath, per variant | long detours kept as wires because the connector pairs would add a correctness error (connector, endpoint, width, RTL, coverage or latency); the long-loop diagnostic stays (info) |
 | `label/ambiguous-anchor` | datapath, per variant | a net label lies no closer to its own wire than to another net's wire (0.5 pt margin); the placer only uses spots anchored to the own wire (error) |
 | `region/entry-side` | datapath, per variant | a net from outside a region frame enters through a side that does not face its source, within 2 × `route.frame_gap_pt` of a corner, or through the frame's label band (error) |
 | `arrow/nonuniform` | datapath, microarch, per variant (final SVG) | an arrowhead's length or width differs from the skin's `arrow.length` × `arrow.width` by more than 0.05 pt; receipt `connectivity.arrows_checked` / `arrow_nonuniform` (error) |

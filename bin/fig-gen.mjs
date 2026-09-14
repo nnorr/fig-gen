@@ -18,6 +18,7 @@ import { checkDocFacts } from '../lib/doc-facts.mjs';
 import { checkFunctionEvidence } from '../lib/checks/function-evidence.mjs';
 import { checkCoverage } from '../lib/checks/coverage.mjs';
 import { checkDetailRefs } from '../lib/checks/detail-refs.mjs';
+import { applyPatch, PATCH_OP_NAMES } from '../lib/patch.mjs';
 import { draftFigure } from '../lib/draft.mjs';
 import { applyViewOverrides, checkView, withViewScope } from '../lib/view.mjs';
 import { checkLatency } from '../lib/checks/latency.mjs';
@@ -59,6 +60,11 @@ const USAGE = `usage:
   fig-gen crosscheck <datapath|microarch|fsm> <figure.json> --netlist netlist.json [--json]
   fig-gen expand-cone --netlist n.json --output <signal> [--index <n>] [--instance a/b] [--stop-at s1,s2]
                       [--max-gates 30] [--prefix g] [--no-bitblast] [--out fragment.json]
+  fig-gen patch <figure.json> (--op '<json>'... | --script edits.json) [--netlist n.json] [--out figure.json]
+                [--note text] [--author name] [--quality paper] [--log edits.json] [--dry-run] [--json]
+                (validated IR edits on a datapath figure: the ops apply atomically to a copy, every delivery check
+                 re-runs, and a patch that adds an error or has an invalid op is rejected with nothing written;
+                 accepted patches are appended to <figure>.edits.json and <figure>.edits.md)
   fig-gen lint-svg <file.svg> [--json]
   fig-gen check-rtl --top <module> (--search-path <dir|glob>... | --files <f...> | --filelist <file.f> | --config <cfg>)
                     [--exclude <glob>...] [--prefer <file>...] [--emit-filelist <file.f>] [--summary]
@@ -83,12 +89,12 @@ const USAGE = `usage:
 function parseArgs(argv) {
   const positional = [];
   const flags = {};
-  const multi = new Set(['files', 'stub', 'blackbox-json', 'include', 'define', 'param', 'gate-region', 'blackbox', 'search-path', 'exclude', 'prefer', 'tb', 'signals', 'alias', 'radix']);
+  const multi = new Set(['op', 'files', 'stub', 'blackbox-json', 'include', 'define', 'param', 'gate-region', 'blackbox', 'search-path', 'exclude', 'prefer', 'tb', 'signals', 'alias', 'radix']);
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
     if (!a.startsWith('--')) { positional.push(a); continue; }
     const key = a.slice(2);
-    if (['json', 'summary', 'quiet', 'no-bitblast', 'no-pdf', 'why-size', 'preview'].includes(key)) { flags[key] = true; continue; }
+    if (['json', 'summary', 'quiet', 'no-bitblast', 'no-pdf', 'why-size', 'preview', 'dry-run'].includes(key)) { flags[key] = true; continue; }
     if (multi.has(key)) {
       flags[key] = flags[key] || [];
       while (i + 1 < argv.length && !argv[i + 1].startsWith('--')) flags[key].push(argv[++i]);
@@ -648,8 +654,51 @@ function usage() {
   return EXIT.usage;
 }
 
+// Authoring tools (SPEC §4.12): a patch script or ops on one datapath figure.
+async function cmdPatch({ positional, flags }) {
+  const [file] = positional;
+  if (!file || (!flags.op && !flags.script)) return usage();
+  const doc = JSON.parse(fs.readFileSync(file, 'utf8'));
+  let ops = [];
+  let scriptNote = null;
+  if (flags.script) {
+    const script = JSON.parse(fs.readFileSync(flags.script, 'utf8'));
+    ops = Array.isArray(script) ? script : script.ops || [];
+    scriptNote = Array.isArray(script) ? null : script.note ?? null;
+  }
+  for (const text of flags.op || []) ops.push(JSON.parse(text));
+  const out = path.resolve(flags.out ?? file);
+  const logFile = path.resolve(flags.log ?? `${out.replace(/\.json$/, '')}.edits.json`);
+  const log = fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, 'utf8')) : { figure: path.basename(out), entries: [] };
+  let netlist = null;
+  if (flags.netlist) {
+    const loaded = loadNetlistWithGuard(flags.netlist);
+    if (loaded.guard.diagnostics.some((d) => d.severity === 'error')) { loaded.guard.diagnostics.forEach((d) => console.error(line(d))); return EXIT.fail; }
+    netlist = loaded.netlist;
+  }
+  const result = await applyPatch(doc, ops, { netlist, figureDir: path.dirname(path.resolve(file)), quality: flags.quality ?? 'paper', history: log.entries.flatMap((e) => e.records || []) });
+  const report = { ok: result.ok, out: result.ok && !flags['dry-run'] ? out : null, log: result.ok && !flags['dry-run'] ? logFile : null, applied: result.applied, fixed: (result.fixed || []).map((d) => `${d.code}: ${d.message}`), diagnostics: result.diagnostics, ops_known: result.diagnostics.some((d) => d.code === 'patch/unknown-op') ? PATCH_OP_NAMES : undefined };
+  if (flags.json) print(report);
+  else {
+    for (const a of result.applied) console.log(`op ${a.index} ${a.op}: ${a.summary}${a.note ? ` — ${a.note}` : ''}`);
+    for (const d of result.diagnostics) console.log(line(d));
+    console.log(result.ok ? (flags['dry-run'] ? 'patch ok (dry run: nothing written)' : `patch applied: ${out}`) : 'patch rejected: nothing written');
+  }
+  if (!result.ok) return EXIT.fail;
+  if (flags['dry-run']) return EXIT.ok;
+  const tmp = `${out}.tmp-${process.pid}`;
+  fs.writeFileSync(tmp, `${JSON.stringify(result.doc, null, 2)}\n`);
+  fs.renameSync(tmp, out);
+  log.entries.push({ at: new Date().toISOString(), author: flags.author ?? null, note: flags.note ?? scriptNote, source: path.basename(path.resolve(file)), script: flags.script ? path.basename(flags.script) : null, ops, applied: result.applied, fixed: report.fixed, remaining: (result.remaining || []).map((d) => `${d.code}: ${d.message}`), ...(result.records?.length ? { records: result.records } : {}) });
+  fs.writeFileSync(logFile, `${JSON.stringify(log, null, 2)}\n`);
+  const md = [`# Edits of ${log.figure}`, '', ...log.entries.flatMap((e, k) => [`## ${k + 1}. ${e.at}${e.author ? ` (${e.author})` : ''}${e.script ? `, script ${e.script}` : ''}`, ...(e.note ? ['', e.note] : []), '', ...e.applied.map((a, j) => `${j + 1}. \`${a.op}\` ${a.summary}${a.note ? ` — ${a.note}` : ''}`), ''])].join('\n');
+  fs.writeFileSync(logFile.replace(/\.json$/, '.md'), md);
+  return EXIT.ok;
+}
+
 const commands = {
   validate: cmdValidate,
+  patch: cmdPatch,
   render: cmdRender,
   deliver: cmdDeliver,
   preview: cmdPreview,
