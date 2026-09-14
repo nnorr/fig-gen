@@ -326,7 +326,10 @@ junction  ━━━━●━━━━━▶           crossing  ━━━━┿�
   (`route/data-bend`, receipt `route.data_bends`). If a bend has none, meaning
   a tried move would have removed it, the result is `route/data-jog` (error).
 - A **level change smaller than one pin pitch (12 pt)** on a data trunk is a
-  redundant jog and is not allowed (renderer error `route/data-jog`). Typical
+  redundant jog and is not allowed (renderer error `route/data-jog`). The same holds
+  for control wires: a dashed select, enable or handshake wire with a small step
+  between two runs in one direction is straightened like a data wire, and a remaining
+  one is `route/control-jog` (error). Typical
   causes are lanes that step up or down right after a pipeline bar, or a block
   whose pins sit off the neighbour's lane grid. The layout fixes them: all
   multi-pin symbols put their pins on one grid (pitch/2 + k·pitch), pipeline
@@ -714,7 +717,7 @@ grayscale printing at 1-column size:
 |-------|-------------|---------------|----------------------|---------------|-------|--------|
 | **Mux bar** (§3.1) | solid `ink`, no outline | 5 pt × (inputs × 12 pt) | **select pin** on N or S edge, control style, ≥ 4 pt visible | none (opt-in select indices: bare digits, outside the bar) | ≥ 2 → 1 | own pins |
 | **Pipeline-register bar** (§5.3) | `fill-3` gray + 0.8 pt outline | 7 pt × full datapath height | **clock wedge** at bottom; stage label above | `IF/ID`-style label above, none inside | n → n (pass-through) | **every net crossing the stage boundary** |
-| Single register (§5.1) | `fill-2` + outline | 16 × 24 pt | clock wedge | optional `D`/`Q` | 1 → 1 | own pins |
+| Single register (§5.1) | `fill-2` + outline | 14 × 24 pt (`register.width_pt`) | clock wedge | none (no name printed) | 1 → 1 | own pins |
 | **Split** (§2.3.1) | **none** (45° stubs off a bus spine) | stub 4–6 pt | none, and **no junction dot** | `[msb:lsb]` per stub | 1 → k | own bus |
 | **Truncation** (§2.3.2) | none | — | none | one `[msb:lsb]` on the wire | 1 → 1 | own wire |
 | **Concatenation** (§2.3.3) | white + 0.8 pt outline | fits the word, ≥ 14 pt wide | none | **the word `concat`** inside on its own row; `[msb:lsb]` destination range inside at each input | k → 1 | own pins |
@@ -991,9 +994,14 @@ the scope covers.
 
 ### 5.1 Register / flip-flop symbol
 
-- **[house]** Draw a register as a **rectangle** (default 10 pt wide × pin-span tall),
-  outline 0.8 pt, fill `fill-2`. Mark the clock pin with the **dynamic-input wedge** (a
-  small triangle, 4 pt base, on the inside of the bottom or left edge).
+- **[house]** Draw a register as a **narrow rectangle** (the skin's `register.width_pt`,
+  14 pt, never sized to its name; pin-span tall), outline 0.8 pt, fill `fill-2`. Mark the
+  clock pin with the **dynamic-input wedge** (a small triangle, 4 pt base, on the inside
+  of the bottom or left edge).
+- **[house] No name on a register:** nothing is printed inside or beside the box. The
+  ports and nets on its lanes say what it holds; the element's `label` stays in the IR
+  (receipt, caption, review). *Why:* a name printed next to a narrow box cannot be told
+  apart from the name of a wire running beside it.
   *Why:* the wedge is the IEEE Std 91 dynamic-input indicator. It means edge-triggered
   [ext: TI SDYZ001A: edge-triggered elements accept data "on the active transition of
   C"]. Readers of any EDA schematic recognize it.
@@ -1104,9 +1112,11 @@ the scope covers.
 
 - **What:** registers that share a role and load pattern in an iterative or
   micro-sequenced datapath (operands loaded on accept, temporaries, outputs) are
-  drawn as one **register bank**: a storage-filled box with a clock wedge, one lane
-  per register on the pin pitch (d west, q east), the load enable entering the top,
-  and the role name inside ("input registers").
+  drawn as one **register bank**: a narrow storage-filled box (the register width, §5.1)
+  with a clock wedge, one lane per register on the pin pitch (d west, q east; height =
+  lanes × pitch plus margins) and the load enable entering the top. No role name is
+  printed (§5.1): the lane nets and ports name what the bank holds; the role ("input
+  registers") stays the element's `label` in the IR.
 - **Hold is implicit:** a register that keeps its value unless loaded is drawn as a
   register with an enable; the hold feedback is never drawn as a loop.
 - **Enables:** one dashed load net per bank from the controller, one bit per

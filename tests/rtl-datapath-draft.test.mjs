@@ -70,11 +70,12 @@ test('register bank: lanes with one enable, a shared data input, schema and sema
   assert.ok(checkDatapath(wide).diagnostics.some((d) => d.code === 'width/mismatch'));
 });
 
-test('register bank: drawn as one storage box with its role name inside and a clock wedge', async () => {
+test('register bank: drawn as one narrow storage box with a clock wedge and no printed name', async () => {
   const r = await renderDatapath(bankDoc(), { variant: '2col', widthPt: 515.5, maxHeightPt: 230.4, name: 'bank' });
   assert.match(r.svg, /id="reg-bank-body"/);
-  assert.match(r.svg, />input registers</);
-  assert.match(r.svg, />temporary registers</);
+  // the role names stay in the IR; the lane nets and ports say what the banks hold
+  assert.doesNotMatch(r.svg, />input registers</);
+  assert.doesNotMatch(r.svg, />temporary registers</);
   // the symbol itself is clean (routing of this toy figure is not under test)
   assert.deepEqual(r.diagnostics.filter((d) => d.severity === 'error' && !/^route\//.test(d.code) && /bank|temps|reg-/.test(d.message)).map((d) => d.message), []);
 });
