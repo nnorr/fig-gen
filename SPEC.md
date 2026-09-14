@@ -1633,6 +1633,8 @@ always measured at its final printed point size.
 
 Implemented (Phase 2): `geometry/label-overlap`, `geometry/label-on-wire`,
 `geometry/text-on-line`, `symbol/label-clearance`, `text/glyph-missing`,
+`text/non-finite-outline` (a text outlined for the PDF has a NaN or infinite
+coordinate; error in every format, never relaxed),
 region frame checks (`region/frame-*`, `region/wire-on-frame`),
 `route/data-jog`, `route/data-bend`, `route/crossings`, and the print checks
 (`print/min-font`, `print/min-stroke`, `print/max-height`,
