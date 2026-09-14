@@ -201,8 +201,10 @@ test('latency/hidden-register: drawn latency must equal the RTL latency; interna
   assert.equal(d.length, 1);
   assert.deepEqual([d[0].evidence.rtl, d[0].evidence.drawn], [1, 0]);
 
-  // Option (b) is visible: a clock wedge on the block and its latency.
-  const r = await renderDatapath(completeFigure(), { variant: '2col', widthPt: 515.5, name: 'marked' });
+  // Option (b) is visible: a clock wedge on the block, and its latency when details are opted in.
+  const detailed = completeFigure();
+  detailed.meta.style = { ...(detailed.meta.style || {}), block_details: true };
+  const r = await renderDatapath(detailed, { variant: '2col', widthPt: 515.5, name: 'marked' });
   assert.match(r.svg, /id="custom-ctr-sub"[^>]*>[^<]*1 stage</);
   assert.match(r.svg, /id="custom-ctr"[\s\S]*?L[\d.]+ [\d.]+ L[\d.]+ [\d.]+"[^>]*fill="none"/);
 });

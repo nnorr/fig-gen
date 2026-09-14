@@ -236,6 +236,10 @@
         "show_encodings": {
           "description": "FSM: print each state encoding under its name (default true).",
           "type": "boolean"
+        },
+        "block_details": {
+          "description": "Datapath blocks print their name only by default (CONVENTIONS §4.3). true prints secondary lines inside boxes for the whole figure: stage notes, function.detail, pin labels, table and memory sizes. Latency and detail are always in the receipt (and the study side table).",
+          "type": "boolean"
         }
       }
     },

@@ -413,6 +413,10 @@
         },
         "authority": {
           "$ref": "#/$defs/authority"
+        },
+        "show_details": {
+          "description": "Opt this block into secondary lines (sublabel, address window) when the figure keeps blocks name-only (meta.style.block_details unset). Addresses otherwise appear on the address-map table figure.",
+          "type": "boolean"
         }
       },
       "unevaluatedProperties": false

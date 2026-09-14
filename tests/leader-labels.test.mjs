@@ -68,6 +68,7 @@ test('a bundle whose sink pin prints its label is named at the pin, not omitted'
   const doc = bundleFigure();
   const dst = doc.elements.find((e) => e.id === 'dst');
   dst.pin_labels = true;
+  dst.show_details = true; // pin labels print only when details are opted in (name-only boxes by default)
   dst.ports.find((p) => p.id === 'word').label = 'codeword';
   const r = await renderDatapath(doc, { variant: '2col', widthPt: 330, maxHeightPt: 230.4, name: 'pin' });
   assert.equal(r.diagnostics.filter((d) => d.code === 'label/bundle-name-omitted').length, 0);

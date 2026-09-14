@@ -683,6 +683,63 @@ What the draft draws:
     outputs only after a successful delivery; a failed one leaves the last good
     outputs. `--preview` also writes `<name>.<variant>.png`.
 
+### 4.10 Register-transfer datapath draft (`draft --style rtl-datapath`)
+
+A paper block draft of one module (`draft --view block`) defaults to the
+register-transfer style; `--style lumps` keeps the functional-block draft of
+§4.8. The style recovers datapath structure from the netlist's dependency
+records and signal widths, never from names (`lib/draft-rtl.mjs`):
+
+- **Data and control.** Signals of at least 8 bits are data; narrower signals
+  are control.
+- **Loaded registers.** A data register whose next value holds it (the next-value
+  logic reads the register) is loaded under a condition. Registers of one role
+  share a **register bank** (§5.6 of CONVENTIONS): inputs loaded only from figure
+  inputs, outputs that drive figure outputs, temporaries. The load condition is
+  a dashed enable from the controller, one bit per register (one bit when the
+  whole bank loads on one signal); the hold feedback is implicit. A bank whose
+  registers all load from one result bus has one shared data input
+  (`shared_d`). A role with one register is a plain register with an enable.
+- **Pipeline registers.** A register loaded every cycle from one source (no hold,
+  no load condition), data or a valid bit, is a pipeline-bar lane; bars are
+  grouped by register stages from the inputs. Array registers copied as a whole
+  are lanes too.
+- **Selects.** A data signal chosen among two or more registers, ports or
+  computed signals under control is a mux: a 2:1 choice on one bit takes that
+  bit as its select, with the input order from the netlist's conditional
+  record; wider choices get a one-hot select from the controller. A data signal
+  chosen among constants is a table (`lut`).
+- **Operators.** An arithmetic or XOR expression is an operator element; a chain
+  of function calls with no register between them is one block named by its
+  functions; an instance is a collapsed block with its RTL ports and per-port
+  latency. An array computed element by element with one operator is that
+  operator; a join of signals into one of their total width is a `concat`; a
+  width-changing slice is a bit-select block. Other wiring is absorbed into its
+  reader.
+- **Controller.** Control registers (including enumerated state) and all narrow
+  logic form one Controller (`function.kind: controller`, `holds_state`), with
+  per-input latency maps on its outputs. Its selects and load enables are
+  dashed; wires to an instance whose instance ports share a prefix in one
+  direction (`req_valid`, `req_op`) are one named bundle. A module without
+  registers gets a combinational Decode block instead.
+- **Names.** Register lanes are named by role (the input that loads them, the
+  output they drive, "temporary k"); only parallel nets get labels; internal
+  signals no element owns are covered by their reader. The draft passes its own
+  checks (schema, semantics, labels, view, RTL cross-check, coverage, latency).
+
+**Register bank IR.** `kind: register` with `lanes[] {id, width, label?, rtl?}`
+(2–32 lanes; no `width`), `enable`, `enable_width` (the enable pin width) and
+`shared_d`. Pins: `d_<lane>` (or one `d`), `q_<lane>`, `en`. The RTL cross-check
+checks every lane as a register; the latency check counts lanes as drawn
+registers.
+
+**Layout.** In a figure with register banks, `partitions()` cuts every loop at
+its banks (an edge into a bank from anything the bank reaches is feedback), gives
+each element its longest-path layer, keeps nets that land only on select or
+enable pins from ranking their sinks, and places an element that selects muxes
+one layer after the last element it drives through data pins (the controller
+above the operator side). Figures without banks are laid out as before.
+
 ## 5. `fsm` IR
 
 ```json
@@ -1356,7 +1413,7 @@ render; warnings are reported and allowed only under `--quality draft`.
 | `comb/unknown-input` | datapath | a `comb_from` entry is not an input pin of its element, or `comb_from` sits on an input pin (error) |
 | `latency/comb-from` | datapath (netlist) | an output's `comb_from` omits an input that the RTL reaches the output from with no register on the way (error); checked also on nets drawn unmapped for latency when they keep `rtl_unmapped.rtl` |
 | `label/unreadable` (generated text) | datapath, per variant, every format | a string the renderer generates (a stage-note output name, a connector tag) is not a readable name; generated names come from the pin label, the net label or the RTL signal made readable, never an id; never relaxed by the study format (error, `evidence.generated: true`) |
-| `label/stage-note-clutter` | datapath, per variant | a block prints more than 2 note lines inside its box (function detail plus stage notes); the renderer groups output latencies ("2 stages: ready, done") or gives the range ("outputs: 1–4 stages") and lists every output in `route.stage_notes` and, in a study figure, in an output latency table below the drawing (error) |
+| `label/stage-note-clutter` | datapath, per variant | only when details are opted in (`meta.style.block_details`, element `show_details`; datapath and microarch blocks are name-only by default, microarch addresses appear on the address-map table): a block prints more than 2 note lines inside its box (function detail plus stage notes); the renderer groups output latencies ("2 stages: ready, done") or gives the range ("outputs: 1–4 stages") and lists every output in `route.stage_notes` and, in a study figure, in an output latency table below the drawing (error) |
 | `label/function-justification` (whole block) | datapath, netlist | a vocabulary name whose required structure is in the RTL cone of only some of the block's outputs (a hub where one output compares against zero is not a zero detector) (warning, error with `--quality paper`) |
 | `route/readability` (warning) | datapath, study format | the final SVG has more crossings per drawn net than skin `route.readability.max_crossings_per_net` (1) or routed wire length above `max_wire_length_ratio` (1.6) × the direct distance; both numbers are in every receipt as `route.readability` |
 | `connector/ambiguous-name` | datapath, per variant, every format | two different nets carry connector tags with the same name; the renderer names connectors uniquely (net label or readable RTL signal, qualified with the readable source instance when names collide, "Nonce client: start ready", numbered only as a last resort) (error) |

@@ -161,10 +161,14 @@ test('N10: study turns route/data-jog and route/edge-hugging into warnings; corr
   assert.ok(paper.every((d) => d.severity === 'error'));
 });
 
-test('O5: a subordinate block prints its address window base–end in every label mode', async () => {
+test('O5: SoC blocks are name-only by default; opted in, a subordinate block prints its address window base–end in every label mode', async () => {
   const doc = JSON.parse(fs.readFileSync(example('microarch-soc-accelerator.json'), 'utf8'));
   const windows = (doc.attachments || []).filter((a) => a.role === 'subordinate' && a.address?.base);
   assert.ok(windows.length > 0);
+  // default: name only, no address or sublabel line inside any block (addresses go on the address-map table)
+  const plain = await renderMicroarch(doc, { variant: '2col', widthPt: 515.5, name: 'soc', minFontPt: 6, minStrokePt: 0.5 });
+  assert.doesNotMatch(plain.svg, /id="block-[^"]+-(addr|addr-end|sub)"/);
+  doc.meta.style = { ...(doc.meta.style || {}), block_details: true };
   for (const widthPt of [515.5, 241]) {
     const r = await renderMicroarch(doc, { variant: widthPt > 300 ? '2col' : '1col', widthPt, name: 'soc', minFontPt: 6, minStrokePt: 0.5 });
     for (const a of windows) {

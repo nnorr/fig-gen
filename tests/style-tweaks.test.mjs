@@ -133,7 +133,7 @@ test('bus-operation boxes are named by words: concat, repl ×N, sext; braces are
   assert.match(r.svg, /id="concat-cat-title"[^>]*>concat</);
   assert.match(r.svg, /id="replicate-rep-title"[^>]*>repl ×4</);
   assert.match(r.svg, /id="extend-ext-title"[^>]*>sext</);
-  assert.match(r.svg, />\[15:8\]</, 'inputs keep their destination bit ranges');
+  assert.doesNotMatch(r.svg, />\[\d+:\d+\]</, 'the concat box prints the word only: no destination bit ranges');
   assert.doesNotMatch(r.svg, />[^<]*[{}][^<]*</, 'no braces in any text');
 
   const skin = loadSkin();

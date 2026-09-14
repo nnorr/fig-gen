@@ -555,12 +555,12 @@ block**. So the encoding below keeps "solid bar" for the mux alone.
 - Draw a **hollow outlined box**: outline 0.8 pt, fill `fill-logic` (white/`fill-1`),
   at least 14 pt wide, height = inputs × pin pitch. Put the word `concat` centered
   inside at 7 pt.
-- Inputs enter on the **left**, **MSB field at the top**. Label each input just
-  **inside** the box, on its row, with the **destination bit range in the result**
-  (`[15:8]`, `[7:0]`). The word `concat` has its own row between the fields, and the
-  output leaves on the right from that row with the summed width slash. The box is
-  as wide as its longest text; nothing stands in front of it, so the word costs no
-  extra width. You may add the field list `{a, b}` next to the output.
+- Inputs enter on the **left**, **MSB field at the top**: the order is the
+  convention, so the box prints **the word `concat` only**. No destination bit
+  ranges appear inside or beside the box; each input keeps its width slash on its
+  wire. The word has its own row between the fields, and the output leaves on the
+  right from that row with the summed width slash. The same holds for `repl ×N`,
+  `sext` and `zext`: the word only.
 - A constant field (`4'b0000`) is an input with a constant source label, not a
   separate glyph. The whole pattern `{K'b0, x}` is zero extension (§2.3.4).
 - *Considered and rejected:* a **ripper merge** (45° entries converging into a bus).
@@ -920,8 +920,16 @@ the scope covers.
   *GF(2^8) multiplier*, *AHB-Lite slave*, *Data memory*.
 - **Never print** signal mnemonics, internal RTL names or math shorthand as a
   block's primary name: not `cls`, `en`, `H4..2`, `S2/S1`, `X=a^i`, `e_i`,
-  `== 0`. Algorithm detail (*Horner*, *X = S2/S1*) may appear only as a small
-  secondary line under the name, and only where it fits.
+  `== 0`.
+- **Boxes show the name only.** A datapath block prints its name and nothing
+  else inside the box: no stage notes ("2 stages", "outputs: 1–4 stages"), no
+  algorithm detail (*Horner*, *X = S2/S1*), no pin labels, no table or memory
+  sizes. A registered block keeps its clock wedge. Latency and detail are in the
+  receipt and, in the study format, the side table; the caption carries what the
+  reader needs. An author may opt in for a figure (`meta.style.block_details:
+  true`) or a block (`show_details: true`); the two-line limit
+  (`label/stage-note-clutter`) and the pin-label limits apply then.
+  Microarch / SoC blocks follow the same rule (§11).
 - Short labels for narrow variants are **readable words** (*Locator*, *GF mul*,
   *Classifier*), never cryptic abbreviations. If the readable form does not
   fit one column, the single-column variant is skipped (best effort) rather
@@ -1091,6 +1099,22 @@ the scope covers.
   reader counts the bars and gets the wrong cycle count.
 
 ---
+
+### 5.6 Register banks [house]
+
+- **What:** registers that share a role and load pattern in an iterative or
+  micro-sequenced datapath (operands loaded on accept, temporaries, outputs) are
+  drawn as one **register bank**: a storage-filled box with a clock wedge, one lane
+  per register on the pin pitch (d west, q east), the load enable entering the top,
+  and the role name inside ("input registers").
+- **Hold is implicit:** a register that keeps its value unless loaded is drawn as a
+  register with an enable; the hold feedback is never drawn as a loop.
+- **Enables:** one dashed load net per bank from the controller, one bit per
+  independently loaded register (4 bits for four temporaries), or one bit when the
+  whole bank loads together.
+- **Not a pipeline bar:** a pipeline bar (§5.3) holds registers loaded every cycle
+  from one source; a bank holds state under a load condition. Every register is still
+  checked one by one (register-to-register transfers, coverage).
 
 ## 6. Memories and SRAM macros
 
@@ -1324,9 +1348,31 @@ out    XXXXXXXXXXXXXXXX< A' >X
   round datapath with a feedback register and a round counter (`round < Nr`) on the
   control side. Annotate `×Nr` in the caption or at the loop.
 
+### 10.1 Iterative (multicycle) datapaths [house]
+
+The textbook multicycle / microprogrammed datapath layout (Patterson & Hennessy):
+
+- **Register banks left** (§5.6), then the **operand selects** (muxes with inputs in
+  select order), then the **shared operator** (an arithmetic unit or service block),
+  then output registers and figure outputs on the right.
+- **Write-back:** the operator result returns to the banks it loads as one result bus
+  with taps (or a named connector pair when the return is long, §1.6), each register
+  loaded through its enable; never one loop per register.
+- **Controller on top** of the operator side: its selects and load enables are dashed
+  control nets running down to the muxes and banks; its handshake and status wires
+  meet the operator. The state machine itself is its own FSM figure (detail_ref).
+- **The loop is cut at the banks:** the layout treats an edge into a register bank
+  from anything the bank reaches as feedback, so the flow reads left to right.
+
 ---
 
 ## 11. Accelerator and SoC block figures
+
+- **Blocks show the name only [house]:** no address window, size or feature line
+  ("2048 bytes", "burst read and write") inside a block by default. Addresses
+  appear on the address-map table figure (`addrmap`), which is drawn next to the
+  block figure. The same opt-in as datapath blocks applies
+  (`meta.style.block_details`, block `show_details`).
 
 - **Boundaries [house]:** the chip / FPGA / accelerator boundary is a dashed rounded
   rectangle, labeled in the top-left (`Accelerator`, `SoC`, `FPGA`). Everything off

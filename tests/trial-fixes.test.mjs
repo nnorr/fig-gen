@@ -152,7 +152,7 @@ test('G2: an instance output read back inside the instance is represented even w
 function packingFigure(extra = {}) {
   const pins = ['req_a', 'req_b', 'req_c', 'rsp_packed', 'rsp_status'];
   return {
-    schema_version: 1, figure_type: 'datapath', meta: { title: 'packing', print: { profile: 'ieee' } }, clock_domains: [],
+    schema_version: 1, figure_type: 'datapath', meta: { title: 'packing', print: { profile: 'ieee' }, ...(extra.pin_labels ? { style: { block_details: true } } : {}) }, clock_domains: [],
     elements: [
       ...pins.map((p) => ({ id: `p_${p}`, kind: 'port', dir: 'in', width: 4, label: `${p.replace('_', ' ')} in` })),
       { id: 'pack', kind: 'comb', op: 'custom', width: 8, function: { kind: 'custom', name: 'Client bus packing' }, ports: [{ id: 'clk', dir: 'in', width: 1, class: 'clock' }, ...pins.map((p) => ({ id: p, dir: 'in', width: 4 })), { id: 'req_out', dir: 'out', width: 8 }], ...extra },
@@ -168,6 +168,7 @@ test('(B) no pin names inside boxes by default; opt-in labels print only readabl
   assert.doesNotMatch(plain.svg, />req_a<|>rsp_packed<|>clk</);
 
   const opt = packingFigure({ pin_labels: true });
+  opt.meta.style = { ...(opt.meta.style || {}), block_details: true }; // pin labels are a detail: opted in per figure
   const block = opt.elements.find((e) => e.id === 'pack');
   block.ports.find((p) => p.id === 'req_a').label = 'minuend';
   block.ports.find((p) => p.id === 'clk').label = 'clock';

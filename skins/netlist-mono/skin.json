@@ -213,14 +213,13 @@
     },
     "join": {
       "parametric": "concat-box",
-      "description": "Concatenation (CONVENTIONS §2.3.3): hollow outlined box with the word concat inside on its own middle row; inputs enter on the left, MSB field on top, each labeled just inside the box with its destination bit range in the result.",
+      "description": "Concatenation (CONVENTIONS §2.3.3): hollow outlined box with the word concat only; inputs enter on the left, MSB field on top by convention, each keeping its width slash on its wire. No destination bit ranges are printed.",
       "min_width": 14,
       "pin_pitch": 12,
       "fill": "logic",
       "label": "concat",
       "label_font": "secondary",
-      "label_gap": 1.5,
-      "input_range_labels": true
+      "label_gap": 1.5
     },
     "split": {
       "parametric": "bus-ripper",

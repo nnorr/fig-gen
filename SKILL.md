@@ -193,6 +193,11 @@ study, analyse or explore RTL rather than to make a paper figure.
   per-output latency list is in the receipt (`route.stage_notes`). When a
   draft qualifies duplicates ("Owner controller"), keep or improve that
   context; never go back to numbers.
+- **Boxes show the name only.** No stage notes, detail lines, sizes or range
+  labels inside boxes (a concat box prints "concat"); latency is in the receipt.
+  Opt in only when the reader needs it: `meta.style.block_details: true` or a
+  block's `show_details: true`. SoC blocks are name-only too: addresses go on
+  the address-map table figure, not inside blocks.
 - **No pin names inside boxes.** Blocks print their function name only; the
   nets outside say what flows. Set `pin_labels: true` on an element only when
   the reader cannot tell its pins apart otherwise: at most 4 readable pin
@@ -265,6 +270,14 @@ study, analyse or explore RTL rather than to make a paper figure.
   same with `holds_state: true` (the draft sets it). Never set `"state"` where
   the draft's map is available (`latency/state-escape`), and never opt out of
   `latency/unverified` without a concrete reason in `latency_unverified.reason`.
+- **Register-transfer drafts.** A paper block draft (`draft --view block`)
+  draws the datapath a paper shows: register banks with load enables, operand
+  selects, operators, a write-back bus and a Controller with dashed selects and
+  enables (`--style lumps` gives functional blocks instead). Refine the
+  role names ("temporary 2" → what it holds), the controller's state figure
+  (its own FSM figure, `detail_ref`) and any duplicate operator names; allow a
+  taller figure with `meta.print.max_height_in` when banks and wide selects need
+  it. Never collapse the registers back into a block to save space.
 - **Drafting.** Read both residual lists: `residual:` for semantic checks and
   `residual (layout):` for layout, fit and connectors; a "layout not run" note
   means layout failures may still come at delivery. For overviews with many

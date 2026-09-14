@@ -30,7 +30,8 @@ const titles = (svg) => {
 function statusFigure({ outs, detail } = {}) {
   const outputs = outs ?? [['o_u_blk_start_ready_o', 'start_ready_o', 2], ['o_u_blk_done_o', 'done_o', 1]];
   return {
-    schema_version: 1, figure_type: 'datapath', meta: { title: 'notes', print: { profile: 'ieee' } }, clock_domains: [],
+    // Stage notes print inside boxes only when details are opted in (blocks are name-only by default).
+    schema_version: 1, figure_type: 'datapath', meta: { title: 'notes', print: { profile: 'ieee' }, style: { block_details: true } }, clock_domains: [],
     elements: [
       { id: 'a', kind: 'port', dir: 'in', width: 8, label: 'value in' },
       { id: 'st', kind: 'comb', op: 'custom', width: 8, function: { kind: 'custom', name: 'Status logic', ...(detail ? { detail } : {}) }, ports: [{ id: 'i_value', dir: 'in', width: 8 }, ...outputs.map(([id, , latency]) => ({ id, dir: 'out', width: 1, registered: true, ...(latency > 1 ? { latency } : {}) }))] },

@@ -45,7 +45,7 @@ const USAGE = `usage:
                                  [--gate-region <region id>...] [--blackbox <element or instance>...]
   fig-gen draft --view <overview|block|mixed|detail> --scope <instance path> --netlist n.json [--depth n]
                 [--gate-region name=out1,out2[:stop1,stop2]...] [--blackbox <instance path>...] [--repo-root <dir> --revision <sha>] [--out figure.json]
-                [--format paper|study] [--budget-seconds s] [--layout-seconds s] [--bundle prefix|handshake]
+                [--format paper|study] [--budget-seconds s] [--layout-seconds s] [--bundle prefix|handshake] [--style rtl-datapath|lumps]
                 (--format study: --view may be omitted (detail, depth 1); controllers and state drawn apart from logic;
                  a draft over its budget, default 120 s, stops with draft/budget-exceeded naming a narrower scope;
                  --bundle: ports and nets sharing a name prefix, or a valid/ready/data handshake set, become one bundle,
@@ -312,6 +312,7 @@ async function cmdDraft({ flags }) {
   const microarch = flags.type === 'microarch';
   if (flags.type !== undefined && !['datapath', 'microarch'].includes(flags.type)) return usage();
   if (flags.bundle !== undefined && (microarch || !['prefix', 'handshake'].includes(flags.bundle))) return usage();
+  if (flags.style !== undefined && (microarch || !['rtl-datapath', 'lumps'].includes(flags.style))) return usage();
   if (microarch && flags.view !== undefined && flags.view !== 'overview') return usage();
   if (!flags.netlist || (!microarch && !flags.view && flags.format !== 'study')) return usage();
   const { netlist, guard } = loadNetlistWithGuard(flags.netlist);
@@ -334,7 +335,25 @@ async function cmdDraft({ flags }) {
   let draft;
   try {
     if (microarch) draft = (await import('../lib/draft-microarch.mjs')).draftMicroarch(netlist, { scope: flags.scope ?? '' });
-    else draft = draftFigure(netlist, { format: flags.format, preset: flags.view, scope: flags.scope ?? '', depth: flags.depth !== undefined ? Number(flags.depth) : undefined, gateRegions: flags['gate-region'] || [], blackbox: flags.blackbox || [], ...(flags.bundle ? { bundle: flags.bundle } : {}), ...(flags['budget-seconds'] !== undefined ? { budget: { seconds: Number(flags['budget-seconds']) } } : {}), ...(flags['repo-root'] && revision ? { repository: { root: flags['repo-root'], revision } } : {}) });
+    // Paper block drafts of one module default to the register-transfer style (registers, muxes, operators, controller);
+    // --style lumps keeps functional blocks. Study, mixed, detail and bundled drafts keep the lump draft.
+    else if ((flags.style ?? (flags.format !== 'study' && flags.view === 'block' && !flags['gate-region'] && !flags.blackbox && !flags.bundle ? 'rtl-datapath' : 'lumps')) === 'rtl-datapath') {
+      if (flags.view && flags.view !== 'block') return usage();
+      // Function names need a cited basis at a pinned revision: without --repo-root/--revision the draft finds
+      // the repository of the RTL itself (the netlist's source root) and says so.
+      let repository = flags['repo-root'] && revision ? { root: flags['repo-root'], revision } : null;
+      if (!repository && netlist.inputs?.source_root) {
+        const { spawnSync } = await import('node:child_process');
+        const top = spawnSync('git', ['-C', netlist.inputs.source_root, 'rev-parse', '--show-toplevel'], { encoding: 'utf8' });
+        const head = spawnSync('git', ['-C', netlist.inputs.source_root, 'rev-parse', 'HEAD'], { encoding: 'utf8' });
+        if (top.status === 0 && head.status === 0 && /^[0-9a-f]{40}$/.test(head.stdout.trim())) {
+          repository = { root: top.stdout.trim(), revision: head.stdout.trim() };
+          const dirty = spawnSync('git', ['-C', repository.root, 'status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' });
+          console.error(`note: repository ${repository.root} at ${repository.revision} (from the netlist's source root; pass --repo-root/--revision to choose)${dirty.stdout.trim() ? '; the working tree has uncommitted changes, so cited lines are read at that revision' : ''}`);
+        }
+      }
+      draft = (await import('../lib/draft-rtl.mjs')).draftRtlDatapath(netlist, { scope: flags.scope ?? '', format: flags.format, ...(repository ? { repository } : {}), ...(flags['budget-seconds'] !== undefined ? { budget: { seconds: Number(flags['budget-seconds']) } } : {}) });
+    } else draft = draftFigure(netlist, { format: flags.format, preset: flags.view, scope: flags.scope ?? '', depth: flags.depth !== undefined ? Number(flags.depth) : undefined, gateRegions: flags['gate-region'] || [], blackbox: flags.blackbox || [], ...(flags.bundle ? { bundle: flags.bundle } : {}), ...(flags['budget-seconds'] !== undefined ? { budget: { seconds: Number(flags['budget-seconds']) } } : {}), ...(flags['repo-root'] && revision ? { repository: { root: flags['repo-root'], revision } } : {}) });
   } catch (error) {
     // A draft over its time or size budget reports where it stopped and how to narrow the scope.
     if (!error.diagnostic) throw error;

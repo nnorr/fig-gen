@@ -421,16 +421,35 @@
         "latency": {
           "description": "Register stages from the inputs to this output. An integer: a registered output (default 1). \"state\": a state (Moore/Mealy) output of a stateful protocol block (controller, FSM, bus slave, CSR bank, arbiter) whose latency depends on the state; no single number is claimed, hidden pipeline registers are still reported. An object {input pin id: stages} (0 = combinational; key \"default\" for the rest): a controller output whose latency differs by input (latency/controller-only), or an output of any block marked holds_state. On a bundled pin the number is the minimum over its members. \"state\" where the netlist shows a fixed latency from an input warns (latency/state-escape).",
           "oneOf": [
-            { "type": "integer", "minimum": 1, "maximum": 64 },
-            { "const": "state" },
-            { "type": "object", "minProperties": 1, "propertyNames": { "pattern": "^[A-Za-z_][A-Za-z0-9_]*$" }, "additionalProperties": { "type": "integer", "minimum": 0, "maximum": 64 } }
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 64
+            },
+            {
+              "const": "state"
+            },
+            {
+              "type": "object",
+              "minProperties": 1,
+              "propertyNames": {
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+              },
+              "additionalProperties": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 64
+              }
+            }
           ]
         },
         "comb_from": {
           "description": "Output ports: the input pins that reach this output with no register on the way; every other input reaches it only through registers, or not at all. comb/loop follows exactly these (without it, every input of a non-registered output counts as combinational). With a netlist the latency check verifies the list against the RTL (latency/comb-from).",
           "type": "array",
           "uniqueItems": true,
-          "items": { "$ref": "common.schema.json#/$defs/id" }
+          "items": {
+            "$ref": "common.schema.json#/$defs/id"
+          }
         }
       }
     },
@@ -529,6 +548,10 @@
               "$ref": "common.schema.json#/$defs/id"
             }
           }
+        },
+        "show_details": {
+          "description": "Opt this block into secondary lines inside its box (stage notes, function.detail, pin labels, sizes) when the figure keeps blocks name-only (meta.style.block_details unset).",
+          "type": "boolean"
         }
       }
     },
@@ -849,7 +872,6 @@
           },
           "then": {
             "required": [
-              "width",
               "domain"
             ],
             "properties": {
@@ -877,8 +899,67 @@
                   "box",
                   "bar"
                 ]
+              },
+              "lanes": {
+                "description": "A register bank: one register per lane (d_<id> in, q_<id> out), drawn as one storage box with a clock wedge. Used for registers that share a role and load pattern (inputs loaded on accept, temporaries, outputs). With lanes, width is not given; enable_width sets the load-enable pin (one bit per register, or 1 when all load together).",
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 32,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "width"
+                  ],
+                  "properties": {
+                    "id": {
+                      "$ref": "common.schema.json#/$defs/id"
+                    },
+                    "width": {
+                      "$ref": "common.schema.json#/$defs/width"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "rtl": {
+                      "$ref": "common.schema.json#/$defs/rtl_ref"
+                    }
+                  }
+                }
+              },
+              "enable_width": {
+                "description": "Width of the load-enable pin of a register bank (lanes): one bit per independently loaded register, 1 when the bank loads together.",
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 32
+              },
+              "shared_d": {
+                "description": "Register bank only: every register loads from one data source (a result bus), drawn as one d input; each register still loads under its own enable bit.",
+                "type": "boolean"
               }
-            }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "required": [
+                    "lanes"
+                  ]
+                },
+                "then": {
+                  "not": {
+                    "required": [
+                      "width"
+                    ]
+                  }
+                },
+                "else": {
+                  "required": [
+                    "width"
+                  ]
+                }
+              }
+            ]
           }
         },
         {
@@ -1187,21 +1268,40 @@
           "description": "The author deliberately draws this net without an RTL mapping; the reason is counted in the receipt (latency.excluded_unmapped) so a reviewer sees where verification is weaker.",
           "type": "object",
           "additionalProperties": false,
-          "required": ["reason"],
+          "required": [
+            "reason"
+          ],
           "properties": {
-            "reason": { "type": "string", "minLength": 3, "maxLength": 200 },
+            "reason": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 200
+            },
             "rtl": {
               "description": "The RTL signal the wire carries, kept for structural checks only: it bounds traced paths and verifies comb_from. No latency or cross-check claim is made on it.",
               "type": "object",
               "additionalProperties": false,
-              "required": ["signal"],
-              "properties": { "instance": { "type": "string" }, "signal": { "type": "string" } }
+              "required": [
+                "signal"
+              ],
+              "properties": {
+                "instance": {
+                  "type": "string"
+                },
+                "signal": {
+                  "type": "string"
+                }
+              }
             }
           }
         },
         "label_placement": {
           "description": "Where the net's name may print. inline (default): on its own wire only. leader: on its wire when a spot exists, otherwise in free space joined to the wire by a short orthogonal leader (net_label.leader_max_pt, label/leader-used). auto: the same as leader; the name is inline whenever it fits.",
-          "enum": ["inline", "leader", "auto"]
+          "enum": [
+            "inline",
+            "leader",
+            "auto"
+          ]
         },
         "leader_max_pt": {
           "description": "Longest leader this net's name may use, overriding the skin's net_label.leader_max_pt (for a name whose nearest free space is further away).",

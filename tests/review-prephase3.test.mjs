@@ -94,7 +94,7 @@ test('width/bundle-sum: a heterogeneous bundle is named and drawn without a summ
 
 test('stage notes group registered outputs by latency when their latencies differ', async () => {
   const doc = {
-    schema_version: 1, figure_type: 'datapath', meta: { title: 'notes', print: { profile: 'ieee' } }, clock_domains: [],
+    schema_version: 1, figure_type: 'datapath', meta: { title: 'notes', print: { profile: 'ieee' }, style: { block_details: true } }, clock_domains: [],
     elements: [
       { id: 'a', kind: 'port', dir: 'in', width: 8, label: 'value in' },
       block('st', 'Status logic', [['i', 8]], [['rd', 8, { registered: true, label: 'read' }], ['irq', 1, { registered: true, latency: 2, label: 'IRQ' }]]),
