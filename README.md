@@ -53,7 +53,14 @@ controller with named request/response nets)
 ## INSTALL
 
 Requirements: Node.js ≥ 20, Git. Optional: Verilator 5.x (RTL extraction and
-simulation), a headless Chrome or Chromium (visual check).
+simulation).
+
+No browser is needed. PNG previews (`fig-gen preview`, `deliver --preview`)
+are rasterised by resvg (`@resvg/resvg-js`, prebuilt for Linux x64/arm64 glibc
+and musl, macOS and Windows, installed by `npm ci`) with fig-gen's bundled
+fonts, so they work on headless servers and in containers. Headless
+Chrome/Chromium is used only if you ask for it (`--rasterizer chrome` or
+`FIGGEN_RASTERIZER=chrome`), or as a fallback where resvg has no binary.
 
 Install as a personal skill (all projects):
 
@@ -73,13 +80,15 @@ cd .claude/skills/fig-gen && npm ci && node bin/fig-gen.mjs doctor
 
 Restart Claude Code afterwards so it picks up `SKILL.md`.
 
-`doctor` reports Node, dependencies, Verilator and Chrome/Chromium. Tool
-discovery uses `PATH` and well-known install locations; override with:
+`doctor` reports Node, dependencies, Verilator, resvg (needed for previews)
+and Chrome/Chromium (optional). Tool discovery uses `PATH` and well-known
+install locations; override with:
 
 | Variable | Meaning |
 |---|---|
 | `FIGGEN_VERILATOR` | Verilator executable |
-| `FIGGEN_CHROME` | Chrome/Chromium executable |
+| `FIGGEN_RASTERIZER` | preview rasterizer: `resvg` (default) or `chrome` |
+| `FIGGEN_CHROME` | Chrome/Chromium executable (only for `chrome` previews) |
 | `FIGGEN_ADAPTER` | default RTL adapter id |
 | `FIGGEN_ADAPTER_PATH` | path-list of extra adapter modules |
 
@@ -103,6 +112,7 @@ node bin/fig-gen.mjs deliver datapath my_block.datapath.json out/my_block --netl
 
 # utilities
 node bin/fig-gen.mjs lint-svg out/xor/datapath-pipelined-xor.2col.svg
+node bin/fig-gen.mjs preview  out/xor/datapath-pipelined-xor.2col.svg --scale 2
 node scripts/preview.mjs --out preview.png out/xor/*.svg
 node bin/fig-gen.mjs doctor
 npm test

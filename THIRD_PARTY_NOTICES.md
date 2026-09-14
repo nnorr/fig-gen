@@ -18,9 +18,37 @@ list in sync with the lockfile when dependencies change.
 | @fontsource/arimo | 5.3.0 | OFL-1.1 | bundled sans font (metric-compatible with Arial) |
 | @fontsource/tinos | 5.3.0 | OFL-1.1 | bundled serif font (metric-compatible with Times) |
 | @fontsource/libertinus-serif | 5.3.0 | OFL-1.1 | bundled serif font (ACM-style body) |
+| @resvg/resvg-js | 2.6.2 | MPL-2.0 | SVG → PNG previews (default rasterizer), used unmodified |
 
 Fonts are used for measurement and are outlined into PDFs; they are not
-embedded in PDFs and the SVGs only name the family.
+embedded in PDFs and the SVGs only name the family. For PNG previews the same
+font files are handed to resvg (unwrapped from WOFF to sfnt in a temporary
+directory at run time, not redistributed).
+
+### resvg-js platform packages
+
+`@resvg/resvg-js` (source: https://github.com/yisibl/resvg-js) pulls in exactly
+one prebuilt native binary for the installing platform through optional
+dependencies. Each is MPL-2.0, version 2.6.2, unmodified; the binaries
+statically include the resvg renderer (https://github.com/RazrFalcon/resvg)
+and its Rust crates under their own permissive or MPL-2.0 licenses (see the
+upstream repositories). MPL-2.0 source for all of them is available from those
+repositories.
+
+| Package | Platform |
+|---|---|
+| @resvg/resvg-js-linux-x64-gnu | Linux x64, glibc |
+| @resvg/resvg-js-linux-x64-musl | Linux x64, musl |
+| @resvg/resvg-js-linux-arm64-gnu | Linux arm64, glibc |
+| @resvg/resvg-js-linux-arm64-musl | Linux arm64, musl |
+| @resvg/resvg-js-linux-arm-gnueabihf | Linux armv7 |
+| @resvg/resvg-js-darwin-x64 | macOS x64 |
+| @resvg/resvg-js-darwin-arm64 | macOS arm64 |
+| @resvg/resvg-js-win32-x64-msvc | Windows x64 |
+| @resvg/resvg-js-win32-arm64-msvc | Windows arm64 |
+| @resvg/resvg-js-win32-ia32-msvc | Windows x86 |
+| @resvg/resvg-js-android-arm64 | Android arm64 |
+| @resvg/resvg-js-android-arm-eabi | Android armv7 |
 
 ## Transitive dependencies
 
@@ -78,8 +106,9 @@ embedded in PDFs and the SVGs only name the family.
 ## External tools (not distributed)
 
 Discovered at runtime on the user's machine: Verilator (open-source HDL
-front-end/simulator) and, optionally, a headless Chrome or Chromium for
-previews and the visual check.
+front-end/simulator) and, optionally, a headless Chrome or Chromium, used
+only for PNG previews when explicitly selected (`--rasterizer chrome`) or when
+resvg cannot load on the platform.
 
 ## Design ideas (no code copied)
 

@@ -25,7 +25,7 @@ import { checkLatency } from '../lib/checks/latency.mjs';
 import { buildFigure, deliver, figureName } from '../lib/deliver.mjs';
 import { summarize } from '../lib/diagnostics.mjs';
 import { findChrome } from '../lib/env/chrome.mjs';
-import { DEFAULT_SCALE, chromeMissing, previewChrome, rasterizeSvg } from '../lib/preview.mjs';
+import { DEFAULT_SCALE, loadResvg, rasterizeSvg, rasterizerInfo, selectRasterizer } from '../lib/preview.mjs';
 import { checkNetlistEvidence, checkRtlInputs } from '../lib/evidence.mjs';
 import { FORMATS, relaxDiagnostics, resolveFormat, withFormat } from '../lib/format.mjs';
 
@@ -35,13 +35,14 @@ const EXIT = { ok: 0, fail: 1, usage: 2, notImplemented: 3 };
 const USAGE = `usage:
   fig-gen validate <datapath|fsm|timing|microarch> <figure.json> [--netlist netlist.json] [--format paper|study] [--json]
   fig-gen render   <datapath|microarch|fsm|timing> <figure.json> <out-dir> [--netlist n.json] [--variants 2col,1col] [--profiles p.json] [--quality paper] [--format paper|study] [--no-pdf] [--why-size]
-  fig-gen deliver  <datapath|microarch|fsm|timing> <figure.json> <out-dir> [--netlist n.json] [--variants 2col,1col] [--profiles p.json] [--quality paper] [--format paper|study] [--no-pdf] [--why-size] [--preview [--scale n]]
+  fig-gen deliver  <datapath|microarch|fsm|timing> <figure.json> <out-dir> [--netlist n.json] [--variants 2col,1col] [--profiles p.json] [--quality paper] [--format paper|study] [--no-pdf] [--why-size] [--preview [--scale n] [--rasterizer resvg|chrome]]
                    (default: paper, 2col required, 1col best effort; --variants makes the listed variants mandatory)
                    (--format study: one figure sized to content for RTL analysis; print-only checks relaxed, correctness kept;
-                    --no-pdf skips the PDF in study; --preview also writes <name>.<variant>.png (headless Chrome);
+                    --no-pdf skips the PDF in study; --preview also writes <name>.<variant>.png (resvg, no browser);
                     after a successful delivery superseded outputs move to <out-dir>/../archive/; a failed one leaves them)
-  fig-gen preview  <file.svg|figure.json> [--out file.png] [--scale n] [--format paper|study]
-                   (PNG via headless Chrome; a figure JSON is rendered first and its main variant is rasterised)
+  fig-gen preview  <file.svg|figure.json> [--out file.png] [--scale n] [--format paper|study] [--rasterizer resvg|chrome]
+                   (PNG via resvg with the bundled fonts, no browser; --rasterizer chrome or FIGGEN_RASTERIZER=chrome uses headless Chrome;
+                    a figure JSON is rendered first and its main variant is rasterised)
                    view presets: [--view overview|block|mixed|detail] [--scope <instance path>] [--depth n]
                                  [--gate-region <region id>...] [--blackbox <element or instance>...]
   fig-gen draft --view <overview|block|mixed|detail> --scope <instance path> --netlist n.json [--depth n]
@@ -194,7 +195,7 @@ async function cmdRender({ positional, flags }) {
 async function cmdDeliver({ positional, flags }) {
   const [type, file, outDir] = positional;
   if (!type || !file || !outDir) return usage();
-  const result = await deliver({ type, figurePath: file, outDir, netlistPath: flags.netlist, profilesPath: flags.profiles, variants: flags.variants?.split(','), quality: flags.quality, view: viewOpts(flags), format: flags.format, pdf: !flags['no-pdf'], ...(flags.preview ? { preview: { scale: flags.scale !== undefined ? Number(flags.scale) : DEFAULT_SCALE } } : {}) });
+  const result = await deliver({ type, figurePath: file, outDir, netlistPath: flags.netlist, profilesPath: flags.profiles, variants: flags.variants?.split(','), quality: flags.quality, view: viewOpts(flags), format: flags.format, pdf: !flags['no-pdf'], ...(flags.preview ? { preview: { scale: flags.scale !== undefined ? Number(flags.scale) : DEFAULT_SCALE, rasterizer: flags.rasterizer } } : {}) });
   print({
     ok: result.ok,
     format: result.receipt?.format ?? { name: result.evidence?.format?.name },
@@ -215,15 +216,14 @@ async function cmdPreview({ positional, flags }) {
   const [file] = positional;
   if (!file) return usage();
   const scale = flags.scale !== undefined ? Number(flags.scale) : DEFAULT_SCALE;
-  const chrome = previewChrome();
-  if (!chrome.available) {
-    const d = chromeMissing(chrome);
-    print({ ok: false, written: [], diagnostics: [line(d)], fix: d.supportedFixes });
+  const rasterizer = selectRasterizer({ requested: flags.rasterizer });
+  if (!rasterizer.ok) {
+    print({ ok: false, written: [], diagnostics: rasterizer.diagnostics.map(line), fix: rasterizer.diagnostics.flatMap((d) => d.supportedFixes) });
     return EXIT.fail;
   }
   let svg;
   let target = flags.out;
-  const diagnostics = [];
+  const diagnostics = [...rasterizer.diagnostics];
   if (/\.svg$/i.test(file)) {
     svg = fs.readFileSync(file, 'utf8');
     target ??= file.replace(/\.svg$/i, '.png');
@@ -239,9 +239,9 @@ async function cmdPreview({ positional, flags }) {
     svg = main.svg;
     target ??= path.join(path.dirname(file), `${figureName(file)}.${main.id}.png`);
   }
-  const shot = await rasterizeSvg(svg, target, { scale, chrome });
+  const shot = await rasterizeSvg(svg, target, { scale, rasterizer });
   diagnostics.push(...shot.diagnostics);
-  print({ ok: shot.ok, written: shot.ok ? [target] : [], ...(shot.ok ? { size_px: shot.size, bytes: shot.bytes } : {}), chrome: chrome.executable, counts: summarize(diagnostics), diagnostics: diagnostics.map(line) });
+  print({ ok: shot.ok, written: shot.ok ? [target] : [], ...(shot.ok ? { size_px: shot.size, bytes: shot.bytes } : {}), rasterizer: { ...rasterizerInfo(rasterizer), ...(rasterizer.chrome ? { executable: rasterizer.chrome.executable } : {}) }, counts: summarize(diagnostics), diagnostics: diagnostics.map(line) });
   return shot.ok ? EXIT.ok : EXIT.fail;
 }
 
@@ -549,6 +549,11 @@ async function cmdAdapters({ flags }) {
   return EXIT.ok;
 }
 
+function resvgStatus() {
+  const { available, version, reason, fix } = loadResvg();
+  return available ? { available, version, fonts: 'bundled only (system fonts off)' } : { available, reason, fix };
+}
+
 async function cmdDoctor() {
   const verilator = (await discoverAdapters()).get('verilator');
   const nodeMajor = Number(process.versions.node.split('.')[0]);
@@ -563,7 +568,8 @@ async function cmdDoctor() {
     node: { ok: nodeMajor >= 20, version: process.version, required: '>=20' },
     dependencies: { ok: depsOk, ...deps, fonts, fix: depsOk ? undefined : 'run npm ci in the skill directory' },
     verilator: { required_for: 'check-rtl, cross-checks, vcd grounding', ...(await verilator.detect()) },
-    chrome: { required_for: 'visual-check, previews', ...findChrome() },
+    resvg: { required_for: 'previews (preview, deliver --preview; the default rasterizer, no browser)', ...resvgStatus() },
+    chrome: { required: false, used_for: 'previews only with --rasterizer chrome or FIGGEN_RASTERIZER=chrome, or as the fallback when resvg cannot load', ...findChrome() },
   };
   print({ root, figure_types: FIGURE_TYPES, checks });
   return checks.node.ok && depsOk ? EXIT.ok : EXIT.fail;

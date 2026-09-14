@@ -1524,7 +1524,8 @@ render; warnings are reported and allowed only under `--quality draft`.
 | `latency/unverified` | datapath (netlist) | the scope holds registers but no latency pair is compared (`"state"` pairs do not count) (error with `--quality paper`, warning otherwise; info with the reason when `latency_unverified.reason` is set) |
 | `latency/holds-state` | datapath (netlist) | an element with `holds_state: true` covers no register with feedback (error) |
 | `latency/state-escape` (warning) | datapath (netlist) | an output declares `"state"` but its drawn inputs reach it with fixed latencies; the evidence carries the map to declare |
-| `preview/chrome-missing`, `preview/rasterise-failed`, `preview/scale`, `preview/svg-size` | preview, deliver `--preview` | no headless Chrome (doctor discovers it; `FIGGEN_CHROME` overrides), the rasteriser failed, a scale outside 1–8, or an SVG without a size (error) |
+| `preview/rasterizer`, `preview/resvg-unavailable`, `preview/chrome-missing`, `preview/rasterise-failed`, `preview/scale`, `preview/svg-size` | preview, deliver `--preview` | an unknown `--rasterizer`/`FIGGEN_RASTERIZER`; resvg did not load (explicit `resvg`, or no Chrome to fall back to); `chrome` was requested but no headless Chrome runs (doctor discovers it; `FIGGEN_CHROME` overrides); the rasteriser failed; a non-positive scale; an SVG without a size (error in `preview`, warning in `deliver`, which still delivers) |
+| `preview/resvg-fallback` (warning) | preview, deliver `--preview` | resvg did not load on this platform and no rasterizer was requested, so headless Chrome rasterised the preview (its fonts may differ from layout) |
 | `fsm/unknown-state`, `fsm/encoding-width`, `fsm/encoding-duplicate`, `fsm/guard-parse`, `fsm/guard-unknown-identifier`, `fsm/output-kind`, `fsm/duplicate-transition` | fsm | a transition names no drawn state; an encoding of the wrong width, with x/z digits, missing (unless `auto`) or not one-hot under `onehot`; two states with one code; a guard outside the §5 subset; a guard identifier that is not a declared input, output, parameter or `state`; a Moore output on a transition or a Mealy output on a state, or an undeclared output; the same arc twice (error) |
 | `fsm/unreachable` | fsm (figure, and RTL with a netlist) | a drawn state not reachable from reset over the drawn arcs, or in the RTL (error) |
 | `fsm/ambiguous-guards` (warning) | fsm | two transitions from one state with equal priority whose guards can both be true (truth table over at most 16 atoms) |
@@ -1719,8 +1720,16 @@ Still planned: `geometry/port-crowding`, `print/aspect` hints.
   wires stay `wire/collinear-overlap` errors). Generated text is never relaxed.
   Every other check is enforced unchanged; the receipt lists what was relaxed.
 - **Preview.** `fig-gen preview <file.svg|figure.json> [--out] [--scale n]
-  [--format]` rasterises with headless Chrome; `deliver --preview [--scale n]`
-  writes `<name>.<variant>.png` and a receipt `preview` entry.
+  [--format] [--rasterizer resvg|chrome]`; `deliver --preview [--scale n]
+  [--rasterizer]` writes `<name>.<variant>.png` and a receipt `preview` entry
+  (with `rasterizer {name, version}`). The default rasteriser is resvg
+  (`@resvg/resvg-js`, no browser): system fonts are off, only the bundled
+  fonts are loaded (WOFF unwrapped to sfnt) and every `font-family` is mapped
+  to the face layout measured with, so PNG text uses the faces and metrics of
+  layout and the PDF. The PNG is the SVG canvas in CSS pixels (1 pt = 4/3 px,
+  rounded up) × scale. Headless Chrome is used only when selected
+  (`--rasterizer chrome`, `FIGGEN_RASTERIZER=chrome`) or when resvg cannot
+  load (`preview/resvg-fallback`); no other command runs Chrome.
 - **Size report.** Every render returns `size_report {content_width_pt,
   content_height_pt, layers, spacing_pt, widest_layers, tallest_columns}`;
   overflow messages quote it and `--why-size` prints it.

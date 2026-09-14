@@ -337,7 +337,9 @@ study, analyse or explore RTL rather than to make a paper figure.
   and nearer to it than to any block. Write words, not RTL abbreviations
   (`cmd`, `rsp`, `cfg`: `label/unreadable` suggests the expansion).
 - `fig-gen preview <svg|figure.json>` (or `deliver --preview`) writes a PNG to
-  look at before handing a figure over.
+  look at before handing a figure over. It needs no browser (resvg with the
+  bundled fonts), so it works on headless servers; `--rasterizer chrome` is
+  only for comparing against a browser.
 - **State machines.** Run `check-rtl` first; the netlist then carries the
   extracted machines. Start from `fig-gen draft --type fsm --netlist n.json
   --scope <module or instance> --state <register>`, which passes its own RTL

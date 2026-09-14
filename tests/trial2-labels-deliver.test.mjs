@@ -2,10 +2,9 @@
 // variant prints (N3), function.name only on kind custom (N4), archive only
 // after a successful delivery (N5), RTL abbreviations named with their
 // expansion (N9), study relaxes route polish checks (N10), register windows
-// printed base–end (O5), and PNG previews through headless Chrome.
+// printed base–end (O5). PNG previews: tests/preview.test.mjs.
 
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -14,7 +13,6 @@ import { fileURLToPath } from 'node:url';
 import { checkLabels, functionNames, nameIgnored, printedDuplicates, printedName, readableIdentifier, readableInstanceSegment, unreadableReason } from '../lib/checks/labels.mjs';
 import { buildFigure, deliver } from '../lib/deliver.mjs';
 import { paperOnly, relaxDiagnostics } from '../lib/format.mjs';
-import { PNG_SIGNATURE, previewChrome, rasterizeSvg, svgSizePx } from '../lib/preview.mjs';
 import { renderMicroarch } from '../lib/render/microarch.mjs';
 import { validateSchema } from '../lib/validate.mjs';
 
@@ -33,7 +31,6 @@ test('N10: a study receipt may record an avoidable bend (justification null) now
   route.data_bends = [...(route.data_bends || []), { wire: 'n_x__0', net: 'n_x', bends: 2, justification: null }];
   assert.deepEqual(await validateSchema('receipt', receipt), []);
 });
-const chrome = previewChrome();
 
 const block = (id, fn, extra = {}) => ({ id, kind: 'comb', op: 'custom', width: 8, function: fn, ports: [{ id: 'i', dir: 'in', width: 8 }, { id: 'o', dir: 'out', width: 8 }], ...extra });
 function twoBlocks(a, b) {
@@ -195,50 +192,3 @@ test('follow-up: generated names expand short tokens and keep acronyms uppercase
   assert.match(unreadableReason('o0 re'), /real part/);
 });
 
-test('preview: the command reports a clear error when Chrome is unavailable', async () => {
-  const dir = tmp();
-  try {
-    const svg = path.join(dir, 'x.svg');
-    fs.writeFileSync(svg, '<svg xmlns="http://www.w3.org/2000/svg" width="20pt" height="10pt"/>');
-    const run = spawnSync(process.execPath, [cli, 'preview', svg], { encoding: 'utf8', env: { ...process.env, FIGGEN_CHROME: path.join(dir, 'no-such-chrome') } });
-    assert.equal(run.status, 1, run.stderr);
-    const out = JSON.parse(run.stdout);
-    assert.equal(out.ok, false);
-    assert.match(out.diagnostics[0], /^error preview\/chrome-missing: a PNG preview needs headless Chrome: FIGGEN_CHROME=.*no-such-chrome did not run/);
-    assert.ok(out.fix.some((f) => /fig-gen doctor/.test(f)));
-    assert.equal(fs.existsSync(path.join(dir, 'x.png')), false);
-    const lib = await rasterizeSvg('<svg width="1pt" height="1pt"/>', path.join(dir, 'y.png'), { chrome: { available: false, reason: 'none here', fix: 'install Chrome' } });
-    assert.equal(lib.ok, false);
-    assert.equal(lib.diagnostics[0].code, 'preview/chrome-missing');
-  } finally {
-    fs.rmSync(dir, { recursive: true, force: true });
-  }
-});
-
-test('preview: SVG canvas size in pixels', () => {
-  assert.deepEqual(svgSizePx('<svg width="30pt" height="15pt">'), { width: 40, height: 20 });
-  assert.deepEqual(svgSizePx('<svg viewBox="0 0 12 7">'), { width: 12, height: 7 });
-  assert.equal(svgSizePx('<svg>'), null);
-});
-
-test('preview: a figure JSON and deliver --preview write PNGs through headless Chrome', { skip: chrome.available ? false : `Chrome unavailable: ${chrome.reason}` }, async () => {
-  const dir = tmp();
-  try {
-    const target = path.join(dir, 'fig.png');
-    const run = spawnSync(process.execPath, [cli, 'preview', example('datapath-pipelined-xor.json'), '--out', target, '--scale', '1'], { encoding: 'utf8' });
-    assert.equal(run.status, 0, run.stdout + run.stderr);
-    assert.ok(fs.readFileSync(target).subarray(0, 8).equals(PNG_SIGNATURE));
-    const out = path.join(dir, 'out');
-    const r = await deliver({ type: 'datapath', figurePath: example('datapath-pipelined-xor.json'), outDir: out, format: 'study', pdf: false, preview: { scale: 1 } });
-    assert.deepEqual(errors(r), []);
-    const png = path.join(out, 'datapath-pipelined-xor.study.png');
-    assert.ok(fs.readFileSync(png).subarray(0, 8).equals(PNG_SIGNATURE));
-    assert.equal(r.receipt.variants[0].preview.path, 'datapath-pipelined-xor.study.png');
-    // A later delivery archives the preview with the rest.
-    const again = await deliver({ type: 'datapath', figurePath: example('datapath-pipelined-xor.json'), outDir: out, format: 'study', pdf: false });
-    assert.ok(fs.readdirSync(again.archived).includes('datapath-pipelined-xor.study.png'));
-    assert.equal(fs.existsSync(png), false);
-  } finally {
-    fs.rmSync(dir, { recursive: true, force: true });
-  }
-});

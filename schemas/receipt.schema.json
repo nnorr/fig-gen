@@ -128,7 +128,7 @@
             "unevaluatedProperties": false
           },
           "preview": {
-            "description": "PNG preview of the SVG rasterised by headless Chrome (deliver --preview).",
+            "description": "PNG preview of the SVG (deliver --preview), rasterised by resvg with the bundled fonts or, when selected or as a fallback, headless Chrome.",
             "type": "object",
             "additionalProperties": false,
             "required": [
@@ -151,6 +151,24 @@
               "scale": {
                 "type": "number",
                 "exclusiveMinimum": 0
+              },
+              "rasterizer": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "enum": [
+                      "resvg",
+                      "chrome"
+                    ]
+                  },
+                  "version": {
+                    "type": "string"
+                  }
+                }
               }
             }
           },
