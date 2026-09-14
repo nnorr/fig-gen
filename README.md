@@ -5,11 +5,13 @@ datapath (RTL block/schematic), FSM, timing (waveform) and micro-architecture
 diagrams, delivered as editable figma-safe SVG plus outlined-text PDF in both
 single- and double-column variants, with RTL cross-checks.
 
-Status: **Phase 2** — datapath and microarch/SoC figures are rendered and
-delivered (SVG + outlined PDF + receipt) with semantic checks, source-pin
-verification, the evidence guard, structural RTL cross-checks and gate-level
-equivalence for mixed-abstraction regions. FSM and timing rendering are Phase 3
-(schemas and specs exist). See `docs/PHASE2_SUMMARY.md`.
+Status: datapath, micro-architecture/SoC, FSM and timing figures are rendered
+and delivered (SVG + outlined PDF + receipt) with semantic checks, source-pin
+verification, the evidence guard, structural RTL cross-checks (Verilator),
+gate-level equivalence for mixed-abstraction regions, FSM extraction and
+simulation-grounded waveforms. Drafts can be generated from a netlist
+(`fig-gen draft`) and refined by hand. Design and rules: `SPEC.md`,
+`references/CONVENTIONS.md`, `SKILL.md`.
 
 ## Sample figures
 
@@ -72,7 +74,7 @@ simulation), a headless Chrome or Chromium (visual check).
 Install as a personal skill (all projects):
 
 ```bash
-git clone <lab-remote>/fig-gen.git ~/.claude/skills/fig-gen
+git clone https://github.com/nnorr/fig-gen.git ~/.claude/skills/fig-gen
 cd ~/.claude/skills/fig-gen
 npm ci
 node bin/fig-gen.mjs doctor
@@ -81,7 +83,7 @@ node bin/fig-gen.mjs doctor
 Or as a project skill (checked into / next to one repository):
 
 ```bash
-git clone <lab-remote>/fig-gen.git .claude/skills/fig-gen
+git clone https://github.com/nnorr/fig-gen.git .claude/skills/fig-gen
 cd .claude/skills/fig-gen && npm ci && node bin/fig-gen.mjs doctor
 ```
 
@@ -101,7 +103,7 @@ Nothing in this repository refers to a specific machine, user, host, license
 server or vendor tool; site-specific tools are plugged in through
 `fig-gen.config.json` (see `references/adapters.md`).
 
-## Commands (Phase 2)
+## Commands
 
 ```bash
 # figures without RTL

@@ -2041,7 +2041,7 @@ leaves it out.
   (`validate` schema-only, `lint-svg`, `check-rtl`, `adapters`, `doctor`),
   Verilator extractor with two-pass auto-blackbox, tests, SKILL.md draft,
   evals plan.
-- Phase 2 (implemented; see docs/PHASE2_SUMMARY.md): datapath **and
+- Phase 2 (implemented): datapath **and
   microarch/SoC** semantic checks (datapath, memory map, fabrics/bridges,
   domains), skin-driven ELK datapath renderer in `netlist-mono` (bar mux,
   parametric IEEE gates, blackbox hatch), deterministic row/bus SoC renderer,

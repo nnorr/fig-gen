@@ -1,6 +1,6 @@
 # Third-party notices
 
-fig-gen is MIT licensed and shared with lab colleagues only (not published).
+fig-gen is MIT licensed (see `LICENSE`).
 Dependencies are installed unmodified from npm with exact versions pinned in
 `package-lock.json`; none are vendored or copied into this repository. Keep this
 list in sync with the lockfile when dependencies change.

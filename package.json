@@ -1,7 +1,6 @@
 {
   "name": "fig-gen",
-  "version": "0.1.0-phase1",
-  "private": true,
+  "version": "0.3.0",
   "type": "module",
   "description": "Paper-quality hardware figures (datapath, FSM, timing, micro-architecture) from typed JSON, with RTL cross-checks.",
   "license": "MIT",
