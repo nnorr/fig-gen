@@ -36,10 +36,13 @@ test('instantiation scan finds named ports, skips comments, flags positional', (
   assert.equal(sites.filter((s) => s.module === 'gen_mem').length, 1);
 });
 
-test('placeholder stubs declare every port as a wide input', () => {
+test('placeholder stubs declare every port as a wide input, and every parameter the site passes', () => {
   const stubs = placeholderStubs(scanInstantiations([{ file: 'p.sv', text: RTL }], ['gen_mem']));
   const src = stubSource(stubs, { origin: 'auto' });
-  assert.match(src, /module gen_mem \(/);
+  // The fixture instantiates `gen_mem #(.P(2)) u_m`. A stub without P cannot be
+  // instantiated at that site: the elaborator stops with "Parameter not found".
+  assert.match(src, /module gen_mem #\(/);
+  assert.match(src, /parameter P = 0/);
   assert.match(src, /input wire \[1023:0\] Q/);
 });
 
@@ -84,6 +87,10 @@ test('refinement infers widths and directions; text widths beat placeholder-resi
     { name: 'A', dir: 'in', width: 6, direction_inferred: true },
     { name: 'D', dir: 'in', width: 16, direction_inferred: true },
     { name: 'Q', dir: 'out', width: 16, direction_inferred: true },
+    // `.T ()` is named at the site but left open. It is still a port of the real
+    // module, so the stub keeps a 1-bit placeholder; dropping it made the refined
+    // stub un-instantiable ("Pin not found: 'T'") on the connection that named it.
+    { name: 'T', dir: 'in', width: 1, inferred_open: true },
   ]);
   assert.deepEqual(unresolved.map((u) => u.port), ['T']);
 });
