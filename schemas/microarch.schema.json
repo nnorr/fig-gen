@@ -79,7 +79,7 @@
       }
     },
     "view": {
-      "description": "View preset and RTL scope (SPEC §4.8 for microarch): overview draws the scope's children as blocks, detail expands `depth` hierarchy levels. The caption must state both (view/caption); with a netlist, coverage applies within the scope.",
+      "description": "View preset and RTL scope (SPEC \u00a74.8 for microarch): overview draws the scope's children as blocks, detail expands `depth` hierarchy levels. The caption must state both (view/caption); with a netlist, coverage applies within the scope.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -295,6 +295,7 @@
             "core",
             "accelerator",
             "memory",
+            "register_file",
             "bridge",
             "router",
             "interrupt_controller",
