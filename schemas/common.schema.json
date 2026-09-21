@@ -114,6 +114,11 @@
             "minLength": 1,
             "pattern": "^[A-Za-z_*?][A-Za-z0-9_\\[\\]/.*?]*(:[A-Za-z0-9_*?\\[\\].]+)?$"
           }
+        },
+        "slice": {
+          "description": "Bits of `signal` this net carries, \"msb:lsb\" (or a single bit index). Use when the figure draws a part-select: the net's width must equal the slice's width, not the whole signal's. rtl/width-mismatch already reads it.",
+          "type": "string",
+          "pattern": "^[0-9]+(:[0-9]+)?$"
         }
       }
     },

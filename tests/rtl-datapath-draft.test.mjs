@@ -194,3 +194,36 @@ test('draft --style rtl-datapath: unpacked array ports carry the width of the si
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('draft --style rtl-datapath: a register that latches a part-select is drawn through a split', { skip }, async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'figgen-latched-slice-'));
+  try {
+    const rtl = path.join(dir, 'rtl');
+    fs.mkdirSync(rtl);
+    fs.copyFileSync(path.join(root, 'tests/fixtures/rtl/rtl-datapath/latched_slice.sv'), path.join(rtl, 'latched_slice.sv'));
+    const { spawnSync } = await import('node:child_process');
+    const out = path.join(dir, 'netlist.json');
+    const r = spawnSync(process.execPath, [path.join(root, 'bin/fig-gen.mjs'), 'check-rtl', '--top', 'latched_slice', '--files', path.join(rtl, 'latched_slice.sv'), '--work-dir', path.join(dir, 'work'), '--source-root', rtl, '--out', out], { encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    const netlist = JSON.parse(fs.readFileSync(out, 'utf8'));
+
+    // Extraction records which bits the clocked assignment reads; the register
+    // that takes the whole signal records none.
+    const deps = netlist.modules.find((m) => m.orig_name === 'latched_slice').deps;
+    assert.equal(deps.find((d) => d.target === 'low_o' && d.kind === 'seq').slices.wide_i, '15:0');
+    assert.equal(deps.find((d) => d.target === 'full_o' && d.kind === 'seq').slices, undefined);
+
+    const { doc } = draftRtlDatapath(netlist, { scope: '' });
+    const split = doc.elements.find((e) => e.kind === 'comb' && e.op === 'split');
+    assert.ok(split, 'the latched part-select is drawn as a split');
+    assert.deepEqual(split.slices, ['15:0']);
+    assert.equal(split.width, 32);
+    const sliced = doc.nets.find((n) => n.driver === `${split.id}.out0`);
+    assert.equal(sliced.width, 16);
+    assert.equal(sliced.rtl.slice, '15:0');
+    const residual = await draftResiduals(structuredClone(doc), netlist, { quality: 'paper', figureDir: dir });
+    assert.deepEqual(residual.filter((x) => /width\/mismatch/.test(x.code)), []);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
