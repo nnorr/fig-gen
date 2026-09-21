@@ -47,7 +47,7 @@ const USAGE = `usage:
                                  [--gate-region <region id>...] [--blackbox <element or instance>...]
   fig-gen draft --view <overview|block|mixed|detail> --scope <instance path> --netlist n.json [--depth n]
                 [--gate-region name=out1,out2[:stop1,stop2]...] [--blackbox <instance path>...] [--repo-root <dir> --revision <sha>] [--out figure.json]
-                [--format paper|study] [--budget-seconds s] [--layout-seconds s] [--bundle prefix|handshake] [--style rtl-datapath|lumps]
+                [--format paper|study] [--budget-seconds s] [--layout-seconds s] [--bundle prefix|handshake] [--style rtl-datapath|lumps (rtl-datapath requires --view block)]
                 (--format study: --view may be omitted (detail, depth 1); controllers and state drawn apart from logic;
                  a draft over its budget, default 120 s, stops with draft/budget-exceeded naming a narrower scope;
                  --bundle: ports and nets sharing a name prefix, or a valid/ready/data handshake set, become one bundle,
@@ -344,7 +344,10 @@ async function cmdDraft({ flags }) {
     // Paper block drafts of one module default to the register-transfer style (registers, muxes, operators, controller);
     // --style lumps keeps functional blocks. Study, mixed, detail and bundled drafts keep the lump draft.
     else if ((flags.style ?? (flags.format !== 'study' && flags.view === 'block' && !flags['gate-region'] && !flags.blackbox && !flags.bundle ? 'rtl-datapath' : 'lumps')) === 'rtl-datapath') {
-      if (flags.view && flags.view !== 'block') return usage();
+      if (flags.view && flags.view !== 'block') {
+        console.error(line({ code: 'draft/style-view', severity: 'error', message: `--style rtl-datapath draws one module, so it takes --view block; --view ${flags.view} selects the lump draft (omit --style, or pass --view block)` }));
+        return EXIT.fail;
+      }
       // Function names need a cited basis at a pinned revision: without --repo-root/--revision the draft finds
       // the repository of the RTL itself (the netlist's source root) and says so.
       let repository = flags['repo-root'] && revision ? { root: flags['repo-root'], revision } : null;

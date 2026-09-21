@@ -4,17 +4,41 @@
   "title": "Normalized RTL netlist produced by any extraction adapter",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "kind", "adapter", "top", "modules", "hierarchy", "diagnostics"],
+  "required": [
+    "schema_version",
+    "kind",
+    "adapter",
+    "top",
+    "modules",
+    "hierarchy",
+    "diagnostics"
+  ],
   "properties": {
-    "schema_version": { "const": 1 },
-    "kind": { "const": "rtl-netlist" },
+    "schema_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "rtl-netlist"
+    },
     "adapter": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "version"],
-      "properties": { "id": { "type": "string" }, "version": { "type": "string" } }
+      "required": [
+        "id",
+        "version"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
     },
-    "top": { "type": "string" },
+    "top": {
+      "type": "string"
+    },
     "inputs": {
       "type": "object",
       "additionalProperties": false,
@@ -24,36 +48,152 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["path", "sha256"],
-            "properties": { "path": { "type": "string" }, "sha256": { "type": "string" }, "role": { "enum": ["rtl", "stub-user", "stub-auto"] } }
+            "required": [
+              "path",
+              "sha256"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "sha256": {
+                "type": "string"
+              },
+              "role": {
+                "enum": [
+                  "rtl",
+                  "stub-user",
+                  "stub-auto"
+                ]
+              }
+            }
           }
         },
-        "defines": { "type": "object", "additionalProperties": { "type": "string" } },
-        "params": { "type": "object" },
-        "source_root": { "type": "string", "description": "Absolute root that relative file paths are resolved against (evidence origin)." },
-        "work_dir": { "type": "string", "description": "Tool work directory (never evidence)." },
-        "include_dirs": { "type": "array", "items": { "type": "string" } },
+        "defines": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "params": {
+          "type": "object"
+        },
+        "source_root": {
+          "type": "string",
+          "description": "Absolute root that relative file paths are resolved against (evidence origin)."
+        },
+        "work_dir": {
+          "type": "string",
+          "description": "Tool work directory (never evidence)."
+        },
+        "include_dirs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "resolution": {
           "description": "How the file list was found from --search-path: every duplicate definition with all candidates and the deterministic choice, and unresolved includes.",
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "top": { "type": "string" },
-            "search_paths": { "type": "array", "items": { "type": "string" } },
-            "excludes": { "type": "array", "items": { "type": "string" } },
-            "prefer": { "type": "array", "items": { "type": "string" } },
-            "scanned": { "type": "integer", "minimum": 0 },
-            "files": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["path"], "properties": { "path": { "type": "string" }, "defines": { "type": "array", "items": { "type": "string" } } } } },
+            "top": {
+              "type": "string"
+            },
+            "search_paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "excludes": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "prefer": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "scanned": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "files": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "path"
+                ],
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "defines": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
             "duplicates": {
               "type": "array",
               "items": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["name", "candidates", "chosen", "reason"],
-                "properties": { "name": { "type": "string" }, "kind": { "type": "string" }, "candidates": { "type": "array", "items": { "type": "string" } }, "chosen": { "type": "string" }, "reason": { "type": "string" } }
+                "required": [
+                  "name",
+                  "candidates",
+                  "chosen",
+                  "reason"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string"
+                  },
+                  "candidates": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "chosen": {
+                    "type": "string"
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                }
               }
             },
-            "unresolved": { "type": "array", "items": { "type": "object", "additionalProperties": false, "properties": { "kind": { "type": "string" }, "name": { "type": "string" }, "referenced_by": { "type": "string" } } } }
+            "unresolved": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "referenced_by": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -64,14 +204,35 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["name", "kind", "width"],
+        "required": [
+          "name",
+          "kind",
+          "width"
+        ],
         "properties": {
-          "name": { "type": "string" },
-          "kind": { "enum": ["enum", "struct", "union"] },
-          "width": { "type": "integer", "minimum": 1 },
-          "items": { "$ref": "#/$defs/enum_items" },
-          "members": { "$ref": "#/$defs/struct_members" },
-          "source": { "$ref": "#/$defs/loc" }
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "enum",
+              "struct",
+              "union"
+            ]
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "items": {
+            "$ref": "#/$defs/enum_items"
+          },
+          "members": {
+            "$ref": "#/$defs/struct_members"
+          },
+          "source": {
+            "$ref": "#/$defs/loc"
+          }
         }
       }
     },
@@ -80,37 +241,110 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["name", "orig_name", "ports", "nets", "registers", "instances"],
+        "required": [
+          "name",
+          "orig_name",
+          "ports",
+          "nets",
+          "registers",
+          "instances"
+        ],
         "properties": {
-          "name": { "type": "string" },
-          "orig_name": { "type": "string" },
-          "params": { "type": "object" },
-          "source": { "$ref": "#/$defs/loc" },
+          "name": {
+            "type": "string"
+          },
+          "orig_name": {
+            "type": "string"
+          },
+          "params": {
+            "type": "object"
+          },
+          "source": {
+            "$ref": "#/$defs/loc"
+          },
           "blackbox": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["origin", "confidence"],
-            "properties": { "origin": { "enum": ["user", "auto"] }, "confidence": { "enum": ["declared", "inferred"] } }
+            "required": [
+              "origin",
+              "confidence"
+            ],
+            "properties": {
+              "origin": {
+                "enum": [
+                  "user",
+                  "auto"
+                ]
+              },
+              "confidence": {
+                "enum": [
+                  "declared",
+                  "inferred"
+                ]
+              }
+            }
           },
           "ports": {
             "type": "array",
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["name", "dir", "width"],
+              "required": [
+                "name",
+                "dir",
+                "width"
+              ],
               "properties": {
-                "name": { "type": "string" },
-                "dir": { "enum": ["in", "out", "inout", "unknown"] },
-                "width": { "type": "integer", "minimum": 1 },
-                "msb": { "type": "integer" },
-                "lsb": { "type": "integer" },
-                "signed": { "type": "boolean" },
-                "direction_inferred": { "type": "boolean" },
-                "type": { "type": "string", "description": "Named type of the declaration (typedef, enum or struct name)." },
-                "enum": { "$ref": "#/$defs/enum_type" },
-                "struct": { "$ref": "#/$defs/struct_type" },
-                "packed_array": { "$ref": "#/$defs/packed_array" },
-                "source": { "$ref": "#/$defs/loc" }
+                "name": {
+                  "type": "string"
+                },
+                "dir": {
+                  "enum": [
+                    "in",
+                    "out",
+                    "inout",
+                    "unknown"
+                  ]
+                },
+                "width": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "msb": {
+                  "type": "integer"
+                },
+                "lsb": {
+                  "type": "integer"
+                },
+                "signed": {
+                  "type": "boolean"
+                },
+                "direction_inferred": {
+                  "type": "boolean"
+                },
+                "type": {
+                  "type": "string",
+                  "description": "Named type of the declaration (typedef, enum or struct name)."
+                },
+                "enum": {
+                  "$ref": "#/$defs/enum_type"
+                },
+                "struct": {
+                  "$ref": "#/$defs/struct_type"
+                },
+                "packed_array": {
+                  "$ref": "#/$defs/packed_array"
+                },
+                "source": {
+                  "$ref": "#/$defs/loc"
+                },
+                "array": {
+                  "description": "Unpacked dimensions of the port, as on the matching net: a port declared `logic [33:0] x[2]` has width 34 and array [\"0:1\"], and carries 68 bits.",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
               }
             }
           },
@@ -119,20 +353,56 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["name", "width"],
+              "required": [
+                "name",
+                "width"
+              ],
               "properties": {
-                "name": { "type": "string" },
-                "width": { "type": "integer", "minimum": 1 },
-                "msb": { "type": "integer" },
-                "lsb": { "type": "integer" },
-                "array": { "type": "array", "items": { "type": "string" } },
-                "kind": { "enum": ["wire", "var", "param", "port"] },
-                "value": { "type": "string" },
-                "type": { "type": "string" },
-                "enum": { "$ref": "#/$defs/enum_type" },
-                "struct": { "$ref": "#/$defs/struct_type" },
-                "packed_array": { "$ref": "#/$defs/packed_array" },
-                "source": { "$ref": "#/$defs/loc" }
+                "name": {
+                  "type": "string"
+                },
+                "width": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "msb": {
+                  "type": "integer"
+                },
+                "lsb": {
+                  "type": "integer"
+                },
+                "array": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "kind": {
+                  "enum": [
+                    "wire",
+                    "var",
+                    "param",
+                    "port"
+                  ]
+                },
+                "value": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "enum": {
+                  "$ref": "#/$defs/enum_type"
+                },
+                "struct": {
+                  "$ref": "#/$defs/struct_type"
+                },
+                "packed_array": {
+                  "$ref": "#/$defs/packed_array"
+                },
+                "source": {
+                  "$ref": "#/$defs/loc"
+                }
               }
             }
           },
@@ -141,20 +411,86 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["name", "width", "clock"],
+              "required": [
+                "name",
+                "width",
+                "clock"
+              ],
               "properties": {
-                "name": { "type": "string" },
-                "width": { "type": "integer", "minimum": 1 },
-                "array": { "type": "array", "items": { "type": "string" } },
-                "type": { "type": "string" },
-                "enum": { "$ref": "#/$defs/enum_type" },
-                "struct": { "$ref": "#/$defs/struct_type" },
-                "packed_array": { "$ref": "#/$defs/packed_array" },
-                "scope": { "type": "string" },
-                "clock": { "type": "object", "additionalProperties": false, "required": ["net", "edge"], "properties": { "net": { "type": "string" }, "edge": { "enum": ["pos", "neg"] } } },
-                "reset": { "type": "object", "additionalProperties": false, "properties": { "net": { "type": "string" }, "active": { "enum": ["low", "high"] }, "async": { "type": "boolean" }, "inferred_by": { "type": "string" } } },
-                "clock_root": { "type": "string" },
-                "source": { "$ref": "#/$defs/loc" }
+                "name": {
+                  "type": "string"
+                },
+                "width": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "array": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "type": {
+                  "type": "string"
+                },
+                "enum": {
+                  "$ref": "#/$defs/enum_type"
+                },
+                "struct": {
+                  "$ref": "#/$defs/struct_type"
+                },
+                "packed_array": {
+                  "$ref": "#/$defs/packed_array"
+                },
+                "scope": {
+                  "type": "string"
+                },
+                "clock": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "net",
+                    "edge"
+                  ],
+                  "properties": {
+                    "net": {
+                      "type": "string"
+                    },
+                    "edge": {
+                      "enum": [
+                        "pos",
+                        "neg"
+                      ]
+                    }
+                  }
+                },
+                "reset": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "net": {
+                      "type": "string"
+                    },
+                    "active": {
+                      "enum": [
+                        "low",
+                        "high"
+                      ]
+                    },
+                    "async": {
+                      "type": "boolean"
+                    },
+                    "inferred_by": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "clock_root": {
+                  "type": "string"
+                },
+                "source": {
+                  "$ref": "#/$defs/loc"
+                }
               }
             }
           },
@@ -163,35 +499,89 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["name", "module", "connections"],
+              "required": [
+                "name",
+                "module",
+                "connections"
+              ],
               "properties": {
-                "name": { "type": "string" },
-                "scope": { "type": "string" },
-                "module": { "type": "string" },
-                "orig_module": { "type": "string" },
-                "source": { "$ref": "#/$defs/loc" },
+                "name": {
+                  "type": "string"
+                },
+                "scope": {
+                  "type": "string"
+                },
+                "module": {
+                  "type": "string"
+                },
+                "orig_module": {
+                  "type": "string"
+                },
+                "source": {
+                  "$ref": "#/$defs/loc"
+                },
                 "connections": {
                   "type": "array",
                   "items": {
                     "type": "object",
                     "additionalProperties": false,
-                    "required": ["port", "expr"],
+                    "required": [
+                      "port",
+                      "expr"
+                    ],
                     "properties": {
-                      "port": { "type": "string" },
-                      "dir": { "enum": ["in", "out", "inout", "unknown"] },
-                      "width": { "type": "integer" },
+                      "port": {
+                        "type": "string"
+                      },
+                      "dir": {
+                        "enum": [
+                          "in",
+                          "out",
+                          "inout",
+                          "unknown"
+                        ]
+                      },
+                      "width": {
+                        "type": "integer"
+                      },
                       "expr": {
                         "type": "object",
                         "additionalProperties": false,
-                        "required": ["kind"],
+                        "required": [
+                          "kind"
+                        ],
                         "properties": {
-                          "kind": { "enum": ["net", "slice", "const", "concat", "expr", "open"] },
-                          "net": { "type": "string" },
-                          "msb": { "type": "integer" },
-                          "lsb": { "type": "integer" },
-                          "nets": { "type": "array", "items": { "type": "string" } },
-                          "value": { "type": "string" },
-                          "width": { "type": "integer" }
+                          "kind": {
+                            "enum": [
+                              "net",
+                              "slice",
+                              "const",
+                              "concat",
+                              "expr",
+                              "open"
+                            ]
+                          },
+                          "net": {
+                            "type": "string"
+                          },
+                          "msb": {
+                            "type": "integer"
+                          },
+                          "lsb": {
+                            "type": "integer"
+                          },
+                          "nets": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "value": {
+                            "type": "string"
+                          },
+                          "width": {
+                            "type": "integer"
+                          }
                         }
                       }
                     }
@@ -206,13 +596,26 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["target", "expr"],
+              "required": [
+                "target",
+                "expr"
+              ],
               "properties": {
-                "target": { "type": "string" },
-                "index": { "type": "integer" },
-                "width": { "type": "integer" },
-                "expr": { "type": "object" },
-                "source": { "$ref": "#/$defs/loc" }
+                "target": {
+                  "type": "string"
+                },
+                "index": {
+                  "type": "integer"
+                },
+                "width": {
+                  "type": "integer"
+                },
+                "expr": {
+                  "type": "object"
+                },
+                "source": {
+                  "$ref": "#/$defs/loc"
+                }
               }
             }
           },
@@ -222,46 +625,130 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["target", "sel", "in0", "in1"],
+              "required": [
+                "target",
+                "sel",
+                "in0",
+                "in1"
+              ],
               "properties": {
-                "target": { "type": "string" },
-                "sel": { "type": "array", "items": { "type": "string" } },
-                "in0": { "type": "array", "items": { "type": "string" } },
-                "in1": { "type": "array", "items": { "type": "string" } },
-                "source": { "$ref": "#/$defs/loc" }
+                "target": {
+                  "type": "string"
+                },
+                "sel": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "in0": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "in1": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "source": {
+                  "$ref": "#/$defs/loc"
+                }
               }
             }
           },
           "fsms": {
-            "description": "State machines: a register whose next value is chosen by a case on itself (SPEC §5). Guards are expression trees in the exprs format; constants written as parameters keep the name in `param`.",
+            "description": "State machines: a register whose next value is chosen by a case on itself (SPEC \u00a75). Guards are expression trees in the exprs format; constants written as parameters keep the name in `param`.",
             "type": "array",
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["register", "next", "width", "encoding_source", "states", "reset", "transitions", "default"],
+              "required": [
+                "register",
+                "next",
+                "width",
+                "encoding_source",
+                "states",
+                "reset",
+                "transitions",
+                "default"
+              ],
               "properties": {
-                "register": { "type": "string" },
-                "next": { "type": ["string", "null"] },
-                "width": { "type": "integer", "minimum": 1 },
-                "encoding_source": { "enum": ["enum", "localparam", "literal"] },
-                "enum_type": { "type": "string" },
+                "register": {
+                  "type": "string"
+                },
+                "next": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "width": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "encoding_source": {
+                  "enum": [
+                    "enum",
+                    "localparam",
+                    "literal"
+                  ]
+                },
+                "enum_type": {
+                  "type": "string"
+                },
                 "states": {
                   "type": "array",
                   "items": {
                     "type": "object",
                     "additionalProperties": false,
-                    "required": ["name", "value"],
-                    "properties": { "name": { "type": "string" }, "value": { "type": "string" } }
+                    "required": [
+                      "name",
+                      "value"
+                    ],
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "value": {
+                        "type": "string"
+                      }
+                    }
                   }
                 },
                 "reset": {
                   "oneOf": [
-                    { "type": "null" },
+                    {
+                      "type": "null"
+                    },
                     {
                       "type": "object",
                       "additionalProperties": false,
-                      "required": ["state", "net", "active", "async"],
-                      "properties": { "state": { "type": "string" }, "net": { "type": "string" }, "active": { "enum": ["low", "high"] }, "async": { "type": "boolean" } }
+                      "required": [
+                        "state",
+                        "net",
+                        "active",
+                        "async"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string"
+                        },
+                        "net": {
+                          "type": "string"
+                        },
+                        "active": {
+                          "enum": [
+                            "low",
+                            "high"
+                          ]
+                        },
+                        "async": {
+                          "type": "boolean"
+                        }
+                      }
                     }
                   ]
                 },
@@ -270,28 +757,92 @@
                   "items": {
                     "type": "object",
                     "additionalProperties": false,
-                    "required": ["id", "from", "to", "guard", "priority"],
+                    "required": [
+                      "id",
+                      "from",
+                      "to",
+                      "guard",
+                      "priority"
+                    ],
                     "properties": {
-                      "id": { "type": "string" },
-                      "from": { "type": "string", "description": "A state name, or * for an any-state override." },
-                      "to": { "type": "string" },
-                      "guard": { "type": ["object", "null"] },
-                      "priority": { "type": "integer" },
-                      "sync_override": { "type": "boolean", "description": "A synchronous assignment in the clocked block that takes precedence over the next-state logic from every state." },
-                      "via_default": { "type": "boolean", "description": "The state has no case item of its own; the default branch decides." },
-                      "source": { "$ref": "#/$defs/loc" }
+                      "id": {
+                        "type": "string"
+                      },
+                      "from": {
+                        "type": "string",
+                        "description": "A state name, or * for an any-state override."
+                      },
+                      "to": {
+                        "type": "string"
+                      },
+                      "guard": {
+                        "type": [
+                          "object",
+                          "null"
+                        ]
+                      },
+                      "priority": {
+                        "type": "integer"
+                      },
+                      "sync_override": {
+                        "type": "boolean",
+                        "description": "A synchronous assignment in the clocked block that takes precedence over the next-state logic from every state."
+                      },
+                      "via_default": {
+                        "type": "boolean",
+                        "description": "The state has no case item of its own; the default branch decides."
+                      },
+                      "source": {
+                        "$ref": "#/$defs/loc"
+                      }
                     }
                   }
                 },
-                "overrides": { "type": "array", "items": { "type": "string" }, "description": "Ids of sync_override transitions; the case transitions are implicitly guarded by their negation." },
+                "overrides": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Ids of sync_override transitions; the case transitions are implicitly guarded by their negation."
+                },
                 "default": {
                   "oneOf": [
-                    { "type": "null" },
-                    { "type": "object", "additionalProperties": false, "required": ["kind"], "properties": { "kind": { "const": "hold" } } },
-                    { "type": "object", "additionalProperties": false, "required": ["kind", "state"], "properties": { "kind": { "const": "to" }, "state": { "type": "string" } } }
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "const": "hold"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "state"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "const": "to"
+                        },
+                        "state": {
+                          "type": "string"
+                        }
+                      }
+                    }
                   ]
                 },
-                "source": { "$ref": "#/$defs/loc" }
+                "source": {
+                  "$ref": "#/$defs/loc"
+                }
               }
             }
           },
@@ -301,12 +852,30 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["target", "sources", "kind"],
+              "required": [
+                "target",
+                "sources",
+                "kind"
+              ],
               "properties": {
-                "target": { "type": "string" },
-                "sources": { "type": "array", "items": { "type": "string" } },
-                "kind": { "enum": ["comb", "seq"] },
-                "source": { "$ref": "#/$defs/loc" }
+                "target": {
+                  "type": "string"
+                },
+                "sources": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "kind": {
+                  "enum": [
+                    "comb",
+                    "seq"
+                  ]
+                },
+                "source": {
+                  "$ref": "#/$defs/loc"
+                }
               }
             }
           }
@@ -318,11 +887,29 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["path", "module"],
-        "properties": { "path": { "type": "string" }, "module": { "type": "string" }, "blackbox": { "type": "boolean" } }
+        "required": [
+          "path",
+          "module"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "module": {
+            "type": "string"
+          },
+          "blackbox": {
+            "type": "boolean"
+          }
+        }
       }
     },
-    "diagnostics": { "type": "array", "items": { "type": "object" } }
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    }
   },
   "$defs": {
     "enum_items": {
@@ -330,53 +917,151 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["name"],
+        "required": [
+          "name"
+        ],
         "properties": {
-          "name": { "type": "string" },
-          "value": { "type": ["integer", "string"], "description": "Encoding as a number (a hex string when wider than 53 bits or containing x/z)." },
-          "literal": { "type": "string", "description": "Encoding as the tool printed it, e.g. 3'h3." }
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Encoding as a number (a hex string when wider than 53 bits or containing x/z)."
+          },
+          "literal": {
+            "type": "string",
+            "description": "Encoding as the tool printed it, e.g. 3'h3."
+          }
         }
       }
     },
     "enum_type": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["type", "items"],
-      "properties": { "type": { "type": "string" }, "width": { "type": ["integer", "null"] }, "items": { "$ref": "#/$defs/enum_items" } }
+      "required": [
+        "type",
+        "items"
+      ],
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "width": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "items": {
+          "$ref": "#/$defs/enum_items"
+        }
+      }
     },
     "struct_members": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["name", "width", "msb", "lsb"],
+        "required": [
+          "name",
+          "width",
+          "msb",
+          "lsb"
+        ],
         "properties": {
-          "name": { "type": "string" },
-          "width": { "type": "integer", "minimum": 1 },
-          "msb": { "type": "integer" },
-          "lsb": { "type": "integer" },
-          "type": { "type": "string" },
-          "enum": { "$ref": "#/$defs/enum_type" }
+          "name": {
+            "type": "string"
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "msb": {
+            "type": "integer"
+          },
+          "lsb": {
+            "type": "integer"
+          },
+          "type": {
+            "type": "string"
+          },
+          "enum": {
+            "$ref": "#/$defs/enum_type"
+          }
         }
       }
     },
     "struct_type": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["type", "kind", "width", "members"],
-      "properties": { "type": { "type": "string" }, "kind": { "enum": ["struct", "union"] }, "width": { "type": "integer" }, "members": { "$ref": "#/$defs/struct_members" } }
+      "required": [
+        "type",
+        "kind",
+        "width",
+        "members"
+      ],
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "struct",
+            "union"
+          ]
+        },
+        "width": {
+          "type": "integer"
+        },
+        "members": {
+          "$ref": "#/$defs/struct_members"
+        }
+      }
     },
     "packed_array": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["dims", "element_width"],
-      "properties": { "dims": { "type": "array", "items": { "type": "string" } }, "element_width": { "type": "integer" }, "element_type": { "type": "string" } }
+      "required": [
+        "dims",
+        "element_width"
+      ],
+      "properties": {
+        "dims": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "element_width": {
+          "type": "integer"
+        },
+        "element_type": {
+          "type": "string"
+        }
+      }
     },
     "loc": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["file", "line"],
-      "properties": { "file": { "type": "string" }, "line": { "type": "integer", "minimum": 1 }, "col": { "type": "integer" } }
+      "required": [
+        "file",
+        "line"
+      ],
+      "properties": {
+        "file": {
+          "type": "string"
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "col": {
+          "type": "integer"
+        }
+      }
     }
   }
 }

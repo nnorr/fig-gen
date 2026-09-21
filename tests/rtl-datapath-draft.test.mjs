@@ -163,3 +163,34 @@ test('draft --style rtl-datapath: an addressed array becomes an inferred memory 
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('draft --style rtl-datapath: unpacked array ports carry the width of the signal, not the packed width', { skip }, async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'figgen-unpacked-ports-'));
+  try {
+    const rtl = path.join(dir, 'rtl');
+    fs.mkdirSync(rtl);
+    fs.copyFileSync(path.join(root, 'tests/fixtures/rtl/rtl-datapath/unpacked_ports.sv'), path.join(rtl, 'unpacked_ports.sv'));
+    const { spawnSync } = await import('node:child_process');
+    const out = path.join(dir, 'netlist.json');
+    const r = spawnSync(process.execPath, [path.join(root, 'bin/fig-gen.mjs'), 'check-rtl', '--top', 'unpacked_ports', '--files', path.join(rtl, 'unpacked_ports.sv'), '--work-dir', path.join(dir, 'work'), '--source-root', rtl, '--out', out], { encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    const netlist = JSON.parse(fs.readFileSync(out, 'utf8'));
+
+    // Extraction keeps the unpacked dimension on the port, as it already did on the net.
+    const top = netlist.modules.find((m) => m.orig_name === 'unpacked_ports');
+    assert.deepEqual(top.ports.find((p) => p.name === 'imd_d_o').array, ['0:1']);
+
+    // 32 bits over 2 elements is one 64-bit signal, on the figure port and on the
+    // instance pin alike; anything else is a width/mismatch against its own net.
+    const { doc } = draftRtlDatapath(netlist, { scope: '' });
+    const port = doc.elements.find((e) => e.kind === 'port' && e.rtl?.signal === 'imd_d_o');
+    assert.equal(port.width, 64);
+    const child = doc.elements.find((e) => e.kind === 'instance');
+    assert.equal(child.ports.find((p) => p.id === 'imd_d_o').width, 64);
+    assert.equal(child.ports.find((p) => p.id === 'imd_q_i').width, 64);
+    const residual = await draftResiduals(structuredClone(doc), netlist, { quality: 'paper', figureDir: dir });
+    assert.deepEqual(residual.filter((r) => /width\/mismatch|boundary-mismatch/.test(r.code)), []);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
