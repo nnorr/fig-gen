@@ -627,6 +627,13 @@
                 "description": "A deliberate single-ended off-page reference: the port is drawn without a wire (connector/orphan-tag does not apply).",
                 "type": "boolean"
               },
+              "connector": {
+                "description": "Draw this figure-boundary port as the house off-page arrow tag. Use target for an input whose wire leaves the tag tip, and source for an output whose wire enters the tag back.",
+                "enum": [
+                  "source",
+                  "target"
+                ]
+              },
               "class": {
                 "$ref": "common.schema.json#/$defs/net_class"
               },
@@ -660,6 +667,13 @@
             "properties": {
               "value": {
                 "$ref": "common.schema.json#/$defs/sv_literal"
+              },
+              "display": {
+                "description": "Visual treatment for a local literal. boxed is the default value symbol; label prints the readable value as plain text on its outgoing wire.",
+                "enum": [
+                  "boxed",
+                  "label"
+                ]
               }
             }
           }

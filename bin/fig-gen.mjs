@@ -95,7 +95,7 @@ function parseArgs(argv) {
     const a = argv[i];
     if (!a.startsWith('--')) { positional.push(a); continue; }
     const key = a.slice(2);
-    if (['json', 'summary', 'quiet', 'no-bitblast', 'no-pdf', 'why-size', 'preview', 'dry-run'].includes(key)) { flags[key] = true; continue; }
+    if (['json', 'summary', 'quiet', 'no-bitblast', 'no-pdf', 'why-size', 'preview', 'dry-run', 'keep-control', 'class-colors'].includes(key)) { flags[key] = true; continue; }
     if (multi.has(key)) {
       flags[key] = flags[key] || [];
       while (i + 1 < argv.length && !argv[i + 1].startsWith('--')) flags[key].push(argv[++i]);
@@ -340,7 +340,7 @@ async function cmdDraft({ flags }) {
   }
   let draft;
   try {
-    if (microarch) draft = (await import('../lib/draft-microarch.mjs')).draftMicroarch(netlist, { scope: flags.scope ?? '' });
+    if (microarch) draft = (await import('../lib/draft-microarch.mjs')).draftMicroarch(netlist, { scope: flags.scope ?? '', keepControl: Boolean(flags['keep-control']), classColors: Boolean(flags['class-colors']) });
     // Paper block drafts of one module default to the register-transfer style (registers, muxes, operators, controller);
     // --style lumps keeps functional blocks. Study, mixed, detail and bundled drafts keep the lump draft.
     else if ((flags.style ?? (flags.format !== 'study' && flags.view === 'block' && !flags['gate-region'] && !flags.blackbox && !flags.bundle ? 'rtl-datapath' : 'lumps')) === 'rtl-datapath') {
@@ -471,6 +471,20 @@ async function cmdCheckRtl({ flags }) {
   }
   if (!files.length && rtl.files) files = rtl.files.map((f) => path.resolve(configDir, f));
   if (!top || !files.length) return usage();
+
+  // A declared source root is immutable input. This applies even when the
+  // caller supplies --files directly (the search-path resolver already makes
+  // the same check above).
+  if (flags['source-root']) {
+    const sourceRoot = path.resolve(flags['source-root']);
+    for (const [flag, target] of [['out', flags.out], ['work-dir', flags['work-dir']], ['emit-filelist', flags['emit-filelist']]]) {
+      const inside = target && insideAny(target, [sourceRoot]);
+      if (inside) {
+        console.error(`error evidence/output-in-rtl-tree: --${flag} ${target} lies inside source root ${sourceRoot}; write tool output outside the RTL repository`);
+        return EXIT.fail;
+      }
+    }
+  }
 
   // Hard rule: never extract "evidence" from fig-gen's own files or tool output.
   const guard = checkRtlInputs(files.map((f) => path.resolve(f)), { workDirs: [flags['work-dir']] });

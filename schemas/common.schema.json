@@ -238,8 +238,12 @@
           "type": "boolean"
         },
         "block_details": {
-          "description": "Datapath blocks print their name only by default (CONVENTIONS §4.3). true prints secondary lines inside boxes for the whole figure: stage notes, function.detail, pin labels, table and memory sizes. Latency and detail are always in the receipt (and the study side table).",
+          "description": "Datapath blocks print their name only by default (CONVENTIONS \u00a74.3). true prints secondary lines inside boxes for the whole figure: stage notes, function.detail, pin labels, table and memory sizes. Latency and detail are always in the receipt (and the study side table).",
           "type": "boolean"
+        },
+        "class_colors": {
+          "type": "boolean",
+          "description": "TRIAL: colour links by class (control, interrupt, clock, reset) instead of drawing every link in the ink colour. Off by default -- the convention these figures follow reserves colour for grouping, and a coloured figure does not survive mono printing."
         }
       }
     },

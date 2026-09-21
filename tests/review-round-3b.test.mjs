@@ -56,6 +56,43 @@ test('orphan tags are found on SVG geometry: a glyph with no wire end at its out
   assert.deepEqual(orphanTags(svg, glyphs).map((g) => g.el), ['arrowed', 'lonely'], 'an arrow path is not a wire end');
 });
 
+test('authored boundary ports use arrow tags while local constants may remain plain labels', async () => {
+  const doc = figure([
+    { id: 'input', kind: 'port', dir: 'in', width: 1, label: 'request', connector: 'target' },
+    { id: 'one', kind: 'const', value: "1'b1", label: 'logic 1', display: 'label' },
+    { id: 'gate', kind: 'comb', op: 'and', width: 1, inputs: 2 },
+    { id: 'output', kind: 'port', dir: 'out', width: 1, label: 'accepted', connector: 'source' },
+  ], [
+    { id: 'request', width: 1, driver: 'input', sinks: ['gate.in0'] },
+    { id: 'one', width: 1, driver: 'one.out', sinks: ['gate.in1'] },
+    { id: 'accepted', width: 1, driver: 'gate.out', sinks: ['output'] },
+  ]);
+  const r = await renderDatapath(doc, { variant: '2col', widthPt: 515.5, name: 'boundary-tags' });
+  assert.equal(r.diagnostics.some((d) => d.severity === 'error'), false);
+  assert.match(r.svg, /<path id="port-input-body"/);
+  assert.match(r.svg, /<path id="port-output-body"/);
+  assert.doesNotMatch(r.svg, /id="const-one-body"/);
+  assert.match(r.svg, /id="const-one-label"/);
+});
+
+test('datapath memories are hatched while registers retain the gray storage fill', async () => {
+  const doc = figure([
+    { id: 'addr', kind: 'port', dir: 'in', width: 4, label: 'read address' },
+    { id: 'mem', kind: 'memory', label: 'History memory', depth: 16, width: 8, domain: 'sys', ports: [{ id: 'r', type: 'read', read_latency: 0 }] },
+    { id: 'reg', kind: 'register', width: 8, domain: 'sys', label: 'Data register' },
+    { id: 'out', kind: 'port', dir: 'out', width: 8, label: 'read data' },
+  ], [
+    { id: 'a', width: 4, driver: 'addr', sinks: ['mem.r_addr'] },
+    { id: 'd', width: 8, driver: 'mem.r_rdata', sinks: ['reg.d'] },
+    { id: 'q', width: 8, driver: 'reg.q', sinks: ['out'] },
+  ]);
+  doc.clock_domains = [{ id: 'sys', clock: 'clk' }];
+  const r = await renderDatapath(doc, { variant: '2col', widthPt: 515.5, name: 'storage-style' });
+  assert.match(r.svg, /id="memory-mem-body"[^>]*fill="#FFFFFF"/);
+  assert.match(r.svg, /id="memory-mem-hatch"/);
+  assert.match(r.svg, /id="reg-reg-body"[^>]*fill="#D9D9D9"/);
+});
+
 test('connector/orphan-tag and connector/duplicate-name are errors on the drawn figure; an unread input is reported; off_page is exempt', async () => {
   const doc = figure([
     { id: 'in', kind: 'port', dir: 'in', width: 1, label: 'value in' },

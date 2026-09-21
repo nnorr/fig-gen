@@ -97,7 +97,7 @@ test('draft --style rtl-datapath: banks by role, operand selects, operator, cont
     fs.copyFileSync(path.join(root, 'tests/fixtures/rtl/rtl-datapath/iter_unit.sv'), path.join(rtl, 'iter_unit.sv'));
     const { spawnSync } = await import('node:child_process');
     const out = path.join(dir, 'netlist.json');
-    const r = spawnSync(process.execPath, [path.join(root, 'bin/fig-gen.mjs'), 'check-rtl', '--top', 'iter_unit', '--files', path.join(rtl, 'iter_unit.sv'), '--work-dir', path.join(dir, 'work'), '--source-root', dir, '--out', out], { encoding: 'utf8' });
+    const r = spawnSync(process.execPath, [path.join(root, 'bin/fig-gen.mjs'), 'check-rtl', '--top', 'iter_unit', '--files', path.join(rtl, 'iter_unit.sv'), '--work-dir', path.join(dir, 'work'), '--source-root', rtl, '--out', out], { encoding: 'utf8' });
     assert.equal(r.status, 0, r.stderr);
     const netlist = JSON.parse(fs.readFileSync(out, 'utf8'));
     const { doc, notes } = draftRtlDatapath(netlist, { scope: '' });
@@ -125,6 +125,38 @@ test('draft --style rtl-datapath: banks by role, operand selects, operator, cont
     assert.ok(doc.nets.some((n) => n.driver.startsWith('controller.') && n.sinks.some((s) => /\.sel$/.test(s))));
     assert.ok(doc.nets.some((n) => n.driver.startsWith('controller.') && n.sinks.some((s) => /\.en$/.test(s))));
     // the draft passes its own checks: schema, semantics, labels, view, RTL cross-check, coverage, latency
+    const residual = await draftResiduals(structuredClone(doc), netlist, { quality: 'paper', figureDir: dir });
+    assert.deepEqual(residual.map((d) => `${d.code}: ${d.message}`), []);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('draft --style rtl-datapath: an addressed array becomes an inferred memory with visible read and write ports', { skip }, async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'figgen-memory-draft-'));
+  try {
+    const rtl = path.join(dir, 'rtl');
+    fs.mkdirSync(rtl);
+    fs.copyFileSync(path.join(root, 'tests/fixtures/rtl/rtl-datapath/history_buffer.sv'), path.join(rtl, 'history_buffer.sv'));
+    const { spawnSync } = await import('node:child_process');
+    const out = path.join(dir, 'netlist.json');
+    const r = spawnSync(process.execPath, [path.join(root, 'bin/fig-gen.mjs'), 'check-rtl', '--top', 'history_buffer', '--files', path.join(rtl, 'history_buffer.sv'), '--work-dir', path.join(dir, 'work'), '--source-root', rtl, '--out', out], { encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    const netlist = JSON.parse(fs.readFileSync(out, 'utf8'));
+    const { doc, notes } = draftRtlDatapath(netlist, { scope: '' });
+    const memory = doc.elements.find((e) => e.kind === 'memory');
+    assert.ok(memory, notes.join('\n'));
+    assert.equal(memory.depth, 16);
+    assert.equal(memory.width, 8);
+    assert.deepEqual(memory.ports, [
+      { id: 'w', type: 'write' },
+      { id: 'r', type: 'read', read_latency: 0 },
+    ]);
+    assert.ok(doc.nets.some((n) => n.rtl?.signal === 'wr_addr' && n.sinks.includes(`${memory.id}.w_addr`)));
+    assert.ok(doc.nets.some((n) => n.rtl?.signal === 'wr_data' && n.sinks.includes(`${memory.id}.w_wdata`)));
+    assert.ok(doc.nets.some((n) => n.rtl?.signal === 'wr_en' && n.sinks.includes(`${memory.id}.w_we`)));
+    assert.ok(doc.nets.some((n) => n.rtl?.signal === 'rd_addr' && n.sinks.includes(`${memory.id}.r_addr`)));
+    assert.ok(doc.nets.some((n) => n.rtl?.signal === 'rd_data' && n.driver === `${memory.id}.r_rdata`));
     const residual = await draftResiduals(structuredClone(doc), netlist, { quality: 'paper', figureDir: dir });
     assert.deepEqual(residual.map((d) => `${d.code}: ${d.message}`), []);
   } finally {

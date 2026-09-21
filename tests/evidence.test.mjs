@@ -54,6 +54,58 @@ test('check-rtl refuses tests/fixtures and agent-written files as RTL evidence',
   }
 });
 
+test('check-rtl keeps every output path outside an explicit source root', () => {
+  const user = tmp('figgen-source-root-');
+  const external = tmp('figgen-external-');
+  try {
+    const src = path.join(user, 'real.sv');
+    fs.writeFileSync(src, 'module real; endmodule\n');
+    const cases = [
+      ['--out', path.join(user, 'netlist.json')],
+      ['--work-dir', path.join(user, 'work')],
+      ['--emit-filelist', path.join(user, 'files.f')],
+    ];
+    for (const [flag, target] of cases) {
+      const args = ['check-rtl', '--top', 'real', '--files', src, '--source-root', user,
+        '--work-dir', path.join(external, `work-${flag.slice(2)}`), '--out', path.join(external, `${flag.slice(2)}.json`),
+        flag, target, '--quiet'];
+      const r = cli(...args);
+      assert.equal(r.status, 1, `${flag} should be rejected`);
+      assert.match(r.stderr, /evidence\/output-in-rtl-tree/);
+    }
+  } finally {
+    fs.rmSync(user, { recursive: true, force: true });
+    fs.rmSync(external, { recursive: true, force: true });
+  }
+});
+
+test('Verilator extraction detects any mutation of an RTL input', async () => {
+  const user = tmp('figgen-immutable-');
+  const work = tmp('figgen-immutable-work-');
+  try {
+    const src = path.join(user, 'real.sv');
+    const fake = path.join(user, 'fake-verilator');
+    fs.writeFileSync(src, 'module real; endmodule\n');
+    fs.writeFileSync(fake, `#!/bin/sh
+if [ "$1" = "--version" ]; then
+  echo "Verilator 5.000"
+  exit 0
+fi
+echo '// mutated by fake extractor' >> '${src}'
+echo '%Error: deliberate fake failure' >&2
+exit 1
+`);
+    fs.chmodSync(fake, 0o755);
+    await assert.rejects(
+      () => verilator.extract({ files: [src], top: 'real', work_dir: work }, { env: { ...process.env, FIGGEN_VERILATOR: fake } }),
+      /rtl\/source-mutated/,
+    );
+  } finally {
+    fs.rmSync(user, { recursive: true, force: true });
+    fs.rmSync(work, { recursive: true, force: true });
+  }
+});
+
 test('a netlist built from fixtures cannot verify a real figure', { skip }, async () => {
   const work = tmp('figgen-work-');
   const out = tmp('figgen-out-');

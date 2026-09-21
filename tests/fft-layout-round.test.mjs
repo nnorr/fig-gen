@@ -97,7 +97,7 @@ test('draft --style rtl-datapath: a valid bit loaded every cycle is a control la
     fs.copyFileSync(path.join(root, 'tests/fixtures/rtl/rtl-datapath/pipe_valid.sv'), path.join(rtl, 'pipe_valid.sv'));
     const { spawnSync } = await import('node:child_process');
     const out = path.join(dir, 'netlist.json');
-    const r = spawnSync(process.execPath, [path.join(root, 'bin/fig-gen.mjs'), 'check-rtl', '--top', 'pipe_valid', '--files', path.join(rtl, 'pipe_valid.sv'), '--work-dir', path.join(dir, 'work'), '--source-root', dir, '--out', out], { encoding: 'utf8' });
+    const r = spawnSync(process.execPath, [path.join(root, 'bin/fig-gen.mjs'), 'check-rtl', '--top', 'pipe_valid', '--files', path.join(rtl, 'pipe_valid.sv'), '--work-dir', path.join(dir, 'work'), '--source-root', rtl, '--out', out], { encoding: 'utf8' });
     assert.equal(r.status, 0, r.stderr);
     const { doc, notes } = draftRtlDatapath(JSON.parse(fs.readFileSync(out, 'utf8')), { scope: '' });
     const bars = doc.elements.filter((e) => e.kind === 'pipeline_register');

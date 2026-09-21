@@ -1,9 +1,20 @@
 ---
 name: fig-gen
-description: Generate paper-quality figures of hardware designs from validated JSON — datapath / RTL block schematics (muxes, registers, pipeline stages, memories, clock domains), FSM / state diagrams (encodings, guards, Moore/Mealy outputs), timing / waveform diagrams (WaveJSON, latency and handshake annotations, simulation-grounded), and micro-architecture / SoC block diagrams (bus fabrics and bridges, address maps, interrupts, power/clock domains, accelerator integration) — delivered as editable figma-safe SVG plus outlined-text PDF in IEEE/ACM single- and double-column sizes. Checks widths, mux selects, clocks, CDC, reachability, latencies and memory maps, and cross-checks figures against real Verilog/SystemVerilog through Verilator. Use this whenever the user wants any figure, diagram, schematic, block diagram, state machine drawing, waveform, timing diagram, SoC/system architecture figure or address-map table of hardware or RTL for a paper, thesis, slides or a design doc — even if they only say "draw the decoder", "show the pipeline", "FSM of this module", "SoC figure", or paste WaveDrom/WaveJSON.
+description: >-
+  Generate paper-quality hardware figures from validated JSON: RTL/datapath
+  schematics with muxes, registers, pipelines and memories; FSM/state diagrams;
+  simulation-grounded timing waveforms; and micro-architecture/SoC diagrams
+  with fabrics, address maps, interrupts and accelerators. Delivers editable
+  Figma-safe SVG and outlined PDF in IEEE/ACM column sizes, with semantic checks
+  and Verilog/SystemVerilog cross-checks through Verilator. Use whenever the
+  user wants a hardware or RTL figure, diagram, schematic, state machine,
+  waveform, timing diagram, SoC/system architecture view or address-map table
+  for a paper, thesis, slides or design document—even if they only say "draw
+  the decoder", "show the pipeline", "FSM of this module", "SoC figure", or
+  paste WaveDrom/WaveJSON.
 license: MIT
 metadata:
-  version: "0.1-phase1"
+  version: "0.3.1-local"
 ---
 
 # fig-gen
@@ -18,6 +29,15 @@ hardware semantics before any layout, lays out each column variant separately,
 and delivers editable SVG plus print PDF with a receipt. The JSON is the
 source of truth; never hand-edit generated SVG/PDF to fix a problem — change
 the JSON and re-run, so the fix survives the next render.
+
+## Compatibility
+
+Requires Node.js 20 or newer. Verilator 5.x enables RTL extraction and
+simulation; bundled resvg provides headless previews. Extraction disables AST
+optimization so named muxes, localparam FSM states and packed types remain
+available. VCD lookup accepts Verilator's optional `TOP` wrapper while receipts
+retain the actual dumped path. Keeping this in the body, rather than a custom
+frontmatter key, makes the skill valid in both Claude Code and Codex.
 
 ## Fast authoring path
 
@@ -58,7 +78,13 @@ the JSON and re-run, so the fix survives the next render.
    Missing modules (memory macros, IP) are stubbed automatically from their
    instantiation sites; say which ports were inferred. Add `source` pins
    (file + line at a pinned revision) to elements the reader may want to trace.
-   Never write tool output into the user's RTL tree.
+   **Treat the source repository as immutable.** Never edit, format, patch or
+   generate a wrapper, stub, file list, work directory, netlist or figure
+   beneath it. Put every generated file in an external scratch directory.
+   `check-rtl` rejects `--out`, `--work-dir` and `--emit-filelist` beneath
+   `--source-root`, and hashes every RTL input before and after Verilator so a
+   mutation fails as `rtl/source-mutated`. For any other tool, record
+   `git status --porcelain=v1` before and after and require identical output.
 
 4. **Write the candidate JSON first**, with a clear main data path left→right.
    **Declare the scope** (`meta.scope`: an instance with its hierarchy, or a
@@ -78,6 +104,23 @@ the JSON and re-run, so the fix survives the next render.
    | `block` | one instance (`--scope u_x/u_y`); its ports are the figure ports |
    | `mixed` | a block or overview scope plus selected gate regions and blackboxes |
    | `detail` | the scope expanded `--depth n` levels |
+
+   When one overview block needs a closer view, keep the overview intact and
+   make a companion `datapath` figure linked with the block's `detail_ref`.
+   Step down one abstraction level at a time: expose operand/target muxes,
+   comparisons, enables, table ports and state boundaries first; use a gate
+   region only for the small cone whose Boolean implementation matters. Pin
+   each manually grouped operator to the assignment or expression that
+   justifies it. A mux-level detail should preserve input order and show the
+   select condition explicitly, so the reader can reconstruct the RTL choice
+   without opening the source. Keep the house mux symbol as the thick vertical
+   bar (`style: "bar"`); use the trapezoid alternative only when the user asks
+   for that notation. Draw signals entering or leaving the detailed scope as
+   the house arrow tags (`connector: "target"` on inputs, `"source"` on
+   outputs). Keep enum values and literals local; on short internal wires use
+   plain constant labels (`display: "label"`) so they cannot be mistaken for
+   off-page tags. Use a boxed constant only when the value needs its own
+   visible source symbol.
 
    Start from `fig-gen draft --view <preset> --scope <path> --netlist n.json
    [--gate-region name=out1,out2] [--blackbox <path>] [--repo-root <dir>
@@ -138,6 +181,14 @@ study, analyse or explore RTL rather than to make a paper figure.
   format for the paper.
 
 ## Things that matter for paper figures
+
+- **Use `docs/gallery/rs-overview.png` as the house reference for an RTL/IP
+  overview.** Aim for its compact left-to-right story: readable functional
+  blocks, hatched memories, explicit pipeline bars, widths on the data path,
+  dashed control/valid, named long returns, and one clear region boundary.
+  Copy its editorial hierarchy, not its particular ECC content. A generic RTL
+  draft is a starting point; refine names and grouping until a reader can
+  explain the computation without reading identifiers.
 
 - The double-column (2col) variant is the required deliverable. The
   single-column (1col) variant is best effort: fig-gen tries the normal layout

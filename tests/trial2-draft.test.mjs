@@ -301,7 +301,13 @@ test('N7: draft --type microarch: blocks per child, registers by prefix, AXI fab
   assert.deepEqual(role(axi, 'subordinate'), ['ext_mem']);
   const streams = doc.interfaces.map((i) => `${i.from}>${i.to}:${i.data_width}`).sort();
   assert.deepEqual(streams, ['host>u_core:8', 'u_fifo>host:8']);
-  assert.ok(doc.links.some((l) => l.from === block((b) => b.rtl?.covers).id && l.to === 'u_core' && l.class === 'control'));
+  // The register block still reaches the core, but "touches a register block" is
+  // no longer what makes a link control: that proxy dashed 42 of 55 links on a
+  // Rocket core, including EX -> IBuf, which is the redirect datapath. Control
+  // is now decided by the transfer width, and 1-bit control links are omitted
+  // from the drawing, so this link is either drawn as data or not drawn at all.
+  const regToCore = doc.links.filter((l) => l.from === block((b) => b.rtl?.covers).id && l.to === 'u_core');
+  assert.ok(regToCore.every((l) => l.class === 'data'));
   assert.deepEqual(await draftMicroarchResiduals(doc, nl), []);
   const cov = checkMicroarchCoverage(doc, nl).report.totals;
   assert.deepEqual(cov.registers, { covered: 2, total: 2 });
