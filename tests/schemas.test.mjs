@@ -33,6 +33,14 @@ test('mux requires inputs >= 2', async () => {
   assert.equal(result.ok, false);
 });
 
+test('figure-boundary ports may request the house off-page connector tag', async () => {
+  const doc = load('datapath-pipelined-xor.json');
+  doc.elements.find((e) => e.id === 'a').connector = 'target';
+  doc.elements.find((e) => e.id === 'y').connector = 'source';
+  doc.elements.find((e) => e.id === 'mask').display = 'label';
+  assert.equal((await validateFigure('datapath', doc)).ok, true);
+});
+
 test('endpoint grammar is enforced by schema', async () => {
   const doc = load('datapath-pipelined-xor.json');
   doc.nets[0].driver = 'a..out';

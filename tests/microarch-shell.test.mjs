@@ -115,6 +115,25 @@ test('stream interfaces are links with an open head, never bars; widths, dashes 
   assert.equal(Number(attrsOf(rd.svg, 'link-l_dma-seg0')['stroke-width']), t.stroke.emphasis);
 });
 
+test('microarch storage uses the RS house style: hatched memories and gray register banks', async () => {
+  const doc = {
+    schema_version: 1,
+    figure_type: 'microarch',
+    meta: { title: 'storage style', print: { profile: 'ieee', variants: ['2col'] } },
+    blocks: [
+      { id: 'mem', kind: 'memory', label: 'History memory' },
+      { id: 'regs', kind: 'register_file', label: 'Pipeline registers' },
+    ],
+    links: [{ id: 'read', from: 'mem', to: 'regs', class: 'data', width: 8 }],
+  };
+  const skin = loadSkin();
+  const r = await renderMicroarch(doc, { variant: '2col', widthPt: 515.5, maxHeightPt: 230.4, skin });
+  assert.equal(attrsOf(r.svg, 'block-mem-body').fill, skin.tokens.fill.logic);
+  assert.match(r.svg, /id="block-mem-hatch"/);
+  assert.equal(attrsOf(r.svg, 'block-regs-body').fill, skin.tokens.fill.storage);
+  assert.match(r.svg, /id="block-regs-body"[^>]*fill="#D9D9D9"/);
+});
+
 test('semantic rules: one top claim, off-chip never in a chip group, streams are interfaces, interface endpoints', () => {
   const doc = fixture();
   assert.deepEqual(codes(checkMicroarch(doc).diagnostics), []);

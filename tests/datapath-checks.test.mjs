@@ -55,6 +55,22 @@ test('combinational loops are found; a register breaks them', () => {
   assert.ok(!codes(doc).includes('comb/loop'));
 });
 
+test('a synchronous memory write does not make a combinational loop through a zero-latency read port', () => {
+  const doc = base();
+  doc.elements.push(
+    { id: 'addr', kind: 'port', dir: 'in', width: 4 },
+    { id: 'mem', kind: 'memory', depth: 16, width: 8, domain: 'da', ports: [{ id: 'w', type: 'write' }, { id: 'r', type: 'read', read_latency: 0 }] },
+    { id: 'copy', kind: 'comb', op: 'buf', width: 8 },
+  );
+  doc.nets.push(
+    { id: 'wa', width: 4, driver: 'addr', sinks: ['mem.w_addr', 'mem.r_addr'] },
+    { id: 'rd', width: 8, driver: 'mem.r_rdata', sinks: ['copy.in0'] },
+    { id: 'wd', width: 8, driver: 'copy.out', sinks: ['mem.w_wdata'] },
+  );
+  const loopCodes = checkDatapath(doc).diagnostics.filter((d) => d.code.startsWith('comb/loop')).map((d) => d.code);
+  assert.deepEqual(loopCodes, []);
+});
+
 test('clock-domain crossings need a synchronizer', () => {
   const doc = base();
   doc.elements.push({ id: 'i', kind: 'port', dir: 'in', width: 1, domain: 'da' }, { id: 'ra', kind: 'register', width: 1, domain: 'da' }, { id: 'rb', kind: 'register', width: 1, domain: 'db' });

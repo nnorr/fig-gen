@@ -296,6 +296,8 @@
             "accelerator",
             "memory",
             "register_file",
+            "scratchpad",
+            "systolic_array",
             "bridge",
             "router",
             "interrupt_controller",

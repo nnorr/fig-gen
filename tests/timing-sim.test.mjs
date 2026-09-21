@@ -105,6 +105,26 @@ test('pre-edge sampling: cycle k shows the value held just before edge k+1, neve
   }
 });
 
+test('VCD paths: optional Verilator TOP wrapper preserves provenance, aliases, bit selects and alignment', () => {
+  const dir = tmp();
+  try {
+    const file = writeVcd(dir);
+    const original = fs.readFileSync(file, 'utf8');
+    fs.writeFileSync(file, original.replace('$scope module tb', '$scope module TOP $end\n$scope module tb').replace('$enddefinitions', '$upscope $end\n$enddefinitions'));
+    const r = vcdToTiming(file, { clock: 'tb.clk', signals: ['tb.valid', 'tb.data[3:0]'], cycles: 2,
+      alignOn: { path: 'tb.dut.st', event: 'change' }, aliases: { 'tb.valid': 'Input valid' }, radix: { 'tb.data[3:0]': 'dec' } });
+    assert.deepEqual(r.diagnostics, []);
+    assert.equal(r.doc.provenance.clock, 'TOP.tb.clk');
+    assert.equal(r.doc.provenance.first_cycle, 1);
+    assert.equal(r.doc.provenance.rtl_map['Input valid'], 'TOP.tb.valid');
+    assert.deepEqual(r.doc.wavejson.signal[2].data, ['3']);
+    const hand = vcdToTiming(file, { clock: 'tb.clk', signals: ['tb.valid', 'tb.data'], cycles: 4 }).doc;
+    for (const k of Object.keys(hand.provenance.rtl_map)) hand.provenance.rtl_map[k] = hand.provenance.rtl_map[k].replace(/^TOP\./, '');
+    assert.deepEqual(compareTiming(hand, file).diagnostics, []);
+    assert.equal(vcdToTiming(file, { clock: 'clk', signals: [], cycles: 2 }).doc, null, 'never guess arbitrary suffixes');
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
 test('sim-compare semantics: x is don\'t-care, . holds, | skips, bus literals compare numerically, symbolic values check changes only', () => {
   const dir = tmp();
   try {

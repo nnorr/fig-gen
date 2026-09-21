@@ -122,6 +122,35 @@ test('enum and packed struct widths resolve; enum encodings and struct members a
   assert.equal(lines.filter((l) => l.startsWith('module ')).length, netlist.modules.length);
 });
 
+test('resolved if-generate BEGIN scopes keep branch-local registers and assignments', { skip }, async () => {
+  const user = fs.mkdtempSync(path.join(os.tmpdir(), 'figgen-generate-'));
+  const work = fs.mkdtempSync(path.join(os.tmpdir(), 'figgen-generate-work-'));
+  try {
+    const src = path.join(user, 'generated_history.sv');
+    fs.writeFileSync(src, `module generated_history #(parameter bit HISTORY = 1'b1) (
+  input logic clk, input logic d_i, output logic q_o
+);
+  generate
+    if (HISTORY) begin : g_history
+      logic history_r;
+      always_ff @(posedge clk) history_r <= d_i;
+      assign q_o = history_r;
+    end else begin : g_direct
+      assign q_o = d_i;
+    end
+  endgenerate
+endmodule\n`);
+    const netlist = await verilator.extract({ files: [src], top: 'generated_history', work_dir: work, params: { HISTORY: 1 } });
+    const top = netlist.modules.find((m) => m.orig_name === 'generated_history');
+    assert.ok(top.registers.some((r) => r.name === 'history_r'), 'register inside the resolved generate branch is retained');
+    const q = top.deps.find((d) => d.target === 'q_o');
+    assert.ok(q?.sources.includes('history_r'), 'assignment inside the resolved generate branch is retained');
+  } finally {
+    fs.rmSync(user, { recursive: true, force: true });
+    fs.rmSync(work, { recursive: true, force: true });
+  }
+});
+
 // --- dependencies ----------------------------------------------------------------
 
 test('dependencies see through function bodies, aliases and submodule ports; a truly unused input is still reported', { skip }, async () => {
