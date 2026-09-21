@@ -875,6 +875,14 @@
                 },
                 "source": {
                   "$ref": "#/$defs/loc"
+                },
+                "slices": {
+                  "description": "Bits a source contributes to the target, when it is read only as one constant part-select: source name -> \"msb:lsb\". Absent sources contribute their whole width.",
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string",
+                    "pattern": "^[0-9]+:[0-9]+$"
+                  }
                 }
               }
             }
