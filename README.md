@@ -15,8 +15,10 @@ simulation-grounded waveforms. Drafts can be generated from a netlist
 
 ## Sample figures
 
-Datapath figures rendered by fig-gen and checked against real RTL
-(Verilator netlist, coverage, latency, connectivity). Names only in boxes, uniform strokes, bold
+Figures rendered by fig-gen and checked against real RTL
+(Verilator netlist, coverage, latency, connectivity; the timing figure against
+a simulation). The RS figures are the author's own design; the others use
+open-source RTL. Names only in boxes, uniform strokes, bold
 bar muxes, compact registers, slash-N widths, dashed control.
 
 **RS(6,4) ECC accelerator — overview** (whole engine: AHB-Lite slave, memories as
@@ -34,21 +36,38 @@ decoder, error classifier drawn as gates and equivalence-checked against the RTL
 
 ![RS decoder mixed abstraction](docs/gallery/rs-decoder-mixed.png)
 
-**Falcon FFT butterfly — register-transfer view** (input/intermediate/output
-register banks, operand A/B selects, shared FP64 arithmetic unit, write-back,
-micro-operation controller; handshake signals omitted by declaration)
+**PicoRV32 fast multiplier — register-transfer view** (open-source
+[PicoRV32](https://github.com/YosysHQ/picorv32), ISC, `picorv32_pcpi_fast_mul`
+with default parameters: sign/zero extension, operand registers, multiplier,
+64-bit product register, high/low word select; RTL cross-check pass,
+coverage 5/5 registers, 18/18 nets, 42/42 transfers)
 
-![Falcon FFT butterfly](docs/gallery/falcon-fft-butterfly.png)
+![PicoRV32 fast multiplier](docs/gallery/picorv32-fast-mul.png)
 
-**Falcon FP64 arithmetic unit — internal view** (calculators, operation select,
-divide/square-root iteration engine, response registers, request/response control)
+**Ibex multiply/divide — FSM** (open-source [Ibex](https://github.com/lowRISC/ibex),
+Apache-2.0: the state machine extracted from the netlist, 7 states and
+8 transitions cross-checked)
 
-![Falcon FP64 arithmetic unit](docs/gallery/falcon-fp64-arithmetic-unit.png)
+![Ibex multdiv FSM](docs/gallery/ibex-multdiv-fsm.png)
 
-**Falcon SHAKE engine — block view** (owner controller and engine adapter
-controller with named request/response nets)
+**Ibex fetch FIFO — timing** (waveform taken from a Verilator simulation of a
+SystemVerilog testbench; valid only for the recorded stimulus and cycle window)
 
-![Falcon SHAKE engine](docs/gallery/falcon-shake-engine.png)
+![Ibex fetch FIFO timing](docs/gallery/ibex-fetch-fifo-timing.png)
+
+## Evaluation
+
+fig-gen was measured on 12 delivered figures from five designs, including the
+open-source Ibex (lowRISC, Apache-2.0) and SERV (ISC) cores: 70 figure regions,
+34 cross-checked against the RTL netlist, 1 against a simulation, and 35 marked
+unverified in their receipts (20 stub or black-box blocks, 14 drawn from
+documentation, 1 with no source). A control run, in which agents that did not
+know about the checks drew the same modules, surfaced a checker bug instead of
+a drawing one: registers declared inside a generate block were named
+inconsistently in the netlist and dropped from coverage as dead logic. That is
+fixed and covered by `tests/verilator-genscope.test.mjs`. The evaluation RTL and
+all of its outputs are not redistributed here; the gallery is a representative
+subset.
 
 ## INSTALL
 
