@@ -142,9 +142,11 @@ test('resolved if-generate BEGIN scopes keep branch-local registers and assignme
 endmodule\n`);
     const netlist = await verilator.extract({ files: [src], top: 'generated_history', work_dir: work, params: { HISTORY: 1 } });
     const top = netlist.modules.find((m) => m.orig_name === 'generated_history');
-    assert.ok(top.registers.some((r) => r.name === 'history_r'), 'register inside the resolved generate branch is retained');
+    // Named with its generate scope, the same name the net list gives it.
+    assert.ok(top.registers.some((r) => r.name === 'g_history.history_r'), 'register inside the resolved generate branch is retained');
+    assert.ok(top.nets.some((n) => n.name === 'g_history.history_r'));
     const q = top.deps.find((d) => d.target === 'q_o');
-    assert.ok(q?.sources.includes('history_r'), 'assignment inside the resolved generate branch is retained');
+    assert.ok(q?.sources.includes('g_history.history_r'), 'assignment inside the resolved generate branch is retained');
   } finally {
     fs.rmSync(user, { recursive: true, force: true });
     fs.rmSync(work, { recursive: true, force: true });
