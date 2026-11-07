@@ -775,6 +775,13 @@ Figures without banks are laid out as before.
   data net, a wider net or a net at a figure port is `view/abstract-invalid`
   (error). The caption must say "handshake signals omitted"
   (`view/abstract-caption`, error).
+- **Select abstraction.** `view.abstract { selects: true, reason }` leaves out
+  of the drawing every net between two drawn (non-port) elements whose sinks
+  are all mux select pins, of any width. The muxes keep their bar symbol
+  (`symbol/mux-sel-missing` and `glyph/distinguishable` accept an abstracted
+  select). The nets stay in the IR like abstracted handshakes; the receipt
+  lists them under `coverage.excluded.abstracted_selects`, and the caption
+  must say "mux selects omitted" (`view/abstract-caption`, error).
 - **Control returns.** A control-only net (loads, selects, enables: every sink a
   select, enable or handshake pin) whose return route is longer than the
   feedback limit (half the content width) becomes a named connector pair by
