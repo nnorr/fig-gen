@@ -57,6 +57,42 @@ test('an abstraction must be declared in the caption, and data nets are never ab
   assert.deepEqual(one.diagnostics, []);
 });
 
+const muxFigure = (caption) => ({
+  schema_version: 1, figure_type: 'datapath',
+  meta: { title: 'select', caption, print: { profile: 'ieee' } },
+  view: { preset: 'block', scope: '', abstract: { selects: true, reason: 'selects come from the controller' } },
+  clock_domains: [],
+  elements: [
+    { id: 'a', kind: 'port', dir: 'in', width: 16, label: 'operand' },
+    { id: 'b', kind: 'port', dir: 'in', width: 16, label: 'other operand' },
+    { id: 'ctl', kind: 'comb', op: 'custom', width: 2, function: { kind: 'controller' }, holds_state: true, ports: [{ id: 'd', dir: 'in', width: 16 }, { id: 's', dir: 'out', width: 2, latency: 'state', class: 'control' }] },
+    { id: 'm', kind: 'mux', inputs: 3, width: 16, style: 'bar' },
+    { id: 'o', kind: 'port', dir: 'out', width: 16, label: 'result' },
+  ],
+  nets: [
+    { id: 'n_a', width: 16, driver: 'a', sinks: ['ctl.d', 'm.in0', 'm.in2'] },
+    { id: 'n_b', width: 16, driver: 'b', sinks: ['m.in1'] },
+    { id: 'n_s', width: 2, driver: 'ctl.s', sinks: ['m.sel'] },
+    { id: 'n_y', width: 16, driver: 'm.out', sinks: ['o'] },
+  ],
+});
+
+test('view.abstract selects hides multi-bit mux selects; the mux keeps its bar and the caption must say so', async () => {
+  const doc = muxFigure('Block view of the whole design; mux selects omitted.');
+  assert.deepEqual(await validateSchema('datapath', doc), []);
+  const abs = abstraction(doc);
+  assert.deepEqual(abs.abstracted.map((a) => [a.net, a.kind]), [['n_s', 'select']]);
+  assert.deepEqual(abs.diagnostics, []);
+  assert.equal(doc.nets.length, 4, 'the figure itself is unchanged');
+  assert.deepEqual(checkView(doc, {}).report.abstracted_selects.map((a) => a.net), ['n_s']);
+  const r = await renderDatapath(doc, { variant: '2col', widthPt: 515.5, name: 'sel' });
+  assert.doesNotMatch(r.svg, /id="net-n_s-/);
+  assert.match(r.svg, /id="mux-m-body"/);
+  assert.ok(!r.diagnostics.some((d) => ['symbol/mux-sel-missing', 'glyph/distinguishable'].includes(d.code)), JSON.stringify(r.diagnostics.filter((d) => d.severity === 'error')));
+  const noCaption = abstraction(muxFigure('Block view of the whole design.'));
+  assert.ok(noCaption.diagnostics.some((d) => d.code === 'view/abstract-caption' && /mux selects omitted/.test(d.message)));
+});
+
 test('RTL abbreviations in generated names: err expands to error', () => {
   assert.equal(expandAbbreviations('err detected'), 'error detected');
   assert.equal(expandAbbreviations('error corrected'), 'error corrected');

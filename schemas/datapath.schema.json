@@ -195,15 +195,21 @@
           "uniqueItems": true
         },
         "abstract": {
-          "description": "Declared abstraction (SPEC §4.11): handshakes true omits every 1-bit handshake net between two drawn blocks from the drawing, with the reason. The nets stay checked; the receipt lists them (coverage.excluded.abstracted_handshakes) and the caption says \"handshake signals omitted\".",
+          "description": "Declared abstraction (SPEC §4.11): handshakes true omits every 1-bit handshake net between two drawn blocks from the drawing; selects true omits every net (any width) between two drawn elements whose sinks are all mux select pins. The nets stay checked; the receipt lists them (coverage.excluded.abstracted_handshakes / abstracted_selects) and the caption says \"handshake signals omitted\" / \"mux selects omitted\".",
           "type": "object",
           "additionalProperties": false,
           "required": [
-            "handshakes",
             "reason"
+          ],
+          "anyOf": [
+            { "required": ["handshakes"] },
+            { "required": ["selects"] }
           ],
           "properties": {
             "handshakes": {
+              "type": "boolean"
+            },
+            "selects": {
               "type": "boolean"
             },
             "reason": {

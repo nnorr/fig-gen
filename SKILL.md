@@ -337,6 +337,9 @@ study, analyse or explore RTL rather than to make a paper figure.
   Handshake wires between the controller and a shared operator may be left out
   only by declaration (`view.abstract: {handshakes: true, reason}`), with
   "handshake signals omitted" in the caption; data nets are never omitted.
+  Mux selects may be left out the same way when the user asks for it
+  (`view.abstract: {selects: true, reason}`, "mux selects omitted" in the
+  caption); the muxes stay drawn and the select nets stay in the IR.
 - **Paper figures are a draft skeleton plus a patch script.** Do not hand-edit
   the draft JSON or write one-off builder scripts: record each refinement as an
   op in `edits.json` (rename from the RTL, `split-bank`, `reorder`,
