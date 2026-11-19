@@ -379,7 +379,9 @@ with `cycles`; checked against register count on the path), `legend`.
 **Regions.** `regions[]` groups elements into one abstraction level:
 `blackbox | block | rtl | gate`, with optional `parent` (levels nest, e.g. a
 gate region inside an rtl-level decoder next to blackbox memories), `label`,
-`frame`, `max_gates` (default 30), `rtl.instance` and `rtl.stop_at`. Instance
+`frame`, `highlight` (optional: fills the frame in the accent colour at 15 %
+opacity), `max_gates` (default 30),
+`rtl.instance` and `rtl.stop_at`. Instance
 elements may also carry `level: blackbox|block` and `internals:
 unknown|stub|known`.
 

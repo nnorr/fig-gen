@@ -33,6 +33,12 @@ test('gate regions draw IEEE gates, blackboxes are hatched (unframed by default)
   }
   assert.doesNotMatch(r.svg, /id="region-bb-frame"/, 'the hatch already marks a blackbox; no frame unless frame: true');
   assert.doesNotMatch(r.svg, /id="legend-levels"/, 'two levels (gate, blackbox): no legend');
+  assert.match(r.svg, /id="region-cls-frame"[^>]*fill="none"/, 'a plain frame is not tinted');
+  const lit = structuredClone(doc);
+  lit.regions.find((x) => x.id === 'cls').highlight = true;
+  const h = await renderDatapath(lit, { variant: '2col', widthPt: 515.5, name: 'mixed' });
+  assert.match(h.svg, /id="region-cls-frame"[^>]*fill="#D55E00" fill-opacity="0.15"/, 'highlight tints the frame');
+  assert.deepEqual(lintFigmaSafe(h.svg).filter((d) => d.severity === 'error'), []);
 
   const three = structuredClone(doc);
   three.elements.push(

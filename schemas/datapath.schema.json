@@ -116,6 +116,10 @@
           "frame": {
             "type": "boolean"
           },
+          "highlight": {
+            "description": "Optional: fill the framed region in the accent colour at 15 % opacity (partial colouring).",
+            "type": "boolean"
+          },
           "max_gates": {
             "type": "integer",
             "minimum": 1,
