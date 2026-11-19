@@ -116,6 +116,10 @@
           "frame": {
             "type": "boolean"
           },
+          "highlight": {
+            "description": "Tint the framed region in the accent colour at 15 % opacity, e.g. to mark what changed against a previous version (say so in the caption).",
+            "type": "boolean"
+          },
           "max_gates": {
             "type": "integer",
             "minimum": 1,
