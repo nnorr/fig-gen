@@ -117,7 +117,7 @@
             "type": "boolean"
           },
           "highlight": {
-            "description": "Tint the framed region in the accent colour at 15 % opacity, e.g. to mark what changed against a previous version (say so in the caption).",
+            "description": "Optional: fill the framed region in the accent colour at 15 % opacity (partial colouring).",
             "type": "boolean"
           },
           "max_gates": {
